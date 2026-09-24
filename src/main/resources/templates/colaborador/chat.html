@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Chat | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content">
+            <div class="alert-error" th:if="${mensajeError != null}" th:text="${mensajeError}"></div>
+            <div class="alert-success" th:if="${mensajeExito != null}" th:text="${mensajeExito}"></div>
+
+            <section class="card chat-shell chat-shell-v4">
+                <aside class="chat-list">
+                    <div class="chat-list-head">
+                        <div>
+                            <p class="eyebrow">Conversaciones</p>
+                            <h3>Mis proyectos</h3>
+                        </div>
+                        <span class="badge badge-purple" th:text="${#lists.size(asignaciones)} + ' proyectos'">1 proyecto</span>
+                    </div>
+
+                    <a class="chat-project"
+                       th:each="a : ${asignaciones}"
+                       th:classappend="${proyectoSeleccionado != null and a.proyecto.idProyecto.equals(proyectoSeleccionado.idProyecto)} ? ' active' : ''"
+                       th:href="@{/colaborador/chat(idProyecto=${a.proyecto.idProyecto})}">
+                        <span class="chat-project-mark" th:text="${#strings.substring(a.proyecto.nombre,0,1)}">P</span>
+                        <span class="chat-project-copy">
+                            <strong th:text="${a.proyecto.nombre}">Plataforma Web</strong>
+                            <small th:text="${a.rolProyecto != null ? a.rolProyecto : 'Miembro del proyecto'}">Rol</small>
+                        </span>
+                    </a>
+
+                    <div class="empty chat-empty" th:if="${#lists.isEmpty(asignaciones)}">
+                        No tienes proyectos disponibles para conversar.
+                    </div>
+                </aside>
+
+                <div class="chat-main" th:if="${proyectoSeleccionado != null}">
+                    <header class="chat-head chat-head-v4">
+                        <div>
+                            <p class="eyebrow">Equipo del proyecto</p>
+                            <strong th:text="${proyectoSeleccionado.nombre}">Plataforma Web</strong>
+                            <small class="muted"
+                                   th:text="${proyectoSeleccionado.estado.name() == 'ACTIVE' ? 'Activo' : (proyectoSeleccionado.estado.name() == 'PLANNING' ? 'En planificación' : (proyectoSeleccionado.estado.name() == 'ON_HOLD' ? 'En pausa' : (proyectoSeleccionado.estado.name() == 'COMPLETED' ? 'Completado' : 'Cancelado')))}">
+                                Activo
+                            </small>
+                        </div>
+                        <span class="badge badge-success" th:if="${proyectoSeleccionado.estado.name() == 'ACTIVE'}">Proyecto activo</span>
+                    </header>
+
+                    <div class="chat-messages">
+                        <div class="message"
+                             th:each="m : ${mensajes}"
+                             th:classappend="${m.usuario.idUsuario == colaborador.usuario.idUsuario} ? ' mine' : ''">
+                            <strong th:text="${m.usuario.nombreCompleto}">Usuario</strong>
+                            <div class="message-copy" th:text="${m.contenido}">Mensaje</div>
+                            <div class="chat-message-meta">
+                                <small class="chat-date"
+                                       th:text="${m.fechaEnvio != null ? #temporals.format(m.fechaEnvio,'dd-MM-yyyy HH:mm') : 'Ahora'}">
+                                    16-09-2026 11:05
+                                </small>
+
+                                <form th:if="${m.usuario.idUsuario == colaborador.usuario.idUsuario}"
+                                      th:action="@{/colaborador/chat/mensajes/{id}/eliminar(id=${m.idMensaje})}"
+                                      method="post"
+                                      onsubmit="return confirm('¿Eliminar este mensaje?');">
+                                    <input type="hidden" name="idProyecto" th:value="${proyectoSeleccionado.idProyecto}">
+                                    <button class="chat-delete-button" type="submit">Eliminar</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="empty chat-empty" th:if="${#lists.isEmpty(mensajes)}">
+                            <strong>Aún no hay mensajes.</strong>
+                            <span>Inicia la conversación con el equipo del proyecto.</span>
+                        </div>
+                    </div>
+
+                    <form class="chat-form chat-form-v4" th:action="@{/colaborador/chat/enviar}" method="post">
+                        <input type="hidden" name="idProyecto" th:value="${proyectoSeleccionado.idProyecto}">
+                        <div class="chat-input-wrap">
+                            <input type="text" name="contenido" maxlength="500"
+                                   placeholder="Escribe un mensaje al equipo..." autocomplete="off" required>
+                            <small>Máximo 500 caracteres</small>
+                        </div>
+                        <button class="btn btn-primary" type="submit">Enviar</button>
+                    </form>
+                </div>
+
+                <div class="empty chat-empty chat-no-project" th:if="${proyectoSeleccionado == null}">
+                    <strong>Sin conversación disponible</strong>
+                    <span>Necesitas estar asignado a un proyecto para utilizar el chat.</span>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

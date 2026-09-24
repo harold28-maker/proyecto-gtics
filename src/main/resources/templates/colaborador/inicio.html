@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Colaborador | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content">
+            <section class="card hero-card" th:if="${colaborador != null}">
+                <div class="profile-hero">
+                    <div class="profile-avatar" th:text="${#strings.substring(colaborador.usuario.nombres,0,1)}">M</div>
+                    <div>
+                        <p class="eyebrow">Bienvenido</p>
+                        <h2 class="mt-0" th:text="|¡Hola, ${colaborador.usuario.nombres}!|">¡Hola!</h2>
+                        <p class="muted" th:text="|${colaborador.cargo} · ${colaborador.area}|">Perfil profesional</p>
+                        <div class="tags">
+                            <span class="tag" th:text="|Disponibilidad base ${colaborador.disponibilidadBase}%|">Disponibilidad</span>
+                            <span class="tag" th:text="${colaborador.seniority.name() == 'JUNIOR' ? 'Junior' : (colaborador.seniority.name() == 'SEMI_SENIOR' ? 'Semi senior' : (colaborador.seniority.name() == 'SENIOR' ? 'Senior' : 'Líder'))}">Senior</span>
+                            <span class="tag">Perfil activo</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="grid-4 section">
+                <div class="metric"><div class="metric-icon">☷</div><div class="label">Asignaciones activas</div><div class="value" th:text="${asignacionesActivas ?: 0}">0</div><div class="hint">Trabajo en curso</div></div>
+                <div class="metric green"><div class="metric-icon">✦</div><div class="label">Habilidades registradas</div><div class="value" th:text="${habilidades ?: 0}">0</div><div class="hint">Perfil de talento</div></div>
+                <div class="metric blue"><div class="metric-icon">◫</div><div class="label">Carga actual</div><div class="value" th:text="|${cargaActual ?: 0}%|">0%</div><div class="hint">Dedicación activa</div></div>
+                <div class="metric orange"><div class="metric-icon">◆</div><div class="label">Disponibilidad estimada</div><div class="value" th:text="|${disponibilidadReal ?: 0}%|">0%</div><div class="hint">Capacidad restante</div></div>
+            </div>
+
+            <div class="collab-dashboard-grid">
+                <section class="card focus-project">
+                    <div class="card-title">
+                        <div>
+                            <p class="eyebrow">Foco actual</p>
+                            <h2>Mi proyecto principal</h2>
+                        </div>
+                        <span class="badge badge-success" th:if="${asignacionPrincipal != null}">En curso</span>
+                    </div>
+
+                    <div th:if="${asignacionPrincipal != null}">
+                        <div class="focus-project-head">
+                            <div>
+                                <h2 class="mt-0" th:text="${asignacionPrincipal.proyecto.nombre}">Proyecto</h2>
+                                <p class="muted" th:text="${asignacionPrincipal.proyecto.descripcion}">Descripción</p>
+                                <div class="focus-project-meta">
+                                    <span class="tag" th:text="${asignacionPrincipal.rolProyecto}">Rol</span>
+                                    <span class="tag" th:text="|Carga ${asignacionPrincipal.porcentajeDedicacion}%|">Carga</span>
+                                    <span class="tag" th:text="${asignacionPrincipal.estado.name() == 'ACTIVA' ? 'Activa' : (asignacionPrincipal.estado.name() == 'PLANIFICADA' ? 'Planificada' : (asignacionPrincipal.estado.name() == 'FINALIZADA' ? 'Finalizada' : 'Cancelada'))}">Estado</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:16px">
+                            <div class="capacity-row-head"><span>Progreso del proyecto</span><strong th:text="|${asignacionPrincipal.proyecto.progreso}%|">0%</strong></div>
+                            <div class="progress green"><span th:style="|width:${asignacionPrincipal.proyecto.progreso}%|"></span></div>
+                        </div>
+
+                        <div class="focus-project-stats" style="margin-top:16px">
+                            <div class="focus-stat"><small>Inicio</small><strong th:text="${asignacionPrincipal.fechaInicio != null ? #temporals.format(asignacionPrincipal.fechaInicio,'dd-MM-yyyy') : '-'}">-</strong></div>
+                            <div class="focus-stat"><small>Fin estimado</small><strong th:text="${asignacionPrincipal.fechaFin != null ? #temporals.format(asignacionPrincipal.fechaFin,'dd-MM-yyyy') : '-'}">-</strong></div>
+                            <div class="focus-stat"><small>Prioridad</small><strong th:text="${asignacionPrincipal.proyecto.prioridad.name() == 'ALTA' ? 'Alta' : (asignacionPrincipal.proyecto.prioridad.name() == 'MEDIA' ? 'Media' : 'Baja')}">Media</strong></div>
+                        </div>
+                    </div>
+                    <div class="empty" th:if="${asignacionPrincipal == null}">No tienes una asignación activa en este momento.</div>
+                </section>
+
+                <section class="card">
+                    <div class="card-title"><div><p class="eyebrow">Balance personal</p><h2>Mi capacidad</h2></div></div>
+                    <div class="capacity-stack">
+                        <div class="capacity-row"><div class="capacity-row-head"><span>Disponibilidad base</span><strong th:text="|${colaborador != null ? colaborador.disponibilidadBase : 0}%|">0%</strong></div><div class="progress"><span th:style="|width:${colaborador != null ? colaborador.disponibilidadBase : 0}%|"></span></div></div>
+                        <div class="capacity-row"><div class="capacity-row-head"><span>Carga activa</span><strong th:text="|${cargaActual ?: 0}%|">0%</strong></div><div class="progress orange"><span th:style="|width:${cargaActual > 100 ? 100 : cargaActual}%|"></span></div></div>
+                        <div class="capacity-row"><div class="capacity-row-head"><span>Disponibilidad estimada</span><strong th:text="|${disponibilidadReal ?: 0}%|">0%</strong></div><div class="progress green"><span th:style="|width:${disponibilidadReal}%|"></span></div></div>
+                    </div>
+                    <div class="profile-readiness">
+                        <strong>Perfil para oportunidades</strong>
+                        <p><span th:text="${habilidades ?: 0}">0</span> habilidades y <span th:text="${totalCertificaciones ?: 0}">0</span> certificaciones respaldan tu perfil profesional.</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

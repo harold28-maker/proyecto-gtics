@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Foro de conocimiento | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar(${rolVista})}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content">
+            <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+            <div class="page-actions"><a class="btn btn-light" th:if="${rolVista == 'PM'}" th:href="@{/pm/foros}">← Volver al Foro de conocimiento</a><a class="btn btn-light" th:unless="${rolVista == 'PM'}" th:href="@{/colaborador/foros}">← Volver al Foro de conocimiento</a></div>
+
+            <div class="forum-detail-layout">
+                <section>
+                    <article class="card question-card">
+                        <div class="question-head">
+                            <div class="question-kicker"><span class="badge badge-purple" th:text="${foro.categoria ?: 'General'}"></span><span class="badge badge-blue" th:text="${foro.proyecto != null ? foro.proyecto.nombre : 'Tema general'}"></span><span class="badge" th:classappend="${foro.estado.name() == 'RESUELTO'} ? ' badge-success' : (${foro.estado.name() == 'CERRADO'} ? ' badge-warning' : ' badge-purple')" th:text="${foro.estado.name() == 'RESUELTO' ? 'Resuelto' : (foro.estado.name() == 'CERRADO' ? 'Cerrado' : 'Abierto')}"></span></div>
+                            <h2 th:text="${foro.titulo}"></h2>
+                            <div class="question-author"><span class="mini-avatar" th:text="${foro.autor.iniciales}"></span><div><strong th:text="${foro.autor.nombreCompleto}"></strong><span th:text="${foro.fechaCreacion != null ? ' · ' + #temporals.format(foro.fechaCreacion,'dd-MM-yyyy HH:mm') : ''}"></span></div></div>
+                        </div>
+                        <div class="question-body" th:text="${foro.contenido}"></div>
+                        <div class="question-actions">
+                            <a class="btn btn-light btn-sm" th:href="@{/foros/{id}/editar(id=${foro.idForo},vista=${rolVista})}">Editar publicación</a>
+                            <form th:if="${foro.estado.name() != 'CERRADO'}" th:action="@{/foros/{id}/estado(id=${foro.idForo})}" method="post"><input type="hidden" name="vista" th:value="${rolVista}"><input type="hidden" name="estado" value="CERRADO"><button class="btn btn-light btn-sm">Cerrar tema</button></form>
+                            <form th:if="${foro.estado.name() == 'CERRADO'}" th:action="@{/foros/{id}/estado(id=${foro.idForo})}" method="post"><input type="hidden" name="vista" th:value="${rolVista}"><input type="hidden" name="estado" value="ABIERTO"><button class="btn btn-success-soft btn-sm">Reabrir</button></form>
+                            <form th:if="${rolVista == 'PM'}" th:action="@{/foros/{id}/eliminar(id=${foro.idForo})}" method="post" onsubmit="return confirm('¿Eliminar esta publicación y sus respuestas?')"><input type="hidden" name="vista" value="PM"><button class="btn btn-danger-soft btn-sm">Eliminar</button></form>
+                        </div>
+                    </article>
+
+                    <section class="section">
+                        <div class="answers-title"><div><p class="eyebrow">Conversación</p><h2 class="mt-0" th:text="|${totalRespuestas} respuestas|"></h2></div><span class="badge badge-success" th:if="${soluciones > 0}">✓ Solución encontrada</span></div>
+                        <article class="answer-card" th:classappend="${r.esSolucion} ? ' solution'" th:each="r : ${respuestas}">
+                            <div class="answer-mark" th:text="${r.esSolucion ? '✓' : '↳'}"></div>
+                            <div>
+                                <div class="answer-author"><div><strong th:text="${r.autor.nombreCompleto}"></strong><small class="muted" th:text="${r.fechaCreacion != null ? ' · ' + #temporals.format(r.fechaCreacion,'dd-MM-yyyy HH:mm') : ''}"></small></div><span class="badge badge-success" th:if="${r.esSolucion}">SOLUCIÓN VALIDADA</span></div>
+                                <div class="answer-body" th:text="${r.contenido}"></div>
+                                <div class="answer-actions">
+                                    <form th:if="${!r.esSolucion and foro.estado.name() != 'CERRADO'}" th:action="@{/foros/{idForo}/solucion/{idRespuesta}(idForo=${foro.idForo},idRespuesta=${r.idRespuesta})}" method="post"><input type="hidden" name="vista" th:value="${rolVista}"><button class="btn btn-success-soft btn-sm">✓ Marcar como solución</button></form>
+                                    <form th:action="@{/foros/{idForo}/respuestas/{idRespuesta}/eliminar(idForo=${foro.idForo},idRespuesta=${r.idRespuesta})}" method="post" onsubmit="return confirm('¿Eliminar esta respuesta?')"><input type="hidden" name="vista" th:value="${rolVista}"><button class="btn btn-danger-soft btn-sm">Eliminar respuesta</button></form>
+                                </div>
+                            </div>
+                        </article>
+                        <div class="empty" th:if="${#lists.isEmpty(respuestas)}">Aún no hay respuestas. Sé el primero en aportar una solución.</div>
+                    </section>
+
+                    <section class="card reply-composer" th:if="${foro.estado.name() != 'CERRADO'}">
+                        <div class="card-title"><div><p class="eyebrow">Aportar al tema</p><h2>Publicar una respuesta</h2></div><span class="badge badge-purple">Conocimiento colaborativo</span></div>
+                        <form th:action="@{/foros/{id}/responder(id=${foro.idForo})}" method="post"><input type="hidden" name="vista" th:value="${rolVista}"><textarea rows="6" name="contenido" required placeholder="Explica tu propuesta, pasos realizados o solución. Si aplica, incluye el razonamiento que puede ayudar a otro equipo."></textarea><div class="form-actions"><button class="btn btn-primary">Publicar respuesta</button></div></form>
+                    </section>
+                    <section class="card" th:if="${foro.estado.name() == 'CERRADO'}"><div class="empty">Este tema está cerrado. Puede reabrirse desde las acciones de la publicación.</div></section>
+                </section>
+
+                <aside class="forum-side-card">
+                    <section class="card"><p class="eyebrow">Ficha del tema</p><h3 class="mt-0">Información</h3><div class="forum-info-list"><div class="forum-info-row"><span>Estado</span><strong th:text="${foro.estado.name() == 'RESUELTO' ? 'Resuelto' : (foro.estado.name() == 'CERRADO' ? 'Cerrado' : 'Abierto')}"></strong></div><div class="forum-info-row"><span>Categoría</span><strong th:text="${foro.categoria ?: 'General'}"></strong></div><div class="forum-info-row"><span>Proyecto</span><strong th:text="${foro.proyecto != null ? foro.proyecto.nombre : 'General'}"></strong></div><div class="forum-info-row"><span>Autor</span><strong th:text="${foro.autor.nombreCompleto}"></strong></div><div class="forum-info-row"><span>Respuestas</span><strong th:text="${totalRespuestas}"></strong></div></div></section>
+                    <div class="knowledge-tip" th:if="${soluciones > 0}"><strong>✓ Conocimiento validado</strong><p>Este tema ya cuenta con una respuesta marcada como solución, por lo que puede reutilizarse como referencia histórica.</p></div>
+                    <div class="knowledge-tip" th:unless="${soluciones > 0}"><strong>Construye la solución</strong><p>Cuando una respuesta resuelva el problema, márcala como solución para que destaque frente al resto.</p></div>
+                </aside>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

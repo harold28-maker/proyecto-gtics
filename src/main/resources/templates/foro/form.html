@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Publicación | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar(${rolVista})}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content">
+            <section class="page-intro"><div><p class="eyebrow">Foro de conocimiento</p><h2 th:text="${titulo}"></h2><p>Convierte una duda, hallazgo o decisión del proyecto en conocimiento fácil de recuperar.</p></div><span class="badge badge-purple">Publicación estructurada</span></section>
+
+            <div class="forum-compose-grid">
+                <section class="card compose-card">
+                    <div class="compose-head"><h2>Cuéntale al equipo lo necesario</h2><p>Usa un título concreto, elige una categoría y describe suficiente contexto para que otros puedan responder sin adivinar.</p></div>
+                    <div class="compose-body">
+                        <form th:action="@{/foros/guardar}" th:object="${foro}" method="post">
+                            <input type="hidden" th:field="*{idForo}">
+                            <input type="hidden" name="vista" th:value="${rolVista}">
+                            <div class="form-grid">
+                                <div class="form-group full"><label>Título de la publicación</label><input th:field="*{titulo}" maxlength="180" required placeholder="Ej. Timeout al consumir Certification API desde EC2"></div>
+                                <div class="form-group"><label>Proyecto relacionado</label><select name="idProyecto"><option value="">Tema general</option><option th:each="p : ${proyectos}" th:value="${p.idProyecto}" th:text="${p.nombre}" th:selected="${foro.proyecto != null and foro.proyecto.idProyecto == p.idProyecto}"></option></select></div>
+                                <div class="form-group"><label>Categoría</label><select th:field="*{categoria}" required><option th:each="cat : ${categoriasForo}" th:value="${cat}" th:text="${cat}"></option></select></div>
+                                <div class="form-group full"><label>Contexto y detalle</label><textarea rows="11" th:field="*{contenido}" required placeholder="Describe qué ocurre, qué esperabas, qué ya probaste y cualquier dato que ayude a reproducir o entender el caso."></textarea><p class="help">Evita mensajes de una sola línea: el objetivo es que esta publicación siga siendo útil más adelante.</p></div>
+                                <div class="form-group" th:if="${foro.idForo != null}"><label>Estado</label><select th:field="*{estado}"><option value="ABIERTO">Abierto</option><option value="RESUELTO">Resuelto</option><option value="CERRADO">Cerrado</option></select></div>
+                                <input th:if="${foro.idForo == null}" type="hidden" th:field="*{estado}" value="ABIERTO">
+                            </div>
+                            <div class="form-actions"><a class="btn btn-light" th:if="${rolVista == 'PM'}" th:href="@{/pm/foros}">Cancelar</a><a class="btn btn-light" th:unless="${rolVista == 'PM'}" th:href="@{/colaborador/foros}">Cancelar</a><button class="btn btn-primary" type="submit" th:text="${foro.idForo == null ? 'Publicar en el foro' : 'Guardar cambios'}"></button></div>
+                        </form>
+                    </div>
+                </section>
+
+                <aside class="card">
+                    <p class="eyebrow">Guía de publicación</p><h3 class="mt-0">Haz que tu tema sea útil</h3>
+                    <div class="compose-guide">
+                        <div class="guide-step"><b>1</b><div><strong>Título específico</strong><small>Describe el problema o decisión, no solo “ayuda”.</small></div></div>
+                        <div class="guide-step"><b>2</b><div><strong>Proyecto y categoría</strong><small>Facilitan encontrar el conocimiento después.</small></div></div>
+                        <div class="guide-step"><b>3</b><div><strong>Contexto suficiente</strong><small>Incluye qué probaste y qué resultado obtuviste.</small></div></div>
+                        <div class="guide-step"><b>4</b><div><strong>Cierra el ciclo</strong><small>Marca una solución o cierra el tema cuando corresponda.</small></div></div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

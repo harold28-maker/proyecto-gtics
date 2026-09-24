@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Notificaciones | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
+<div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+<div class="grid-3 notification-summary">
+    <div class="metric"><div class="metric-icon">♢</div><div class="label">Notificaciones</div><div class="value" th:text="${totalNotificaciones}">0</div><div class="hint">Historial registrado</div></div>
+    <div class="metric orange"><div class="metric-icon">!</div><div class="label">No leídas</div><div class="value" th:text="${noLeidas}">0</div><div class="hint">Pendientes de revisar</div></div>
+    <div class="metric green"><div class="metric-icon">✓</div><div class="label">Leídas</div><div class="value" th:text="${leidas}">0</div><div class="hint">Ya revisadas</div></div>
+</div>
+<section class="card section">
+    <div class="card-title"><div><h2>Centro de notificaciones</h2><p class="muted">Mantén al día cambios de asignaciones, chat, foro y proyectos.</p></div><form th:if="${noLeidas > 0}" th:action="@{/colaborador/notificaciones/leer-todas}" method="post"><button class="btn btn-light">✓ Marcar todas como leídas</button></form></div>
+    <div class="notification-list">
+        <article class="notice" th:classappend="${!n.leida} ? ' unread' : ''" th:each="n : ${notificaciones}">
+            <div class="notice-icon" th:text="${n.tipo.name() == 'ASIGNACION' ? '☷' : (n.tipo.name() == 'CHAT' ? '◍' : (n.tipo.name() == 'FORO' ? '◌' : (n.tipo.name() == 'PROYECTO' ? '▣' : '♢')))}">♢</div>
+            <div class="notice-main">
+                <div class="notice-head"><strong class="notice-title" th:text="${n.titulo}"></strong><span class="badge badge-purple" th:text="${n.tipo.name() == 'ASIGNACION' ? 'Asignación' : (n.tipo.name() == 'CHAT' ? 'Chat' : (n.tipo.name() == 'FORO' ? 'Foro' : (n.tipo.name() == 'PROYECTO' ? 'Proyecto' : (n.tipo.name() == 'SISTEMA' ? 'Sistema' : 'Información'))))}"></span></div>
+                <p class="notice-copy" th:text="${n.mensaje}"></p>
+                <small class="muted" th:text="${n.fechaCreacion != null ? #temporals.format(n.fechaCreacion,'dd-MM-yyyy HH:mm') : ''}"></small>
+                <div class="notice-actions">
+                    <form th:if="${!n.leida}"
+                          th:action="@{/colaborador/notificaciones/{id}/leer(id=${n.idNotificacion})}"
+                          method="post">
+                        <input type="hidden" name="page" th:value="${paginaActual}">
+                        <button class="btn btn-success-soft btn-sm">Marcar como leída</button>
+                    </form>
+
+                    <form th:if="${n.leida}"
+                          th:action="@{/colaborador/notificaciones/{id}/no-leer(id=${n.idNotificacion})}"
+                          method="post">
+                        <input type="hidden" name="page" th:value="${paginaActual}">
+                        <button class="btn btn-light btn-sm">Marcar como no leída</button>
+                    </form>
+
+                    <form th:action="@{/colaborador/notificaciones/{id}/eliminar(id=${n.idNotificacion})}"
+                          method="post"
+                          onsubmit="return confirm('¿Eliminar esta notificación?');">
+                        <input type="hidden" name="page" th:value="${paginaActual}">
+                        <button class="btn btn-danger-soft btn-sm">Eliminar</button>
+                    </form>
+                </div>
+            </div>
+        </article>
+    </div>
+    <div class="empty" th:if="${#lists.isEmpty(notificaciones)}">No tienes notificaciones en esta página.</div>
+    <nav class="pagination" th:if="${totalPaginas > 1}" aria-label="Paginación de notificaciones">
+        <a class="page-link" th:classappend="${paginaActual == 1} ? ' disabled'" th:href="@{/colaborador/notificaciones(page=${paginaActual - 1})}">‹</a>
+        <a class="page-link" th:each="p : ${#numbers.sequence(1,totalPaginas)}" th:classappend="${p == paginaActual} ? ' active'" th:href="@{/colaborador/notificaciones(page=${p})}" th:text="${p}">1</a>
+        <a class="page-link" th:classappend="${paginaActual == totalPaginas} ? ' disabled'" th:href="@{/colaborador/notificaciones(page=${paginaActual + 1})}">›</a>
+    </nav>
+</section>
+</div></main></div></body></html>

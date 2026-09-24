@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body class="hero-public">
+<nav class="public-nav">
+    <a class="public-brand" th:href="@{/}"><span class="public-brand-mark">SB</span><span>SkillBridge AI</span></a>
+    <span class="public-nav-caption">Talent Intelligence Workspace</span>
+</nav>
+
+<section class="public-hero">
+    <div class="public-hero-copy">
+        <span class="hero-chip">PLATAFORMA INTELIGENTE DE TALENTO</span>
+        <h1>Talento, proyectos y conocimiento en un solo lugar.</h1>
+        <p>Centraliza perfiles, habilidades, proyectos, asignaciones y disponibilidad para conectar a las personas adecuadas con cada iniciativa de la organización.</p>
+        <div class="page-actions public-actions">
+            <a class="btn btn-primary btn-lg" th:href="@{/login}">Explorar la plataforma</a>
+            <a class="btn btn-light btn-lg" href="#modulos">Conocer módulos</a>
+        </div>
+    </div>
+
+    <div class="corporate-ecosystem" aria-label="Ecosistema SkillBridge AI">
+        <div class="ecosystem-header">
+            <span class="ecosystem-kicker">Ecosistema organizacional</span>
+            <strong>Personas y proyectos conectados</strong>
+            <p>Una vista central para entender capacidades, necesidades y conocimiento compartido.</p>
+        </div>
+        <div class="ecosystem-stage">
+            <div class="ecosystem-core"><span class="ecosystem-logo">SB</span><div><strong>SkillBridge AI</strong><small>Talent Intelligence</small></div></div>
+            <div class="ecosystem-node node-people"><span class="node-icon">♙</span><div><strong>Talento</strong><small>Perfiles y experiencia</small></div></div>
+            <div class="ecosystem-node node-projects"><span class="node-icon">▣</span><div><strong>Proyectos</strong><small>Necesidades y equipos</small></div></div>
+            <div class="ecosystem-node node-capacity"><span class="node-icon">◫</span><div><strong>Capacidad</strong><small>Carga y disponibilidad</small></div></div>
+            <div class="ecosystem-node node-knowledge"><span class="node-icon">◌</span><div><strong>Conocimiento</strong><small>Foros y experiencia</small></div></div>
+            <span class="ecosystem-line line-one"></span><span class="ecosystem-line line-two"></span><span class="ecosystem-line line-three"></span><span class="ecosystem-line line-four"></span>
+        </div>
+        <div class="ecosystem-people">
+            <div class="avatar-stack" aria-hidden="true"><span>MG</span><span>CR</span><span>AT</span><span>JM</span></div>
+            <p><strong>Decisiones con contexto.</strong> El sistema reúne información que normalmente vive dispersa.</p>
+        </div>
+    </div>
+</section>
+
+<section id="modulos" class="public-modules-section">
+    <div class="public-section-head">
+        <span class="hero-chip">MÓDULOS DE LA PLATAFORMA</span>
+        <h2>Explora cómo trabaja SkillBridge AI</h2>
+        <p>Selecciona cada módulo para conocer qué información administra y cómo aporta a la organización.</p>
+    </div>
+    <div class="module-showcase">
+        <details class="module-story module-story-purple"><summary><div class="module-visual"><svg viewBox="0 0 160 105"><circle cx="55" cy="40" r="21"></circle><circle cx="108" cy="47" r="16"></circle><path d="M23 91c4-26 18-38 34-38 19 0 33 13 36 38"></path><path d="M83 91c3-20 14-30 27-30 15 0 25 10 28 30"></path><path class="accent-line" d="M71 24l16-11 15 10"></path></svg></div><div class="module-summary-copy"><span>01</span><h3>Talento y habilidades</h3><small>Perfiles profesionales, skills, certificaciones y experiencia.</small></div><span class="module-open">+</span></summary><div class="module-details">Permite construir una visión clara de cada colaborador, mantener su perfil profesional y consultar las capacidades disponibles dentro de la organización.</div></details>
+        <details class="module-story module-story-blue"><summary><div class="module-visual"><svg viewBox="0 0 160 105"><rect x="22" y="25" width="116" height="68" rx="12"></rect><path d="M22 45h116"></path><circle cx="39" cy="35" r="4"></circle><path class="accent-line" d="M42 67h28M42 78h48M87 61h32v22H87z"></path></svg></div><div class="module-summary-copy"><span>02</span><h3>Gestión de proyectos</h3><small>Planificación, requerimientos, estados, vacantes y seguimiento.</small></div><span class="module-open">+</span></summary><div class="module-details">Ayuda al Project Manager a organizar proyectos, definir las habilidades necesarias y gestionar a los colaboradores que participan en cada iniciativa.</div></details>
+        <details class="module-story module-story-teal"><summary><div class="module-visual"><svg viewBox="0 0 160 105"><path d="M27 88V50h20v38M62 88V31h20v57M97 88V61h20v27M132 88V41h9v47"></path><path class="accent-line" d="M23 25c18 13 34 7 47 15 18 11 27-12 43-5 11 5 18 1 25-8"></path><circle class="accent-fill" cx="138" cy="27" r="6"></circle></svg></div><div class="module-summary-copy"><span>03</span><h3>Capacidad y asignaciones</h3><small>Disponibilidad, carga de trabajo y staffing de proyectos.</small></div><span class="module-open">+</span></summary><div class="module-details">Facilita la asignación de personas considerando su carga actual y disponibilidad, reduciendo conflictos de capacidad y mejorando la distribución del equipo.</div></details>
+        <details class="module-story module-story-indigo"><summary><div class="module-visual"><svg viewBox="0 0 160 105"><path d="M25 25h110v58H82L61 96V83H25z"></path><circle cx="51" cy="54" r="6"></circle><circle cx="80" cy="54" r="6"></circle><circle cx="109" cy="54" r="6"></circle><path class="accent-line" d="M45 69h70"></path></svg></div><div class="module-summary-copy"><span>04</span><h3>Foro de conocimiento</h3><small>Foros, respuestas, soluciones y conocimiento reutilizable.</small></div><span class="module-open">+</span></summary><div class="module-details">Convierte discusiones técnicas y soluciones de proyectos en conocimiento consultable, evitando que la experiencia quede dispersa en conversaciones aisladas.</div></details>
+        <details class="module-story module-story-gold"><summary><div class="module-visual"><svg viewBox="0 0 160 105"><circle cx="80" cy="52" r="30"></circle><path d="M80 22v60M50 52h60M59 31l42 42M101 31L59 73"></path><circle class="accent-fill" cx="80" cy="52" r="10"></circle></svg></div><div class="module-summary-copy"><span>05</span><h3>Talent Matching</h3><small>Recomendaciones a partir de skills, experiencia y disponibilidad.</small></div><span class="module-open">+</span></summary><div class="module-details">Presenta candidatos adecuados para un proyecto utilizando la información centralizada de SkillBridge y dejando la decisión final en manos del responsable autorizado.</div></details>
+        <details class="module-story module-story-slate"><summary><div class="module-visual"><svg viewBox="0 0 160 105"><path d="M80 17l42 16v25c0 22-17 34-42 43-25-9-42-21-42-43V33z"></path><path class="accent-line" d="M62 55l12 12 25-29"></path></svg></div><div class="module-summary-copy"><span>06</span><h3>Administración</h3><small>Usuarios, roles, permisos, catálogo y trazabilidad.</small></div><span class="module-open">+</span></summary><div class="module-details">Centraliza el gobierno de la plataforma y permite mantener usuarios, perfiles de acceso, catálogos y registros de auditoría desde un workspace administrativo.</div></details>
+    </div>
+</section>
+<footer class="public-footer"><strong>SkillBridge AI</strong><span>Talento conectado con proyectos que generan conocimiento.</span></footer>
+</body>
+</html>

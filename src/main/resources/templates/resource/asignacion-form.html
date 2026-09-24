@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Asignación | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+
+        <div class="content">
+            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+
+            <section class="card" style="max-width:980px">
+                <form th:action="@{/resource/asignaciones/guardar}"
+                      th:object="${asignacion}" method="post">
+                    <input type="hidden" th:field="*{idAsignacion}">
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Proyecto</label>
+                            <select name="idProyecto" required>
+                                <option value="">Selecciona</option>
+                                <option th:each="p : ${proyectos}"
+                                        th:value="${p.idProyecto}"
+                                        th:text="${p.nombre}"
+                                        th:selected="${asignacion.proyecto != null and asignacion.proyecto.idProyecto == p.idProyecto}"></option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Colaborador</label>
+                            <select name="idColaborador" required>
+                                <option value="">Selecciona</option>
+                                <option th:each="c : ${colaboradores}"
+                                        th:value="${c.idColaborador}"
+                                        th:text="|${c.usuario.nombreCompleto} · ${c.cargo} · disponibilidad base ${c.disponibilidadBase}%|"
+                                        th:selected="${asignacion.colaborador != null and asignacion.colaborador.idColaborador == c.idColaborador}"></option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Rol en proyecto</label>
+                            <input th:field="*{rolProyecto}" maxlength="100"
+                                   placeholder="Ej. Desarrollador Backend">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Porcentaje de dedicación</label>
+                            <input type="number" min="1" max="100" th:field="*{porcentajeDedicacion}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Fecha inicio</label>
+                            <input type="date" th:field="*{fechaInicio}" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Fecha fin</label>
+                            <input type="date" th:field="*{fechaFin}">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select th:field="*{estado}">
+                                <option value="PLANIFICADA">Planificada</option>
+                                <option value="ACTIVA">Activa</option>
+                                <option value="FINALIZADA">Finalizada</option>
+                                <option value="CANCELADA">Cancelada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <a class="btn btn-light" th:href="@{/resource/asignaciones}">Cancelar</a>
+                        <button class="btn btn-primary" type="submit"
+                                th:text="${asignacion.idAsignacion == null ? 'Crear asignación' : 'Guardar cambios'}">
+                            Guardar
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Foro de conocimiento | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content">
+            <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+
+            <section class="forum-hero">
+                <div>
+                    <span class="hero-chip glass">FORO DE PROYECTO</span>
+                    <h2>Decisiones, problemas y soluciones que quedan documentadas.</h2>
+                    <p>Organiza discusiones por proyecto y categoría. Convierte respuestas útiles en soluciones visibles para futuros equipos.</p>
+                    <div style="margin-top:17px"><a class="btn btn-light" th:href="@{/foros/nuevo(vista='PM')}">＋ Crear publicación</a></div>
+                </div>
+                <div class="forum-hero-stats">
+                    <div class="forum-hero-stat"><strong th:text="${totalForos}">0</strong><span>Temas</span></div>
+                    <div class="forum-hero-stat"><strong th:text="${abiertos}">0</strong><span>Abiertos</span></div>
+                    <div class="forum-hero-stat"><strong th:text="${resueltos}">0</strong><span>Resueltos</span></div>
+                </div>
+            </section>
+
+            <div class="forum-layout">
+                <section>
+                    <form class="forum-toolbar" method="get" th:action="@{/pm/foros}">
+                        <input class="search" type="text" name="q" th:value="${q}" placeholder="Buscar conocimiento del proyecto">
+                        <select name="categoria">
+                            <option value="TODAS">Todas las categorías</option>
+                            <option th:each="cat : ${categoriasForo}" th:value="${cat}" th:text="${cat}" th:selected="${cat == categoriaSeleccionada}"></option>
+                        </select>
+                        <select name="estado">
+                            <option value="TODOS">Todos los estados</option>
+                            <option value="ABIERTO" th:selected="${estadoSeleccionado == 'ABIERTO'}">Abiertos</option>
+                            <option value="RESUELTO" th:selected="${estadoSeleccionado == 'RESUELTO'}">Resueltos</option>
+                            <option value="CERRADO" th:selected="${estadoSeleccionado == 'CERRADO'}">Cerrados</option>
+                        </select>
+                        <button class="btn btn-primary">Aplicar</button>
+                        <a class="btn btn-light" th:href="@{/pm/foros}">Limpiar</a>
+                    </form>
+
+                    <div class="forum-feed">
+                        <article class="forum-card" th:each="f : ${foros}"
+                                 th:classappend="${f.estado.name() == 'RESUELTO'} ? ' resuelto' : (${f.estado.name() == 'CERRADO'} ? ' cerrado' : '')">
+                            <div class="forum-vote" th:text="${#strings.substring(f.categoria ?: 'G',0,1)}">A</div>
+                            <div class="forum-card-main">
+                                <div class="question-kicker">
+                                    <span class="badge badge-purple" th:text="${f.categoria ?: 'General'}"></span>
+                                    <span class="badge badge-blue" th:text="${f.proyecto != null ? f.proyecto.nombre : 'General'}"></span>
+                                </div>
+                                <h3><a th:href="@{/foros/{id}(id=${f.idForo},vista='PM')}" th:text="${f.titulo}"></a></h3>
+                                <p class="forum-excerpt" th:text="${f.contenido}"></p>
+                                <div class="forum-meta"><span class="mini-avatar" th:text="${f.autor.iniciales}"></span><strong th:text="${f.autor.nombreCompleto}"></strong><span>·</span><span th:text="${f.fechaCreacion != null ? #temporals.format(f.fechaCreacion,'dd-MM-yyyy HH:mm') : 'Reciente'}"></span></div>
+                            </div>
+                            <div class="forum-card-side"><span class="badge" th:classappend="${f.estado.name() == 'RESUELTO'} ? ' badge-success' : (${f.estado.name() == 'CERRADO'} ? ' badge-warning' : ' badge-purple')" th:text="${f.estado.name() == 'RESUELTO' ? 'Resuelto' : (f.estado.name() == 'CERRADO' ? 'Cerrado' : 'Abierto')}"></span><span class="reply-count">◌ <span th:text="${conteoRespuestas[f.idForo]}">0</span> respuestas</span></div>
+                        </article>
+                        <div class="empty" th:if="${#lists.isEmpty(foros)}">No hay resultados para los filtros seleccionados.</div>
+                    </div>
+                </section>
+
+                <aside class="forum-side-card">
+                    <section class="card"><p class="eyebrow">Taxonomía</p><h3 class="mt-0">Categorías del foro</h3><div class="category-list"><a class="category-pill" th:each="cat : ${categoriasForo}" th:href="@{/pm/foros(categoria=${cat})}"><span th:text="${cat}"></span><span>→</span></a></div></section>
+                    <div class="knowledge-tip"><strong>Gestión del conocimiento</strong><p>Como Project Manager puedes editar, cerrar o eliminar publicaciones y marcar respuestas como solución.</p></div>
+                </aside>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

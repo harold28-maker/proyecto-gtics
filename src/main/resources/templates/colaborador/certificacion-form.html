@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Certificación | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+
+        <div class="content">
+            <div class="certification-form-intro">
+                <p th:text="${certificacion.idCertificacion == null ? 'Registra los datos de la certificación y agrega un respaldo si lo tienes.' : 'Actualiza los datos de la certificación y su documento de respaldo.'}">
+                    Registra los datos de la certificación.
+                </p>
+                <span>* Campos obligatorios</span>
+            </div>
+
+            <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+
+            <section class="card certification-form-card">
+                <form th:action="@{/colaborador/certificaciones/guardar}"
+                      th:object="${certificacion}"
+                      method="post"
+                      enctype="multipart/form-data">
+
+                    <input type="hidden" th:field="*{idCertificacion}">
+
+                    <div class="form-grid">
+                        <div class="form-group full">
+                            <label>Nombre de la certificación *</label>
+                            <input th:field="*{nombre}"
+                                   maxlength="40"
+                                   required
+                                   placeholder="Ej. AWS Certified Developer - Associate">
+                            <div class="form-note">Máximo 40 caracteres.</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Entidad emisora</label>
+                            <input th:field="*{entidadEmisora}"
+                                   maxlength="40"
+                                   placeholder="Ej. Amazon Web Services">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Estado *</label>
+                            <select th:field="*{estado}" required>
+                                <option value="VIGENTE">Vigente</option>
+                                <option value="VENCIDA">Vencida</option>
+                                <option value="SIN_EXPIRACION">Sin expiración</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Fecha de emisión</label>
+                            <input type="date" th:field="*{fechaEmision}">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Fecha de expiración</label>
+                            <input type="date" th:field="*{fechaExpiracion}">
+                        </div>
+
+                        <!-- Respaldo: URL a la izquierda y archivo a la derecha -->
+                        <div class="form-group">
+                            <label>URL de credencial</label>
+                            <input type="url"
+                                   th:field="*{urlCredencial}"
+                                   maxlength="300"
+                                   placeholder="https://...">
+                            <div class="form-note">Opcional. Puedes usar la URL oficial de verificación.</div>
+                        </div>
+
+                        <div class="form-group certification-file-group">
+                            <label>Archivo de certificación</label>
+
+                            <input class="certification-file-input"
+                                   type="file"
+                                   id="archivoCertificacion"
+                                   name="archivo"
+                                   accept=".pdf,.jpg,.jpeg,.png">
+
+                            <div class="certification-file-picker">
+                                <label for="archivoCertificacion" class="btn btn-light certification-file-select">
+                                    Seleccionar archivo
+                                </label>
+
+                                <span id="nombreArchivoSeleccionado" class="certification-file-name">
+                                    Ningún archivo seleccionado
+                                </span>
+
+                                <button type="button"
+                                        id="quitarArchivoSeleccionado"
+                                        class="btn btn-danger-soft btn-sm certification-file-remove"
+                                        hidden>
+                                    Quitar
+                                </button>
+                            </div>
+
+                            <div class="form-note">PDF, JPG o PNG. Máximo 5 MB.</div>
+
+                            <div class="file-current" th:if="${archivoActual != null}">
+                                <div class="file-current-info">
+                                    <small>Archivo guardado</small>
+                                    <strong th:text="${archivoActual}">certificado.pdf</strong>
+                                </div>
+
+                                <div class="file-current-actions">
+                                    <a class="btn btn-light btn-sm"
+                                       th:href="@{/colaborador/certificaciones/{id}/archivo(id=${certificacion.idCertificacion})}"
+                                       target="_blank">
+                                        Ver
+                                    </a>
+
+                                    <button class="btn btn-danger-soft btn-sm"
+                                            type="submit"
+                                            form="eliminarArchivoActual">
+                                        Eliminar archivo
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <a class="btn btn-light" th:href="@{/colaborador/certificaciones}">Cancelar</a>
+                        <button class="btn btn-primary"
+                                type="submit"
+                                th:text="${certificacion.idCertificacion == null ? 'Guardar certificación' : 'Guardar cambios'}">
+                            Guardar certificación
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Formulario separado para borrar solo el archivo ya guardado -->
+                <form id="eliminarArchivoActual"
+                      th:if="${archivoActual != null and certificacion.idCertificacion != null}"
+                      th:action="@{/colaborador/certificaciones/{id}/archivo/eliminar(id=${certificacion.idCertificacion})}"
+                      method="post"
+                      onsubmit="return confirm('¿Eliminar el archivo adjunto? La certificación se conservará.');">
+                </form>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script>
+    const inputArchivo = document.getElementById('archivoCertificacion');
+    const nombreArchivo = document.getElementById('nombreArchivoSeleccionado');
+    const botonQuitar = document.getElementById('quitarArchivoSeleccionado');
+
+    if (inputArchivo && nombreArchivo && botonQuitar) {
+        inputArchivo.addEventListener('change', function () {
+            if (this.files && this.files.length > 0) {
+                nombreArchivo.textContent = this.files[0].name;
+                botonQuitar.hidden = false;
+            } else {
+                nombreArchivo.textContent = 'Ningún archivo seleccionado';
+                botonQuitar.hidden = true;
+            }
+        });
+
+        botonQuitar.addEventListener('click', function () {
+            inputArchivo.value = '';
+            nombreArchivo.textContent = 'Ningún archivo seleccionado';
+            botonQuitar.hidden = true;
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Certificaciones | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+
+        <div class="content">
+            <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+
+            <section class="card certification-card">
+                <div class="certification-header">
+                    <div>
+                        <h2>Mis certificaciones</h2>
+                        <p class="muted">Registra y administra tus certificaciones profesionales.</p>
+                    </div>
+
+                    <a class="btn btn-primary"
+                       th:href="@{/colaborador/certificaciones/nueva}">
+                        + Agregar certificación
+                    </a>
+                </div>
+
+                <div class="table-wrap" th:if="${!#lists.isEmpty(certificaciones)}">
+                    <table class="certification-table">
+                        <thead>
+                        <tr>
+                            <th>Certificación</th>
+                            <th>Entidad</th>
+                            <th>Emisión</th>
+                            <th>Expiración</th>
+                            <th>Estado</th>
+                            <th>Respaldo</th>
+                            <th>Acciones</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+                        <tr th:each="c : ${certificaciones}">
+                            <td>
+                                <strong th:text="${c.nombre}">AWS Certified Developer</strong>
+                            </td>
+
+                            <td th:text="${c.entidadEmisora != null and !#strings.isEmpty(c.entidadEmisora) ? c.entidadEmisora : '-'}">
+                                Amazon Web Services
+                            </td>
+
+                            <td th:text="${c.fechaEmision != null ? #temporals.format(c.fechaEmision,'dd/MM/yyyy') : '-'}">
+                                10/03/2024
+                            </td>
+
+                            <td th:text="${c.fechaExpiracion != null ? #temporals.format(c.fechaExpiracion,'dd/MM/yyyy') : 'Sin expiración'}">
+                                10/03/2027
+                            </td>
+
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${c.estado != null and c.estado.name() == 'VIGENTE'} ? ' badge-success' : (${c.estado != null and c.estado.name() == 'VENCIDA'} ? ' badge-danger' : ' badge-purple')"
+                                      th:text="${c.estado == null ? '-' : (c.estado.name() == 'SIN_EXPIRACION' ? 'Sin expiración' : (c.estado.name() == 'VIGENTE' ? 'Vigente' : 'Vencida'))}">
+                                    Vigente
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="certification-links">
+                                    <a class="btn btn-light btn-sm"
+                                       th:if="${c.urlCredencial != null and !#strings.isEmpty(c.urlCredencial)}"
+                                       th:href="${c.urlCredencial}"
+                                       target="_blank">
+                                        Ver URL
+                                    </a>
+
+                                    <a class="btn btn-light btn-sm"
+                                       th:if="${archivosCertificacion[c.idCertificacion] != null}"
+                                       th:href="@{/colaborador/certificaciones/{id}/archivo(id=${c.idCertificacion})}"
+                                       target="_blank">
+                                        Ver archivo
+                                    </a>
+
+                                    <span class="muted"
+                                          th:if="${(c.urlCredencial == null or #strings.isEmpty(c.urlCredencial)) and archivosCertificacion[c.idCertificacion] == null}">
+                                        Sin archivo
+                                    </span>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="certification-actions">
+                                    <a class="btn btn-light btn-sm"
+                                       th:href="@{/colaborador/certificaciones/editar/{id}(id=${c.idCertificacion})}">
+                                        Editar
+                                    </a>
+
+                                    <form th:action="@{/colaborador/certificaciones/{id}/eliminar(id=${c.idCertificacion})}"
+                                          method="post"
+                                          onsubmit="return confirm('¿Eliminar esta certificación?')">
+                                        <button class="btn btn-danger-soft btn-sm" type="submit">
+                                            Eliminar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="empty" th:if="${#lists.isEmpty(certificaciones)}">
+                    Aún no tienes certificaciones registradas.
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

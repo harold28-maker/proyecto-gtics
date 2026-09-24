@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Asignación | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
+<div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+<section class="page-intro"><div><p class="eyebrow">Staffing de proyecto</p><h2 th:text="${titulo}"></h2><p>Selecciona proyecto y colaborador, define su rol, periodo y porcentaje de dedicación.</p></div><span class="badge badge-success">Control de carga</span></section>
+<div class="grid-3"><section class="card" style="grid-column:span 2"><form th:action="@{/pm/asignaciones/guardar}" th:object="${asignacion}" method="post"><input type="hidden" th:field="*{idAsignacion}"><div class="form-grid">
+<div class="form-group"><label>Proyecto</label><select name="idProyecto" required><option value="">Selecciona</option><option th:each="p : ${proyectos}" th:value="${p.idProyecto}" th:text="${p.nombre}" th:selected="${asignacion.proyecto != null and asignacion.proyecto.idProyecto == p.idProyecto}"></option></select></div>
+<div class="form-group"><label>Colaborador</label><select name="idColaborador" required><option value="">Selecciona</option><option th:each="c : ${colaboradores}" th:value="${c.idColaborador}" th:text="|${c.usuario.nombreCompleto} · ${c.cargo} · base ${c.disponibilidadBase}%|" th:selected="${asignacion.colaborador != null and asignacion.colaborador.idColaborador == c.idColaborador}"></option></select></div>
+<div class="form-group"><label>Rol en proyecto</label><input th:field="*{rolProyecto}" placeholder="Desarrollador Backend"></div>
+<div class="form-group"><label>Porcentaje de dedicación</label><input type="number" min="1" max="100" th:field="*{porcentajeDedicacion}" required></div>
+<div class="form-group"><label>Fecha inicio</label><input type="date" th:field="*{fechaInicio}" required></div>
+<div class="form-group"><label>Fecha fin</label><input type="date" th:field="*{fechaFin}"></div>
+<div class="form-group"><label>Estado</label><select th:field="*{estado}"><option value="PLANIFICADA">PLANIFICADA</option><option value="ACTIVA">ACTIVA</option><option value="FINALIZADA">FINALIZADA</option><option value="CANCELADA">CANCELADA</option></select></div>
+</div><div class="form-actions"><a class="btn btn-light" th:href="@{/pm/asignaciones}">Cancelar</a><button class="btn btn-primary" th:text="${asignacion.idAsignacion == null ? 'Crear asignación' : 'Guardar cambios'}"></button></div></form></section>
+<aside class="card hero-card"><p class="eyebrow">Antes de asignar</p><h3>Disponibilidad y carga</h3><p class="muted">La vista de disponibilidad permite revisar la carga actual antes de confirmar o modificar una asignación.</p><a class="btn btn-light" style="width:100%" th:href="@{/pm/disponibilidad}">Ver disponibilidad</a><div class="soft-panel" style="margin-top:12px"><strong>Regla del modelo</strong><p class="muted">La dedicación debe estar entre 1% y 100%. Los estados permiten cancelar o finalizar sin eliminar el historial.</p></div></aside></div>
+</div></main></div></body></html>

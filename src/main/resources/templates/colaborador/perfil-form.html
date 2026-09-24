@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Editar perfil | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
+<body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
+<section class="page-intro"><div><h2>Actualiza tu información profesional</h2><p>Mantén al día tus datos de contacto, cargo, área, nivel profesional, disponibilidad e intereses.</p></div></section>
+<div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+<section class="card form-card hero-card" th:if="${colaborador != null}">
+<form th:action="@{/colaborador/perfil/guardar}" th:object="${colaborador}" method="post">
+<input type="hidden" th:field="*{idColaborador}">
+<div class="form-grid">
+<div class="form-group"><label>Nombres</label><input name="nombres" th:value="${colaborador.usuario.nombres}" maxlength="20" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]{1,20}" title="Solo letras y espacios, máximo 20 caracteres" required><div class="form-note">Solo letras y espacios, máximo 20 caracteres.</div></div>
+<div class="form-group"><label>Apellidos</label><input name="apellidos" th:value="${colaborador.usuario.apellidos}" maxlength="20" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]{1,20}" title="Solo letras y espacios, máximo 20 caracteres" required><div class="form-note">Solo letras y espacios, máximo 20 caracteres.</div></div>
+<div class="form-group"><label>Teléfono</label><input name="telefono" th:value="${colaborador.usuario.telefono}" maxlength="9" inputmode="numeric" pattern="[0-9]{9}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,9)" title="Ingresa exactamente 9 dígitos" required><div class="form-note">Debe contener exactamente 9 números.</div></div>
+<div class="form-group"><label>Cargo</label><input th:field="*{cargo}" maxlength="20" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]{1,20}" title="Solo letras y espacios, máximo 20 caracteres" required><div class="form-note">Solo letras y espacios, máximo 20 caracteres.</div></div>
+<div class="form-group"><label>Área</label><input th:field="*{area}" maxlength="20" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]{1,20}" title="Solo letras y espacios, máximo 20 caracteres" required><div class="form-note">Solo letras y espacios, máximo 20 caracteres.</div></div>
+<div class="form-group"><label>Nivel profesional</label><select th:field="*{seniority}"><option value="JUNIOR">Junior</option><option value="SEMI_SENIOR">Semi senior</option><option value="SENIOR">Senior</option><option value="LEAD">Líder</option></select></div>
+<div class="form-group"><label>Disponibilidad base (%)</label><input type="text" inputmode="numeric" maxlength="3" pattern="(100|[0-9]{1,2})" th:field="*{disponibilidadBase}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3);if(this.value!==''&&Number(this.value)>100)this.value='100'" title="Ingresa un valor entre 0 y 100" required><div class="form-note">Valor permitido: 0 a 100%.</div></div>
+<div class="form-group full"><label>Biografía</label><textarea rows="4" th:field="*{biografia}" placeholder="Resume tu experiencia y perfil profesional."></textarea></div>
+<div class="form-group full"><label>Intereses profesionales</label><textarea rows="3" th:field="*{interesesProfesionales}" placeholder="Backend, Cloud, DevOps, IA..."></textarea></div>
+</div>
+<div class="form-actions"><a class="btn btn-light" th:href="@{/colaborador/perfil}">Cancelar</a><button class="btn btn-primary">Guardar cambios</button></div>
+</form></section></div></main></div></body></html>

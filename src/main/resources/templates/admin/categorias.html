@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>
+        Categorías | SkillBridge AI
+    </title>
+
+    <link rel="stylesheet"
+          th:href="@{/css/app.css}">
+
+</head>
+
+<body>
+
+<div class="app-shell">
+
+
+    <!-- SIDEBAR -->
+    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
+    </aside>
+
+
+    <main class="main">
+
+
+        <!-- TOPBAR -->
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}">
+        </header>
+
+
+        <div class="content">
+
+
+            <!-- =========================================
+                 INDICADORES
+                 ========================================= -->
+
+            <div class="grid-2">
+
+
+                <!-- CATEGORÍAS -->
+
+                <div class="metric">
+
+                    <div class="label">
+                        Categorías
+                    </div>
+
+                    <div class="value"
+                         th:text="${totalCategorias}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Registradas en el catálogo
+                    </div>
+
+                </div>
+
+
+                <!-- HABILIDADES -->
+
+                <div class="metric green">
+
+                    <div class="label">
+                        Habilidades
+                    </div>
+
+                    <div class="value"
+                         th:text="${totalHabilidades}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Registradas en total
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- =========================================
+                 CATEGORÍAS
+                 ========================================= -->
+
+            <section class="card section">
+
+
+                <!-- CABECERA -->
+
+                <div class="categories-card-header">
+
+
+                    <div>
+
+                        <h2>
+                            Categorías registradas
+                        </h2>
+
+                        <p class="muted mb-0">
+                            Organiza las habilidades registradas según su categoría.
+                        </p>
+
+                    </div>
+
+
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/habilidades/nueva}">
+
+                        ＋ Agregar habilidad
+
+                    </a>
+
+
+                </div>
+
+
+                <!-- =========================================
+                     LISTADO DE CATEGORÍAS
+                     ========================================= -->
+
+                <div class="categories-grid">
+
+
+                    <article class="category-card"
+                             th:each="entry : ${categorias}">
+
+
+                        <h3 th:text="${entry.key}">
+                            Backend
+                        </h3>
+
+
+                        <p class="muted">
+
+                            <strong th:text="${entry.value}">
+                                3
+                            </strong>
+
+                            <span th:text="${entry.value == 1
+                                ? ' habilidad'
+                                : ' habilidades'}">
+
+                                habilidades
+
+                            </span>
+
+                        </p>
+
+
+                    </article>
+
+
+                </div>
+
+
+                <!-- SIN RESULTADOS -->
+
+                <div class="empty"
+                     th:if="${#maps.isEmpty(categorias)}">
+
+                    No hay categorías registradas.
+
+                </div>
+
+
+            </section>
+
+
+        </div>
+
+
+    </main>
+
+
+</div>
+
+
+</body>
+
+</html>
