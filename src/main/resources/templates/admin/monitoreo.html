@@ -1,4 +1,299 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Monitoreo | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('ADMIN')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
-<div class="grid-4"><div class="metric green"><div class="metric-icon">●</div><div class="label">Estado del sistema</div><div class="value" style="font-size:20px">Operativo</div><div class="hint">Aplicación disponible</div></div><div class="metric"><div class="metric-icon">♙</div><div class="label">Usuarios</div><div class="value" th:text="${usuarios}"></div><div class="hint">Registrados</div></div><div class="metric blue"><div class="metric-icon">⌁</div><div class="label">Eventos auditados</div><div class="value" th:text="${eventos}"></div><div class="hint">Últimos registros</div></div><div class="metric orange"><div class="metric-icon">✦</div><div class="label">Habilidades</div><div class="value" th:text="${habilidades}"></div><div class="hint">Catálogo disponible</div></div></div>
-<div class="grid-2 section"><section class="card"><div class="card-title"><h2>Actividad del sistema</h2><span class="badge badge-success">En línea</span></div><div class="sparkline"><span style="height:28%"></span><span style="height:42%"></span><span style="height:36%"></span><span style="height:58%"></span><span style="height:74%"></span><span style="height:63%"></span><span style="height:82%"></span><span style="height:69%"></span><span style="height:76%"></span><span style="height:60%"></span><span style="height:68%"></span></div><div class="grid-3" style="margin-top:18px"><div><small class="muted">Aplicación</small><strong style="display:block;margin-top:4px">Operativa</strong></div><div><small class="muted">Base de datos</small><strong style="display:block;margin-top:4px">Conectada</strong></div><div><small class="muted">Colaboradores</small><strong style="display:block;margin-top:4px" th:text="${colaboradores}"></strong></div></div></section><section class="card"><div class="card-title"><h2>Eventos recientes</h2></div><div class="forum-item" th:each="a : ${actividad}"><div><h3 th:text="${a.accion}"></h3><p th:text="|${a.modulo} · ${a.detalle}|"></p></div><span class="badge badge-blue">evento</span></div></section></div>
-</div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>
+        Monitoreo | SkillBridge AI
+    </title>
+
+    <link rel="stylesheet"
+          th:href="@{/css/app.css}">
+
+</head>
+
+<body>
+
+<div class="app-shell">
+
+
+    <!-- SIDEBAR -->
+    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
+    </aside>
+
+
+    <main class="main">
+
+
+        <!-- TOPBAR -->
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}">
+        </header>
+
+
+        <div class="content">
+
+
+            <!-- =========================================
+                 INDICADORES
+                 ========================================= -->
+
+            <div class="grid-4">
+
+
+                <!-- ESTADO DEL SISTEMA -->
+
+                <div class="metric green">
+
+                    <div class="label">
+                        Estado del sistema
+                    </div>
+
+                    <div class="value monitor-status-value">
+                        Operativo
+                    </div>
+
+                    <div class="hint">
+                        Aplicación disponible
+                    </div>
+
+                </div>
+
+
+                <!-- USUARIOS -->
+
+                <div class="metric">
+
+                    <div class="label">
+                        Usuarios
+                    </div>
+
+                    <div class="value"
+                         th:text="${usuarios}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Registrados
+                    </div>
+
+                </div>
+
+
+                <!-- EVENTOS -->
+
+                <div class="metric blue">
+
+                    <div class="label">
+                        Eventos auditados
+                    </div>
+
+                    <div class="value"
+                         th:text="${eventos}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Últimos registros
+                    </div>
+
+                </div>
+
+
+                <!-- HABILIDADES -->
+
+                <div class="metric orange">
+
+                    <div class="label">
+                        Habilidades
+                    </div>
+
+                    <div class="value"
+                         th:text="${habilidades}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Catálogo disponible
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- =========================================
+                 MONITOREO
+                 ========================================= -->
+
+            <div class="grid-2 section">
+
+
+                <!-- =====================================
+                     ESTADO DE SERVICIOS
+                     ===================================== -->
+
+                <section class="card monitor-services-card">
+
+
+                    <div class="card-title">
+
+                        <h2>
+                            Estado de servicios
+                        </h2>
+
+                    </div>
+
+
+                    <div class="monitor-service-list">
+
+
+                        <!-- APLICACIÓN -->
+
+                        <div class="monitor-service-row">
+
+                            <span>
+                                Aplicación
+                            </span>
+
+                            <strong class="service-ok">
+                                Operativa
+                            </strong>
+
+                        </div>
+
+
+                        <!-- BASE DE DATOS -->
+
+                        <div class="monitor-service-row">
+
+                            <span>
+                                Base de datos
+                            </span>
+
+                            <strong class="service-ok">
+                                Conectada
+                            </strong>
+
+                        </div>
+
+
+                        <!-- USUARIOS -->
+
+                        <div class="monitor-service-row">
+
+                            <span>
+                                Usuarios registrados
+                            </span>
+
+                            <strong th:text="${usuarios}">
+                                0
+                            </strong>
+
+                        </div>
+
+
+                        <!-- COLABORADORES -->
+
+                        <div class="monitor-service-row">
+
+                            <span>
+                                Colaboradores
+                            </span>
+
+                            <strong th:text="${colaboradores}">
+                                0
+                            </strong>
+
+                        </div>
+
+
+                    </div>
+
+
+                </section>
+
+
+                <!-- =====================================
+                     EVENTOS RECIENTES
+                     ===================================== -->
+
+                <section class="card">
+
+
+                    <div class="card-title">
+
+                        <h2>
+                            Eventos recientes
+                        </h2>
+
+                    </div>
+
+
+                    <div class="monitor-event"
+                         th:each="a : ${actividad}">
+
+
+                        <div>
+
+                            <h3 th:text="${a.accion}">
+                                Acción realizada
+                            </h3>
+
+
+                            <p>
+
+                                <span th:text="${a.modulo}">
+                                    Administración
+                                </span>
+
+                                <span>
+                                    ·
+                                </span>
+
+                                <span th:text="${a.detalle}">
+                                    Detalle del evento
+                                </span>
+
+                            </p>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <!-- SI NO HAY EVENTOS -->
+
+                    <div class="empty"
+                         th:if="${#lists.isEmpty(actividad)}">
+
+                        No hay eventos recientes.
+
+                    </div>
+
+
+                </section>
+
+
+            </div>
+
+
+        </div>
+
+
+    </main>
+
+
+</div>
+
+
+</body>
+
+</html>

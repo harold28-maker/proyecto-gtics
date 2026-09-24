@@ -1,97 +1,596 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
 <body>
+
+
+<!-- =========================================================
+     MENÚ LATERAL
+     ========================================================= -->
 
 <aside th:fragment="sidebar(rol)"
        class="sidebar"
-       th:classappend="${rol == 'ADMIN'} ? ' sidebar-admin' : (${rol == 'PM'} ? ' sidebar-pm' : (${rol == 'RM'} ? ' sidebar-rm' : ' sidebar-col'))">
-    <a class="brand" th:href="${rol == 'ADMIN'} ? @{/admin/inicio} : (${rol == 'PM'} ? @{/pm/inicio} : (${rol == 'RM'} ? @{/resource/inicio} : @{/colaborador/inicio}))">
-        <span class="brand-mark">SB</span>
-        <span class="brand-copy"><strong>SkillBridge AI</strong><small>Talent Intelligence</small></span>
+       id="sidebarPrincipal"
+       th:classappend="${rol == 'ADMIN'}
+            ? ' sidebar-admin'
+            : (${rol == 'PM'}
+            ? ' sidebar-pm'
+            : (${rol == 'RM'}
+            ? ' sidebar-rm'
+            : ' sidebar-col'))">
+
+
+    <!-- =====================================================
+         NOMBRE DEL SISTEMA
+         ===================================================== -->
+
+    <a class="sidebar-simple-brand"
+       th:href="${rol == 'ADMIN'}
+            ? @{/admin/inicio}
+            : (${rol == 'PM'}
+            ? @{/pm/inicio}
+            : (${rol == 'RM'}
+            ? @{/resource/inicio}
+            : @{/colaborador/inicio}))">
+
+
+        <span class="sidebar-simple-logo">
+            SB
+        </span>
+
+
+        <span class="sidebar-simple-name">
+            SkillBridge AI
+        </span>
+
+
     </a>
 
-    <div class="role-signature">
-        <span class="role-signature-dot"></span>
-        <span th:text="${rol == 'ADMIN'} ? 'Administración' : (${rol == 'PM'} ? 'Project Management' : (${rol == 'RM'} ? 'Resource Management' : 'Mi espacio profesional'))">Área</span>
+
+    <!-- =====================================================
+         ROL ACTUAL
+         ===================================================== -->
+
+    <div class="sidebar-simple-role"
+
+         th:text="${rol == 'ADMIN'}
+            ? 'Administrador'
+            : (${rol == 'PM'}
+            ? 'Project Manager'
+            : (${rol == 'RM'}
+            ? 'Resource Manager'
+            : 'Colaborador'))">
+
+        Administrador
+
     </div>
 
-    <div class="sidebar-section-label">Navegación</div>
-    <nav class="nav-menu" th:switch="${rol}">
+
+    <!-- =====================================================
+         TÍTULO
+         ===================================================== -->
+
+    <div class="sidebar-simple-title">
+        Menú
+    </div>
+
+
+    <!-- =====================================================
+         OPCIONES
+         ===================================================== -->
+
+    <nav class="sidebar-simple-nav"
+         th:switch="${rol}">
+
+
+        <!-- =================================================
+             ADMINISTRADOR
+             ================================================= -->
+
         <th:block th:case="'ADMIN'">
-            <a th:href="@{/admin/inicio}"><span class="nav-icon">⌂</span><span>Inicio</span></a>
-            <a th:href="@{/admin/usuarios}"><span class="nav-icon">♙</span><span>Usuarios</span></a>
-            <a th:href="@{/admin/roles}"><span class="nav-icon">◆</span><span>Roles y permisos</span></a>
-            <a th:href="@{/admin/habilidades}"><span class="nav-icon">✦</span><span>Habilidades</span></a>
-            <a th:href="@{/admin/categorias}"><span class="nav-icon">▱</span><span>Categorías</span></a>
-            <a th:href="@{/admin/auditoria}"><span class="nav-icon">◷</span><span>Auditoría</span></a>
-            <a th:href="@{/admin/monitoreo}"><span class="nav-icon">⌁</span><span>Monitoreo</span></a>
+
+            <a th:href="@{/admin/inicio}">
+                Inicio
+            </a>
+
+            <a th:href="@{/admin/usuarios}">
+                Usuarios
+            </a>
+
+            <a th:href="@{/admin/roles}">
+                Roles y permisos
+            </a>
+
+            <a th:href="@{/admin/habilidades}">
+                Habilidades
+            </a>
+
+            <a th:href="@{/admin/categorias}">
+                Categorías
+            </a>
+
+            <a th:href="@{/admin/auditoria}">
+                Auditoría
+            </a>
+
+            <a th:href="@{/admin/monitoreo}">
+                Monitoreo
+            </a>
+
         </th:block>
+
+
+        <!-- =================================================
+             PROJECT MANAGER
+             ================================================= -->
 
         <th:block th:case="'PM'">
-            <a th:href="@{/pm/inicio}"><span class="nav-icon">⌂</span><span>Inicio</span></a>
-            <a th:href="@{/pm/proyectos}"><span class="nav-icon">▣</span><span>Proyectos</span></a>
-            <a th:href="@{/pm/asignaciones}"><span class="nav-icon">☷</span><span>Asignaciones</span></a>
-            <a th:href="@{/pm/colaboradores}"><span class="nav-icon">♙</span><span>Colaboradores</span></a>
-            <a th:href="@{/pm/disponibilidad}"><span class="nav-icon">◫</span><span>Disponibilidad</span></a>
-            <a th:href="@{/pm/recomendaciones}"><span class="nav-icon">✧</span><span>Recomendaciones IA</span></a>
-            <a th:href="@{/pm/foros}"><span class="nav-icon">◌</span><span>Foro</span></a>
-            <a th:href="@{/pm/reportes}"><span class="nav-icon">▥</span><span>Reportes</span></a>
-            <a th:href="@{/pm/historial}"><span class="nav-icon">◷</span><span>Historial</span></a>
+
+            <a th:href="@{/pm/inicio}">
+                Inicio
+            </a>
+
+            <a th:href="@{/pm/proyectos}">
+                Proyectos
+            </a>
+
+            <a th:href="@{/pm/asignaciones}">
+                Asignaciones
+            </a>
+
+            <a th:href="@{/pm/colaboradores}">
+                Colaboradores
+            </a>
+
+            <a th:href="@{/pm/disponibilidad}">
+                Disponibilidad
+            </a>
+
+            <a th:href="@{/pm/recomendaciones}">
+                Recomendaciones
+            </a>
+
+            <a th:href="@{/pm/foros}">
+                Foro
+            </a>
+
+            <a th:href="@{/pm/reportes}">
+                Reportes
+            </a>
+
+            <a th:href="@{/pm/historial}">
+                Historial
+            </a>
+
         </th:block>
+
+
+        <!-- =================================================
+             RESOURCE MANAGER
+             ================================================= -->
 
         <th:block th:case="'RM'">
-            <a th:href="@{/resource/inicio}"><span class="nav-icon">⌂</span><span>Inicio</span></a>
-            <a th:href="@{/resource/colaboradores}"><span class="nav-icon">♙</span><span>Colaboradores</span></a>
-            <a th:href="@{/resource/asignaciones}"><span class="nav-icon">☷</span><span>Asignaciones</span></a>
-            <a th:href="@{/resource/disponibilidad}"><span class="nav-icon">◫</span><span>Disponibilidad</span></a>
-            <a th:href="@{/resource/carga}"><span class="nav-icon">▤</span><span>Carga de trabajo</span></a>
-            <a th:href="@{/resource/talent}"><span class="nav-icon">✧</span><span>Talent Matching IA</span></a>
-            <a th:href="@{/resource/historial}"><span class="nav-icon">◷</span><span>Proyectos anteriores</span></a>
+
+            <a th:href="@{/resource/inicio}">
+                Inicio
+            </a>
+
+            <a th:href="@{/resource/colaboradores}">
+                Colaboradores
+            </a>
+
+            <a th:href="@{/resource/asignaciones}">
+                Asignaciones
+            </a>
+
+            <a th:href="@{/resource/disponibilidad}">
+                Disponibilidad
+            </a>
+
+            <a th:href="@{/resource/carga}">
+                Carga de trabajo
+            </a>
+
+            <a th:href="@{/resource/talent}">
+                Asignación de talento
+            </a>
+
+            <a th:href="@{/resource/historial}">
+                Proyectos anteriores
+            </a>
+
         </th:block>
+
+
+        <!-- =================================================
+             COLABORADOR
+             ================================================= -->
 
         <th:block th:case="*">
-            <a th:href="@{/colaborador/inicio}"><span class="nav-icon">⌂</span><span>Inicio</span></a>
-            <a th:href="@{/colaborador/perfil}"><span class="nav-icon">♙</span><span>Mi perfil</span></a>
-            <a th:href="@{/colaborador/certificaciones}"><span class="nav-icon">◇</span><span>Certificaciones</span></a>
-            <a th:href="@{/colaborador/habilidades}"><span class="nav-icon">✦</span><span>Mis habilidades</span></a>
-            <a th:href="@{/colaborador/proyectos}"><span class="nav-icon">▣</span><span>Mis proyectos</span></a>
-            <a th:href="@{/colaborador/asignaciones}"><span class="nav-icon">☷</span><span>Mis asignaciones</span></a>
-            <a th:href="@{/colaborador/foros}"><span class="nav-icon">◌</span><span>Foro</span></a>
-            <a th:href="@{/colaborador/chat}"><span class="nav-icon">◍</span><span>Chat</span></a>
-            <a th:href="@{/colaborador/notificaciones}"><span class="nav-icon">♢</span><span>Notificaciones</span></a>
+
+            <a th:href="@{/colaborador/inicio}">
+                Inicio
+            </a>
+
+            <a th:href="@{/colaborador/perfil}">
+                Mi perfil
+            </a>
+
+            <a th:href="@{/colaborador/certificaciones}">
+                Certificaciones
+            </a>
+
+            <a th:href="@{/colaborador/habilidades}">
+                Mis habilidades
+            </a>
+
+            <a th:href="@{/colaborador/proyectos}">
+                Mis proyectos
+            </a>
+
+            <a th:href="@{/colaborador/asignaciones}">
+                Mis asignaciones
+            </a>
+
+            <a th:href="@{/colaborador/foros}">
+                Foro
+            </a>
+
+            <a th:href="@{/colaborador/chat}">
+                Chat
+            </a>
+
+            <a th:href="@{/colaborador/notificaciones}">
+                Notificaciones
+            </a>
+
         </th:block>
+
+
     </nav>
 
-    <div class="sidebar-bottom">
-        <a th:href="@{/logout}"><span class="nav-icon">↩</span><span>Cerrar sesión</span></a>
+
+    <!-- =====================================================
+         CERRAR SESIÓN
+         ===================================================== -->
+
+    <div class="sidebar-simple-bottom">
+
+
+        <button type="button"
+                onclick="abrirModalLogout()">
+
+            Cerrar sesión
+
+        </button>
+
+
     </div>
+
+
+    <!-- =====================================================
+         MODAL CERRAR SESIÓN
+         ===================================================== -->
+
+    <div id="logoutModal"
+         class="logout-modal"
+         aria-hidden="true">
+
+
+        <div class="logout-modal-overlay"
+             onclick="cerrarModalLogout()">
+        </div>
+
+
+        <div class="logout-modal-content"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="logoutModalTitle">
+
+
+            <button type="button"
+                    class="logout-modal-close"
+                    onclick="cerrarModalLogout()"
+                    aria-label="Cerrar ventana">
+
+                ×
+
+            </button>
+
+
+            <div class="logout-modal-icon">
+                ↪
+            </div>
+
+
+            <h2 id="logoutModalTitle">
+                ¿Estás seguro de cerrar sesión?
+            </h2>
+
+
+            <p>
+                Tu sesión se cerrará y tendrás que iniciar sesión
+                nuevamente para ingresar a SkillBridge AI.
+            </p>
+
+
+            <div class="logout-modal-actions">
+
+
+                <button type="button"
+                        class="btn btn-light logout-cancel"
+                        onclick="cerrarModalLogout()">
+
+                    Cancelar
+
+                </button>
+
+
+                <a th:href="@{/logout}"
+                   class="btn logout-confirm">
+
+                    Cerrar sesión
+
+                </a>
+
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         JAVASCRIPT
+         ===================================================== -->
+
+    <script>
+
+        function abrirModalLogout() {
+
+            const modal =
+                document.getElementById("logoutModal");
+
+            if (!modal) {
+                return;
+            }
+
+            modal.classList.add("show");
+
+            modal.setAttribute(
+                "aria-hidden",
+                "false"
+            );
+
+            document.body.classList.add(
+                "modal-open"
+            );
+
+        }
+
+
+        function cerrarModalLogout() {
+
+            const modal =
+                document.getElementById("logoutModal");
+
+            if (!modal) {
+                return;
+            }
+
+            modal.classList.remove("show");
+
+            modal.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+            document.body.classList.remove(
+                "modal-open"
+            );
+
+        }
+
+
+        /*
+         * Marca la opción del menú
+         * correspondiente a la página actual.
+         */
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                const rutaActual =
+                    window.location.pathname;
+
+                const opciones =
+                    document.querySelectorAll(
+                        ".sidebar-simple-nav a"
+                    );
+
+
+                opciones.forEach(
+                    function (opcion) {
+
+                        const ruta =
+                            opcion.getAttribute("href");
+
+
+                        if (!ruta) {
+                            return;
+                        }
+
+
+                        /*
+                         * Inicio solamente se marca
+                         * cuando coincide exactamente.
+                         */
+                        if (
+                            ruta.endsWith("/inicio") &&
+                            rutaActual === ruta
+                        ) {
+
+                            opcion.classList.add("active");
+
+                            return;
+
+                        }
+
+
+                        /*
+                         * Las otras opciones también quedan
+                         * marcadas en formularios internos.
+                         *
+                         * Ejemplo:
+                         *
+                         * /admin/usuarios
+                         * /admin/usuarios/nuevo
+                         * /admin/usuarios/editar/1
+                         */
+                        if (
+                            !ruta.endsWith("/inicio") &&
+                            rutaActual.startsWith(ruta)
+                        ) {
+
+                            opcion.classList.add("active");
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+
+        /*
+         * Cerrar modal con ESC
+         */
+        document.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (event.key === "Escape") {
+
+                    cerrarModalLogout();
+
+                }
+
+            }
+        );
+
+    </script>
+
+
 </aside>
+
+
+
+<!-- =========================================================
+     TOPBAR
+     NO LO MODIFICAMOS
+     ========================================================= -->
 
 <header th:fragment="topbar(titulo)"
         class="topbar"
-        th:classappend="${rolSesion == 'ADMIN'} ? ' topbar-admin' : (${rolSesion == 'PM'} ? ' topbar-pm' : (${rolSesion == 'RM'} ? ' topbar-rm' : ' topbar-col'))">
+        th:classappend="${rolSesion == 'ADMIN'}
+            ? ' topbar-admin'
+            : (${rolSesion == 'PM'}
+            ? ' topbar-pm'
+            : (${rolSesion == 'RM'}
+            ? ' topbar-rm'
+            : ' topbar-col'))">
+
+
     <div>
-        <p class="eyebrow">SkillBridge AI · Workspace</p>
-        <h1 th:text="${titulo}">Título</h1>
+
+        <p class="eyebrow">
+            SkillBridge AI · Workspace
+        </p>
+
+        <h1 th:text="${titulo}">
+            Título
+        </h1>
+
     </div>
+
+
     <div class="topbar-tools">
+
+
         <div class="top-context">
-            <span class="pulse-dot"></span>
-            <span>Sesión activa</span>
+
+            <span class="pulse-dot">
+            </span>
+
+            <span>
+                Sesión activa
+            </span>
+
         </div>
-        <div class="topbar-user" th:if="${usuarioSesion != null}">
-            <span class="avatar" th:text="${usuarioSesion.iniciales}">MG</span>
+
+
+        <div class="topbar-user"
+             th:if="${usuarioSesion != null}">
+
+
+            <span class="avatar"
+                  th:text="${usuarioSesion.iniciales}">
+
+                MG
+
+            </span>
+
+
             <div>
-                <strong th:text="${usuarioSesion.nombreCompleto}">María González</strong>
-                <small th:text="${usuarioSesion.rolVisual}">Colaborador</small>
+
+                <strong th:text="${usuarioSesion.nombreCompleto}">
+                    María González
+                </strong>
+
+                <small th:text="${usuarioSesion.rolVisual}">
+                    Colaborador
+                </small>
+
             </div>
+
+
         </div>
-        <div class="topbar-user" th:unless="${usuarioSesion != null}">
-            <span class="avatar">SB</span>
-            <div><strong>SkillBridge AI</strong><small>Sesión de demostración</small></div>
+
+
+        <div class="topbar-user"
+             th:unless="${usuarioSesion != null}">
+
+
+            <span class="avatar">
+                SB
+            </span>
+
+
+            <div>
+
+                <strong>
+                    SkillBridge AI
+                </strong>
+
+                <small>
+                    Sesión de demostración
+                </small>
+
+            </div>
+
+
         </div>
+
+
     </div>
+
+
 </header>
+
 
 </body>
 </html>

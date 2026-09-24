@@ -1,1 +1,209 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Auditoría | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('ADMIN')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content"><section class="page-intro"><div><h2>Trazabilidad de acciones</h2><p>Consulta los eventos registrados por usuario, módulo y fecha dentro de SkillBridge AI.</p></div><span class="badge badge-success">Registro activo</span></section><section class="card"><div class="filters"><input class="search" placeholder="Buscar usuario, acción o módulo"><select class="compact"><option>Todos los módulos</option><option>Administración</option><option>Proyectos</option><option>Asignaciones</option></select><button class="btn btn-light">Filtros</button></div><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Módulo</th><th>Detalle</th></tr></thead><tbody><tr th:each="a : ${auditorias}"><td th:text="${a.fecha != null ? a.fecha : '-'}"></td><td><strong th:text="${a.usuario != null ? a.usuario.nombreCompleto : 'Sistema'}"></strong></td><td th:text="${a.accion}"></td><td><span class="badge badge-purple" th:text="${a.modulo}"></span></td><td th:text="${a.detalle}"></td></tr></tbody></table></div><div th:if="${#lists.isEmpty(auditorias)}" class="empty">No hay registros de auditoría todavía.</div></section></div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>Auditoría | SkillBridge AI</title>
+
+    <link rel="stylesheet"
+          th:href="@{/css/app.css}">
+</head>
+
+<body>
+
+<div class="app-shell">
+
+    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
+    </aside>
+
+    <main class="main">
+
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}">
+        </header>
+
+        <div class="content">
+
+            <!-- ENCABEZADO -->
+            <section class="page-intro">
+
+                <div>
+                    <h2>
+                        Registro de actividad
+                    </h2>
+
+                    <p>
+                        Consulta las acciones realizadas por los usuarios del sistema.
+                    </p>
+                </div>
+
+            </section>
+
+
+            <!-- CONTENIDO -->
+            <section class="card">
+
+                <!-- FILTROS -->
+                <form class="filters"
+                      method="get"
+                      th:action="@{/admin/auditoria}">
+
+                    <input class="search"
+                           type="text"
+                           name="q"
+                           th:value="${q}"
+                           placeholder="Buscar usuario, acción o módulo">
+
+
+                    <select class="compact"
+                            name="modulo">
+
+                        <option value=""
+                                th:selected="${modulo == null or modulo == ''}">
+                            Todos los módulos
+                        </option>
+
+                        <option value="Administración"
+                                th:selected="${modulo == 'Administración'}">
+                            Administración
+                        </option>
+
+                        <option value="Proyectos"
+                                th:selected="${modulo == 'Proyectos'}">
+                            Proyectos
+                        </option>
+
+                        <option value="Asignaciones"
+                                th:selected="${modulo == 'Asignaciones'}">
+                            Asignaciones
+                        </option>
+
+                        <option value="Habilidades"
+                                th:selected="${modulo == 'Habilidades'}">
+                            Habilidades
+                        </option>
+
+                        <option value="Colaboradores"
+                                th:selected="${modulo == 'Colaboradores'}">
+                            Colaboradores
+                        </option>
+
+                    </select>
+
+
+                    <button class="btn btn-light"
+                            type="submit">
+                        Buscar
+                    </button>
+
+
+                    <a class="btn btn-light"
+                       th:href="@{/admin/auditoria}">
+                        Limpiar
+                    </a>
+
+                </form>
+
+
+                <!-- TABLA -->
+                <div class="table-wrap">
+
+                    <table>
+
+                        <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Usuario</th>
+                            <th>Acción</th>
+                            <th>Módulo</th>
+                            <th>Detalle</th>
+                        </tr>
+                        </thead>
+
+                        <tbody>
+
+                        <tr th:each="a : ${auditorias}">
+
+                            <!-- FECHA -->
+                            <td th:text="${a.fecha != null
+                                ? #temporals.format(a.fecha, 'dd/MM/yyyy HH:mm')
+                                : '-'}">
+                                24/09/2026 09:33
+                            </td>
+
+
+                            <!-- USUARIO -->
+                            <td>
+
+                                <strong th:text="${a.usuario != null
+                                    ? a.usuario.nombreCompleto
+                                    : 'Sistema'}">
+
+                                    Administrador SkillBridge
+
+                                </strong>
+
+                            </td>
+
+
+                            <!-- ACCIÓN -->
+                            <td th:text="${a.accion}">
+                                Cambiar estado de usuario
+                            </td>
+
+
+                            <!-- MÓDULO -->
+                            <td>
+
+                                <span class="badge badge-purple"
+                                      th:text="${a.modulo != null
+                                          ? a.modulo
+                                          : '-'}">
+
+                                    Administración
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- DETALLE -->
+                            <td th:text="${a.detalle != null
+                                ? a.detalle
+                                : '-'}">
+
+                                Detalle del evento
+
+                            </td>
+
+                        </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <!-- SIN RESULTADOS -->
+                <div th:if="${#lists.isEmpty(auditorias)}"
+                     class="empty">
+
+                    No se encontraron registros de auditoría.
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
+
+</body>
+
+</html>

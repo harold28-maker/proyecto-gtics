@@ -1,8 +1,428 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Administración | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body>
-<div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('ADMIN')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
-<section class="page-intro"><div><h2>Control general de la plataforma</h2><p>Gestiona usuarios, roles, habilidades y trazabilidad del sistema desde un único panel.</p></div><a class="btn btn-primary" th:href="@{/admin/usuarios/nuevo}">＋ Nuevo usuario</a></section>
-<div class="grid-4"><div class="metric"><div class="metric-icon">♙</div><div class="label">Usuarios totales</div><div class="value" th:text="${totalUsuarios}">0</div><div class="hint">Registrados en la plataforma</div></div><div class="metric green"><div class="metric-icon">✓</div><div class="label">Usuarios activos</div><div class="value" th:text="${usuariosActivos}">0</div><div class="hint">Con acceso habilitado</div></div><div class="metric blue"><div class="metric-icon">◆</div><div class="label">Roles</div><div class="value" th:text="${totalRoles}">0</div><div class="hint">Perfiles de acceso</div></div><div class="metric orange"><div class="metric-icon">✦</div><div class="label">Habilidades</div><div class="value" th:text="${totalHabilidades}">0</div><div class="hint">Catálogo disponible</div></div></div>
-<div class="grid-2 section"><section class="card"><div class="card-title"><h2>Actividad reciente</h2><a class="btn btn-light btn-sm" th:href="@{/admin/auditoria}">Ver auditoría</a></div><div class="forum-item" th:each="a : ${auditorias}"><div><h3 th:text="${a.accion}">Acción</h3><p><span th:text="${a.usuario != null ? a.usuario.nombreCompleto : 'Sistema'}"></span> · <span th:text="${a.modulo}"></span></p></div><span class="badge badge-purple" th:text="${a.fecha != null ? a.fecha : 'reciente'}"></span></div><div class="empty" th:if="${#lists.isEmpty(auditorias)}">Aún no hay eventos registrados.</div></section>
-<section class="card"><div class="card-title"><h2>Accesos rápidos</h2></div><div class="grid-2"><a class="soft-panel" th:href="@{/admin/usuarios}"><strong>♙ Usuarios</strong><p class="muted">Administrar cuentas y estados.</p></a><a class="soft-panel" th:href="@{/admin/roles}"><strong>◆ Roles y permisos</strong><p class="muted">Revisar accesos por módulo.</p></a><a class="soft-panel" th:href="@{/admin/habilidades}"><strong>✦ Habilidades</strong><p class="muted">Gestionar el catálogo técnico.</p></a><a class="soft-panel" th:href="@{/admin/monitoreo}"><strong>⌁ Monitoreo</strong><p class="muted">Consultar actividad del sistema.</p></a></div></section></div>
-<section class="card section"><div class="card-title"><h2>Usuarios recientes</h2><a class="btn btn-light btn-sm" th:href="@{/admin/usuarios}">Ver todos</a></div><div class="table-wrap"><table><thead><tr><th>Usuario</th><th>Rol</th><th>Correo</th><th>Estado</th></tr></thead><tbody><tr th:each="u : ${ultimosUsuarios}"><td><div class="table-user"><span class="mini-avatar" th:text="${#strings.substring(u.nombres,0,1)}">U</span><div><strong th:text="${u.nombreCompleto}"></strong><small th:text="|ID ${u.idUsuario}|"></small></div></div></td><td><span class="badge badge-purple" th:text="${u.rol.nombre}"></span></td><td th:text="${u.correo}"></td><td><span class="badge" th:classappend="${u.estado.name() == 'ACTIVO'} ? ' badge-success' : ' badge-warning'" th:text="${u.estado}"></span></td></tr></tbody></table></div></section>
-</div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>
+        Administración | SkillBridge AI
+    </title>
+
+    <link rel="stylesheet"
+          th:href="@{/css/app.css}">
+
+</head>
+
+
+<body>
+
+<div class="app-shell">
+
+
+    <!-- ==========================================
+         SIDEBAR
+         ========================================== -->
+
+    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
+    </aside>
+
+
+
+    <main class="main">
+
+
+        <!-- ==========================================
+             TOPBAR
+             ========================================== -->
+
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}">
+        </header>
+
+
+
+        <div class="content">
+
+
+            <!-- ==========================================
+                 ENCABEZADO
+                 ========================================== -->
+
+            <section class="page-intro">
+
+                <div>
+
+                    <h2>
+                        Resumen del sistema
+                    </h2>
+
+                    <p>
+                        Gestiona usuarios, roles, habilidades y trazabilidad
+                        del sistema desde un único panel.
+                    </p>
+
+                </div>
+
+
+                <a class="btn btn-primary"
+                   th:href="@{/admin/usuarios/nuevo}">
+
+                    ＋ Nuevo usuario
+
+                </a>
+
+            </section>
+
+
+
+            <!-- ==========================================
+                 INDICADORES
+                 ========================================== -->
+
+            <div class="grid-4">
+
+
+                <!-- USUARIOS -->
+
+                <div class="metric">
+
+                    <div class="label">
+                        Usuarios totales
+                    </div>
+
+                    <div class="value"
+                         th:text="${totalUsuarios}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Registrados en la plataforma
+                    </div>
+
+                </div>
+
+
+
+                <!-- USUARIOS ACTIVOS -->
+
+                <div class="metric green">
+
+                    <div class="label">
+                        Usuarios activos
+                    </div>
+
+                    <div class="value"
+                         th:text="${usuariosActivos}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Con acceso habilitado
+                    </div>
+
+                </div>
+
+
+
+                <!-- ROLES -->
+
+                <div class="metric blue">
+
+                    <div class="label">
+                        Roles
+                    </div>
+
+                    <div class="value"
+                         th:text="${totalRoles}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Perfiles de acceso
+                    </div>
+
+                </div>
+
+
+
+                <!-- HABILIDADES -->
+
+                <div class="metric orange">
+
+                    <div class="label">
+                        Habilidades
+                    </div>
+
+                    <div class="value"
+                         th:text="${totalHabilidades}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Catálogo disponible
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- ==========================================
+                 ACTIVIDAD RECIENTE
+                 ========================================== -->
+
+            <section class="card section">
+
+                <div class="card-title">
+
+                    <h2>
+                        Actividad reciente
+                    </h2>
+
+                    <a class="btn btn-light btn-sm"
+                       th:href="@{/admin/auditoria}">
+
+                        Ver auditoría
+
+                    </a>
+
+                </div>
+
+
+
+                <div class="forum-item"
+                     th:each="a : ${auditorias}">
+
+
+                    <div>
+
+                        <h3 th:text="${a.accion}">
+                            Acción
+                        </h3>
+
+
+                        <p>
+
+                            <span th:text="${
+                                a.usuario != null
+                                ? a.usuario.nombreCompleto
+                                : 'Sistema'
+                            }">
+                            </span>
+
+                            ·
+
+                            <span th:text="${a.modulo}">
+                            </span>
+
+                        </p>
+
+                    </div>
+
+
+
+                    <span class="badge badge-purple"
+                          th:text="${
+                              a.fecha != null
+                              ? a.fecha
+                              : 'reciente'
+                          }">
+
+                        reciente
+
+                    </span>
+
+                </div>
+
+
+
+                <div class="empty"
+                     th:if="${#lists.isEmpty(auditorias)}">
+
+                    Aún no hay eventos registrados.
+
+                </div>
+
+            </section>
+
+
+
+            <!-- ==========================================
+                 USUARIOS RECIENTES
+                 ========================================== -->
+
+            <section class="card section">
+
+
+                <div class="card-title">
+
+                    <h2>
+                        Usuarios recientes
+                    </h2>
+
+
+                    <a class="btn btn-light btn-sm"
+                       th:href="@{/admin/usuarios}">
+
+                        Ver todos
+
+                    </a>
+
+                </div>
+
+
+
+                <div class="table-wrap">
+
+
+                    <table>
+
+
+                        <thead>
+
+                        <tr>
+
+                            <th>
+                                Usuario
+                            </th>
+
+                            <th>
+                                Rol
+                            </th>
+
+                            <th>
+                                Correo
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                        </tr>
+
+                        </thead>
+
+
+
+                        <tbody>
+
+
+                        <tr th:each="u : ${ultimosUsuarios}">
+
+
+                            <!-- USUARIO -->
+
+                            <td>
+
+                                <div class="table-user">
+
+
+                                    <span class="mini-avatar"
+                                          th:text="${#strings.substring(
+                                              u.nombres,
+                                              0,
+                                              1
+                                          )}">
+
+                                        U
+
+                                    </span>
+
+
+
+                                    <div>
+
+                                        <strong th:text="${u.nombreCompleto}">
+                                            Usuario
+                                        </strong>
+
+                                        <small th:text="|ID ${u.idUsuario}|">
+                                            ID
+                                        </small>
+
+                                    </div>
+
+
+                                </div>
+
+                            </td>
+
+
+
+                            <!-- ROL -->
+
+                            <td>
+
+                                <span class="badge badge-purple"
+                                      th:text="${u.rol.nombre}">
+
+                                    COLABORADOR
+
+                                </span>
+
+                            </td>
+
+
+
+                            <!-- CORREO -->
+
+                            <td th:text="${u.correo}">
+
+                                correo@skillbridge.com
+
+                            </td>
+
+
+
+                            <!-- ESTADO -->
+
+                            <td>
+
+                                <span class="badge"
+                                      th:classappend="${
+                                          u.estado.name() == 'ACTIVO'
+                                          ? ' badge-success'
+                                          : ' badge-warning'
+                                      }"
+                                      th:text="${u.estado}">
+
+                                    ACTIVO
+
+                                </span>
+
+                            </td>
+
+
+                        </tr>
+
+
+                        </tbody>
+
+
+                    </table>
+
+
+                </div>
+
+
+            </section>
+
+
+        </div>
+
+
+    </main>
+
+
+</div>
+
+
+</body>
+
+</html>

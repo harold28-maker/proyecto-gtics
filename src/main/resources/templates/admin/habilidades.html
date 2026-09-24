@@ -1,11 +1,387 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Habilidades | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('ADMIN')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
-    <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
-    <div class="grid-3"><div class="metric"><div class="metric-icon">✦</div><div class="label">Habilidades</div><div class="value" th:text="${#lists.size(habilidades)}"></div><div class="hint">Resultados actuales</div></div><div class="metric green"><div class="metric-icon">✓</div><div class="label">Activas</div><div class="value" th:text="${activas}"></div><div class="hint">Disponibles en catálogo</div></div><div class="metric blue"><div class="metric-icon">▱</div><div class="label">Categorías</div><div class="value" th:text="${categorias}"></div><div class="hint">Clasificación técnica</div></div></div>
-    <div class="page-actions section"><div><p class="eyebrow">Taxonomía de talento</p><p class="muted mb-0">El catálogo alimenta perfiles, requerimientos de proyecto y Talent Matching.</p></div><a class="btn btn-primary" th:href="@{/admin/habilidades/nueva}">＋ Nueva habilidad</a></div>
-    <section class="card"><form class="filters" method="get"><input class="search" name="q" th:value="${q}" placeholder="Buscar habilidad"><button class="btn btn-light">Buscar</button><a class="btn btn-light" th:href="@{/admin/habilidades}">Limpiar</a></form><div class="table-wrap"><table><thead><tr><th>Habilidad</th><th>Categoría</th><th>Descripción</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
-        <tr th:each="h : ${habilidades}"><td><div class="table-user"><span class="mini-avatar">✦</span><div><strong th:text="${h.nombre}"></strong><small>SkillBridge catalog</small></div></div></td><td><span class="badge badge-purple" th:text="${h.categoria}"></span></td><td th:text="${h.descripcion}"></td><td><span class="badge" th:classappend="${h.estado} ? ' badge-success' : ' badge-warning'" th:text="${h.estado ? 'ACTIVA' : 'INACTIVA'}"></span></td><td><div class="action-row"><a class="btn btn-light btn-sm" th:href="@{/admin/habilidades/editar/{id}(id=${h.idHabilidad})}">Editar</a><form th:action="@{/admin/habilidades/{id}/estado(id=${h.idHabilidad})}" method="post"><button class="btn btn-sm" th:classappend="${h.estado} ? ' btn-danger-soft' : ' btn-success-soft'" th:text="${h.estado ? 'Desactivar' : 'Activar'}"></button></form></div></td></tr>
-        </tbody></table></div></section>
-</div></main></div></body></html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>
+        Habilidades | SkillBridge AI
+    </title>
+
+    <link rel="stylesheet"
+          th:href="@{/css/app.css}">
+
+</head>
+
+<body>
+
+<div class="app-shell">
+
+
+    <!-- =========================================
+         SIDEBAR
+         ========================================= -->
+
+    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
+    </aside>
+
+
+    <main class="main">
+
+
+        <!-- =========================================
+             TOPBAR
+             ========================================= -->
+
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}">
+        </header>
+
+
+        <div class="content">
+
+
+            <!-- =========================================
+                 MENSAJE DE ÉXITO
+                 ========================================= -->
+
+            <div class="alert-success"
+                 th:if="${mensajeExito}"
+                 th:text="${mensajeExito}">
+            </div>
+
+
+            <!-- =========================================
+                 INDICADORES
+                 ========================================= -->
+
+            <div class="grid-3">
+
+
+                <!-- HABILIDADES -->
+
+                <div class="metric">
+
+                    <div class="label">
+                        Habilidades
+                    </div>
+
+                    <div class="value"
+                         th:text="${#lists.size(habilidades)}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Resultados actuales
+                    </div>
+
+                </div>
+
+
+                <!-- ACTIVAS -->
+
+                <div class="metric green">
+
+                    <div class="label">
+                        Activas
+                    </div>
+
+                    <div class="value"
+                         th:text="${activas}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Disponibles en catálogo
+                    </div>
+
+                </div>
+
+
+                <!-- CATEGORÍAS -->
+
+                <div class="metric blue">
+
+                    <div class="label">
+                        Categorías
+                    </div>
+
+                    <div class="value"
+                         th:text="${categorias}">
+                        0
+                    </div>
+
+                    <div class="hint">
+                        Clasificación técnica
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- =========================================
+                 CATÁLOGO DE HABILIDADES
+                 ========================================= -->
+
+            <section class="card section">
+
+
+                <!-- CABECERA -->
+
+                <div class="skills-card-header">
+
+
+                    <div>
+
+                        <h2>
+                            Habilidades registradas
+                        </h2>
+
+                        <p class="muted mb-0">
+                            Administra las habilidades disponibles en el sistema.
+                        </p>
+
+                    </div>
+
+
+                    <a class="btn btn-primary"
+                       th:href="@{/admin/habilidades/nueva}">
+
+                        ＋ Nueva habilidad
+
+                    </a>
+
+
+                </div>
+
+
+                <!-- =========================================
+                     BUSCADOR
+                     ========================================= -->
+
+                <form class="filters"
+                      method="get">
+
+
+                    <input class="search"
+                           type="text"
+                           name="q"
+                           th:value="${q}"
+                           placeholder="Buscar habilidad">
+
+
+                    <button class="btn btn-light"
+                            type="submit">
+
+                        Buscar
+
+                    </button>
+
+
+                    <a class="btn btn-light"
+                       th:href="@{/admin/habilidades}">
+
+                        Limpiar
+
+                    </a>
+
+
+                </form>
+
+
+                <!-- =========================================
+                     TABLA
+                     ========================================= -->
+
+                <div class="table-wrap">
+
+
+                    <table>
+
+
+                        <thead>
+
+                        <tr>
+
+                            <th>
+                                Habilidad
+                            </th>
+
+                            <th>
+                                Categoría
+                            </th>
+
+                            <th>
+                                Descripción
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Acciones
+                            </th>
+
+                        </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+
+                        <tr th:each="h : ${habilidades}">
+
+
+                            <!-- HABILIDAD -->
+
+                            <td>
+
+                                <strong th:text="${h.nombre}">
+                                    Java
+                                </strong>
+
+                            </td>
+
+
+                            <!-- CATEGORÍA -->
+
+                            <td>
+
+                                <span class="badge badge-purple"
+                                      th:text="${h.categoria}">
+
+                                    Backend
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- DESCRIPCIÓN -->
+
+                            <td th:text="${h.descripcion}">
+
+                                Programación backend con Java
+
+                            </td>
+
+
+                            <!-- ESTADO -->
+
+                            <td>
+
+                                <span class="badge"
+
+                                      th:classappend="${h.estado}
+                                          ? ' badge-success'
+                                          : ' badge-warning'"
+
+                                      th:text="${h.estado
+                                          ? 'Activa'
+                                          : 'Inactiva'}">
+
+                                    Activa
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- ACCIONES -->
+
+                            <td>
+
+                                <div class="action-row">
+
+
+                                    <!-- EDITAR -->
+
+                                    <a class="btn btn-light btn-sm"
+
+                                       th:href="@{/admin/habilidades/editar/{id}(
+                                           id=${h.idHabilidad}
+                                       )}">
+
+                                        Editar
+
+                                    </a>
+
+
+                                    <!-- ACTIVAR / DESACTIVAR -->
+
+                                    <form th:action="@{/admin/habilidades/{id}/estado(
+                                              id=${h.idHabilidad}
+                                          )}"
+                                          method="post">
+
+
+                                        <button class="btn btn-sm"
+
+                                                th:classappend="${h.estado}
+                                                    ? ' btn-danger-soft'
+                                                    : ' btn-success-soft'"
+
+                                                th:text="${h.estado
+                                                    ? 'Desactivar'
+                                                    : 'Activar'}">
+
+                                            Desactivar
+
+                                        </button>
+
+
+                                    </form>
+
+
+                                </div>
+
+                            </td>
+
+
+                        </tr>
+
+
+                        </tbody>
+
+
+                    </table>
+
+
+                </div>
+
+
+                <!-- =========================================
+                     SIN RESULTADOS
+                     ========================================= -->
+
+                <div class="empty"
+                     th:if="${#lists.isEmpty(habilidades)}">
+
+                    No se encontraron habilidades.
+
+                </div>
+
+
+            </section>
+
+
+        </div>
+
+
+    </main>
+
+
+</div>
+
+
+</body>
+
+</html>

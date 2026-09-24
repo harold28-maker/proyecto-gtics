@@ -1,5 +1,436 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Roles y permisos | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('ADMIN')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
-<div class="grid-3"><div class="metric"><div class="metric-icon">◆</div><div class="label">Roles totales</div><div class="value" th:text="${#lists.size(roles)}"></div><div class="hint">Perfiles definidos</div></div><div class="metric green"><div class="metric-icon">✓</div><div class="label">Permisos</div><div class="value" th:text="${totalPermisos}"></div><div class="hint">Acciones habilitadas</div></div><div class="metric blue"><div class="metric-icon">♙</div><div class="label">Usuarios</div><div class="value" th:text="${totalUsuarios}"></div><div class="hint">Con rol asignado</div></div></div>
-<section class="card section"><div class="card-title"><h2>Roles del sistema</h2><span class="badge badge-purple">Configuración actual</span></div><div class="grid-2"><article class="soft-panel" th:each="r : ${roles}"><div class="card-title"><div><strong th:text="${r.nombre}"></strong><p class="muted" th:text="${r.descripcion}"></p></div><span class="badge" th:classappend="${r.estado} ? ' badge-success' : ' badge-warning'" th:text="${r.estado ? 'ACTIVO' : 'INACTIVO'}"></span></div><div class="tags"><span class="tag" th:each="p : ${permisos}" th:if="${p.rol.idRol == r.idRol}" th:text="${p.modulo}"></span></div></article></div></section>
-<section class="card section"><div class="card-title"><h2>Matriz de permisos</h2></div><div class="table-wrap"><table><thead><tr><th>Rol</th><th>Permiso</th><th>Módulo</th><th>Descripción</th></tr></thead><tbody><tr th:each="p : ${permisos}"><td><span class="badge badge-purple" th:text="${p.rol.nombre}"></span></td><td><strong th:text="${p.nombre}"></strong></td><td th:text="${p.modulo}"></td><td th:text="${p.descripcion ?: '-'}"></td></tr></tbody></table></div></section>
-</div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>
+        Roles y permisos | SkillBridge AI
+    </title>
+
+    <link rel="stylesheet"
+          th:href="@{/css/app.css}">
+
+</head>
+
+<body>
+
+<div class="app-shell">
+
+    <!-- SIDEBAR -->
+    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
+    </aside>
+
+
+    <main class="main">
+
+        <!-- TOPBAR -->
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}">
+        </header>
+
+
+        <div class="content">
+
+
+            <!-- ==========================================
+                 RESUMEN
+                 ========================================== -->
+
+            <div class="grid-3">
+
+
+                <div class="metric">
+
+                    <div class="label">
+                        Roles
+                    </div>
+
+                    <div class="value"
+                         th:text="${#lists.size(roles)}">
+                        4
+                    </div>
+
+                    <div class="hint">
+                        Registrados
+                    </div>
+
+                </div>
+
+
+                <div class="metric green">
+
+                    <div class="label">
+                        Permisos
+                    </div>
+
+                    <div class="value"
+                         th:text="${totalPermisos}">
+                        12
+                    </div>
+
+                    <div class="hint">
+                        Registrados
+                    </div>
+
+                </div>
+
+
+                <div class="metric blue">
+
+                    <div class="label">
+                        Usuarios
+                    </div>
+
+                    <div class="value"
+                         th:text="${totalUsuarios}">
+                        9
+                    </div>
+
+                    <div class="hint">
+                        Con rol asignado
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- ==========================================
+                 ROLES
+                 ========================================== -->
+
+            <section class="card section">
+
+                <div class="simple-section-title">
+
+                    <div>
+
+                        <h2>
+                            Roles del sistema
+                        </h2>
+
+                        <p>
+                            Selecciona un rol para revisar sus permisos.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="simple-role-grid">
+
+
+                    <button type="button"
+                            class="simple-role-card"
+                            th:each="r, estadoRol : ${roles}"
+                            th:classappend="${estadoRol.index == 0} ? ' active' : ''"
+                            th:attr="data-role-id=${r.idRol}"
+                            onclick="seleccionarRol(this)">
+
+
+                        <div class="simple-role-header">
+
+                            <strong th:text="${
+                                r.nombre == 'COLABORADOR'
+                                ? 'Colaborador'
+                                : (r.nombre == 'PROJECT_MANAGER'
+                                ? 'Project Manager'
+                                : (r.nombre == 'RESOURCE_MANAGER'
+                                ? 'Resource Manager'
+                                : (r.nombre == 'ADMINISTRADOR'
+                                ? 'Administrador'
+                                : r.nombre)))
+                            }">
+
+                                Colaborador
+
+                            </strong>
+
+
+                            <span class="badge"
+                                  th:classappend="${r.estado}
+                                  ? ' badge-success'
+                                  : ' badge-warning'"
+                                  th:text="${r.estado
+                                  ? 'Activo'
+                                  : 'Inactivo'}">
+
+                                Activo
+
+                            </span>
+
+                        </div>
+
+
+                        <p th:text="${r.descripcion}">
+                            Descripción del rol
+                        </p>
+
+
+                        <span class="simple-role-count"
+                              th:text="${#lists.size(
+                                  permisos.?[rol.idRol == __${r.idRol}__]
+                              ) + ' permisos'}">
+
+                            0 permisos
+
+                        </span>
+
+
+                    </button>
+
+
+                </div>
+
+
+            </section>
+
+
+
+            <!-- ==========================================
+                 PERMISOS DEL ROL
+                 ========================================== -->
+
+            <section class="card section">
+
+
+                <div class="simple-permission-panel"
+                     th:each="r, estadoRol : ${roles}"
+                     th:id="'panel-rol-' + ${r.idRol}"
+                     th:classappend="${estadoRol.index != 0}
+                     ? ' hidden'
+                     : ''">
+
+
+                    <div class="simple-section-title">
+
+                        <div>
+
+                            <h2>
+
+                                Permisos de
+
+                                <span th:text="${
+                                    r.nombre == 'COLABORADOR'
+                                    ? 'Colaborador'
+                                    : (r.nombre == 'PROJECT_MANAGER'
+                                    ? 'Project Manager'
+                                    : (r.nombre == 'RESOURCE_MANAGER'
+                                    ? 'Resource Manager'
+                                    : (r.nombre == 'ADMINISTRADOR'
+                                    ? 'Administrador'
+                                    : r.nombre)))
+                                }">
+
+                                    Colaborador
+
+                                </span>
+
+                            </h2>
+
+
+                            <p>
+                                Permisos actualmente asignados a este rol.
+                            </p>
+
+                        </div>
+
+
+                        <span class="badge badge-purple">
+
+                            <span th:text="${#lists.size(
+                                permisos.?[rol.idRol == __${r.idRol}__]
+                            )}">
+                                0
+                            </span>
+
+                            permisos
+
+                        </span>
+
+
+                    </div>
+
+
+
+                    <!-- TABLA -->
+
+                    <div class="table-wrap">
+
+                        <table class="simple-permission-table">
+
+                            <thead>
+
+                            <tr>
+
+                                <th>
+                                    Permiso
+                                </th>
+
+                                <th>
+                                    Módulo
+                                </th>
+
+                                <th>
+                                    Descripción
+                                </th>
+
+                            </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+
+                            <tr th:each="p : ${permisos}"
+                                th:if="${p.rol.idRol == r.idRol}">
+
+
+                                <td>
+
+                                    <strong th:text="${p.nombre}">
+                                        Consultar perfil
+                                    </strong>
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="tag"
+                                          th:text="${p.modulo}">
+                                        Perfil
+                                    </span>
+
+                                </td>
+
+
+                                <td th:text="${p.descripcion != null
+                                    and !#strings.isEmpty(p.descripcion)
+                                    ? p.descripcion
+                                    : '-'}">
+
+                                    -
+
+                                </td>
+
+
+                            </tr>
+
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+
+
+                    <!-- SIN PERMISOS -->
+
+                    <div class="empty"
+                         th:if="${#lists.isEmpty(
+                             permisos.?[rol.idRol == __${r.idRol}__]
+                         )}">
+
+                        Este rol no tiene permisos registrados.
+
+                    </div>
+
+
+                </div>
+
+
+            </section>
+
+
+        </div>
+
+
+    </main>
+
+
+</div>
+
+
+
+<!-- ==========================================
+     CAMBIAR ROL
+     ========================================== -->
+
+<script>
+
+    function seleccionarRol(tarjeta) {
+
+        const tarjetas =
+            document.querySelectorAll(
+                ".simple-role-card"
+            );
+
+
+        tarjetas.forEach(function (item) {
+
+            item.classList.remove(
+                "active"
+            );
+
+        });
+
+
+        tarjeta.classList.add(
+            "active"
+        );
+
+
+        const idRol =
+            tarjeta.getAttribute(
+                "data-role-id"
+            );
+
+
+        const paneles =
+            document.querySelectorAll(
+                ".simple-permission-panel"
+            );
+
+
+        paneles.forEach(function (panel) {
+
+            panel.classList.add(
+                "hidden"
+            );
+
+        });
+
+
+        const panel =
+            document.getElementById(
+                "panel-rol-" + idRol
+            );
+
+
+        if (panel) {
+
+            panel.classList.remove(
+                "hidden"
+            );
+
+        }
+
+    }
+
+</script>
+
+
+</body>
+
+</html>

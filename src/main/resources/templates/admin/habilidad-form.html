@@ -1,1 +1,301 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Habilidad | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('ADMIN')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content"><section class="page-intro"><div><h2>Información de la habilidad</h2><p>Registra una habilidad disponible para los perfiles de colaboradores y requerimientos de proyectos.</p></div></section><section class="card form-card"><form th:action="@{/admin/habilidades/guardar}" th:object="${habilidad}" method="post"><input type="hidden" th:field="*{idHabilidad}"><div class="form-grid"><div class="form-group"><label>Nombre</label><input th:field="*{nombre}" required placeholder="Ej. Spring Boot"></div><div class="form-group"><label>Categoría</label><input th:field="*{categoria}" placeholder="Backend, Frontend, DevOps..."></div><div class="form-group full"><label>Descripción</label><textarea rows="5" th:field="*{descripcion}" placeholder="Describe el alcance o uso principal de la habilidad."></textarea></div><div class="form-group"><label>Estado</label><select th:field="*{estado}"><option th:value="true">Activa</option><option th:value="false">Inactiva</option></select></div></div><div class="form-actions"><a class="btn btn-light" th:href="@{/admin/habilidades}">Cancelar</a><button class="btn btn-primary">Guardar habilidad</button></div></form></section></div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>Habilidad | SkillBridge AI</title>
+
+    <link rel="stylesheet"
+          th:href="@{/css/app.css}">
+
+</head>
+
+<body>
+
+<div class="app-shell">
+
+
+    <!-- SIDEBAR -->
+    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
+    </aside>
+
+
+    <main class="main">
+
+
+        <!-- TOPBAR -->
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}">
+        </header>
+
+
+        <div class="content">
+
+
+            <!-- =========================================
+                 TEXTO SUPERIOR
+                 ========================================= -->
+
+            <div class="habilidad-form-info">
+
+                <div>
+
+                    <h3>
+                        Datos de la habilidad
+                    </h3>
+
+                    <p th:text="${habilidad.idHabilidad == null
+                        ? 'Registra la información de la nueva habilidad.'
+                        : 'Actualiza la información de la habilidad.'}">
+
+                        Registra la información de la nueva habilidad.
+
+                    </p>
+
+                </div>
+
+
+                <span>
+                    * Campos obligatorios
+                </span>
+
+            </div>
+
+
+            <!-- =========================================
+                 FORMULARIO
+                 ========================================= -->
+
+            <section class="card form-card habilidad-form-card">
+
+
+                <form id="habilidadForm"
+                      th:action="@{/admin/habilidades/guardar}"
+                      th:object="${habilidad}"
+                      method="post">
+
+
+                    <!-- ID -->
+                    <input type="hidden"
+                           th:field="*{idHabilidad}">
+
+
+                    <div class="form-grid">
+
+
+                        <!-- =================================
+                             NOMBRE
+                             ================================= -->
+
+                        <div class="form-group">
+
+                            <label for="nombre">
+
+                                Nombre
+                                <span class="required">*</span>
+
+                            </label>
+
+
+                            <input id="nombre"
+                                   type="text"
+                                   th:field="*{nombre}"
+                                   maxlength="40"
+                                   required
+                                   placeholder="Ej. Spring Boot">
+
+
+                            <p class="form-note">
+                                Máximo 40 caracteres.
+                            </p>
+
+                        </div>
+
+
+                        <!-- =================================
+                             CATEGORÍA
+                             ================================= -->
+
+                        <div class="form-group">
+
+                            <label for="categoria">
+
+                                Categoría
+                                <span class="required">*</span>
+
+                            </label>
+
+
+                            <input id="categoria"
+                                   type="text"
+                                   th:field="*{categoria}"
+                                   maxlength="30"
+                                   required
+                                   placeholder="Ej. Backend">
+
+
+                            <p class="form-note">
+                                Máximo 30 caracteres.
+                            </p>
+
+                        </div>
+
+
+                        <!-- =================================
+                             DESCRIPCIÓN
+                             ================================= -->
+
+                        <div class="form-group full">
+
+                            <label for="descripcion">
+
+                                Descripción
+                                <span class="required">*</span>
+
+                            </label>
+
+
+                            <textarea id="descripcion"
+                                      rows="5"
+                                      th:field="*{descripcion}"
+                                      maxlength="150"
+                                      required
+                                      placeholder="Describe el alcance o uso principal de la habilidad."></textarea>
+
+
+                            <div class="habilidad-description-footer">
+
+                                <p class="form-note">
+                                    Máximo 150 caracteres.
+                                </p>
+
+                                <span id="descripcionContador">
+                                    0 / 150
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- =================================
+                             ESTADO
+                             ================================= -->
+
+                        <div class="form-group">
+
+                            <label for="estado">
+
+                                Estado
+                                <span class="required">*</span>
+
+                            </label>
+
+
+                            <select id="estado"
+                                    th:field="*{estado}"
+                                    required>
+
+                                <option th:value="true">
+                                    Activa
+                                </option>
+
+                                <option th:value="false">
+                                    Inactiva
+                                </option>
+
+                            </select>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <!-- =========================================
+                         BOTONES
+                         ========================================= -->
+
+                    <div class="form-actions">
+
+
+                        <a class="btn btn-light"
+                           th:href="@{/admin/habilidades}">
+
+                            Cancelar
+
+                        </a>
+
+
+                        <button class="btn btn-primary"
+                                type="submit">
+
+                            <span th:text="${habilidad.idHabilidad == null
+                                ? 'Guardar habilidad'
+                                : 'Guardar cambios'}">
+
+                                Guardar habilidad
+
+                            </span>
+
+                        </button>
+
+
+                    </div>
+
+
+                </form>
+
+
+            </section>
+
+
+        </div>
+
+
+    </main>
+
+
+</div>
+
+
+<!-- =========================================
+     CONTADOR DESCRIPCIÓN
+     ========================================= -->
+
+<script>
+
+    const descripcion =
+        document.getElementById("descripcion");
+
+    const descripcionContador =
+        document.getElementById("descripcionContador");
+
+
+    function actualizarContadorDescripcion() {
+
+        descripcionContador.textContent =
+            descripcion.value.length + " / 150";
+
+    }
+
+
+    descripcion.addEventListener(
+        "input",
+        actualizarContadorDescripcion
+    );
+
+
+    actualizarContadorDescripcion();
+
+</script>
+
+
+</body>
+
+</html>
