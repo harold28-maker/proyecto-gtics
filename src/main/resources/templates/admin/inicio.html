@@ -13,15 +13,14 @@
         Administración | SkillBridge AI
     </title>
 
-    <link rel="stylesheet"
-          th:href="@{/css/app.css}">
 
-</head>
+
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
 
 
 <body>
 
-<div class="app-shell">
+<div class="app-shell min-h-screen bg-gray-50 font-outfit text-gray-900">
 
 
     <!-- ==========================================
@@ -33,7 +32,7 @@
 
 
 
-    <main class="main">
+    <main class="main min-w-0">
 
 
         <!-- ==========================================
@@ -45,14 +44,14 @@
 
 
 
-        <div class="content">
+        <div class="content admin-overview mx-auto w-full max-w-[1600px]">
 
 
             <!-- ==========================================
                  ENCABEZADO
                  ========================================== -->
 
-            <section class="page-intro">
+            <section class="page-intro flex flex-col gap-4 border-b border-gray-100 pb-5 md:flex-row md:items-end md:justify-between">
 
                 <div>
 
@@ -68,7 +67,7 @@
                 </div>
 
 
-                <a class="btn btn-primary"
+                <a class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-primary bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-100"
                    th:href="@{/admin/usuarios/nuevo}">
 
                     ＋ Nuevo usuario
@@ -83,12 +82,12 @@
                  INDICADORES
                  ========================================== -->
 
-            <div class="grid-4">
+            <div class="grid-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
 
                 <!-- USUARIOS -->
 
-                <div class="metric">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm">
 
                     <div class="label">
                         Usuarios totales
@@ -109,7 +108,7 @@
 
                 <!-- USUARIOS ACTIVOS -->
 
-                <div class="metric green">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm green">
 
                     <div class="label">
                         Usuarios activos
@@ -130,7 +129,7 @@
 
                 <!-- ROLES -->
 
-                <div class="metric blue">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm blue">
 
                     <div class="label">
                         Roles
@@ -151,7 +150,7 @@
 
                 <!-- HABILIDADES -->
 
-                <div class="metric orange">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm orange">
 
                     <div class="label">
                         Habilidades
@@ -177,15 +176,15 @@
                  ACTIVIDAD RECIENTE
                  ========================================== -->
 
-            <section class="card section">
+            <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm section">
 
-                <div class="card-title">
+                <div class="card-title mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 
                     <h2>
                         Actividad reciente
                     </h2>
 
-                    <a class="btn btn-light btn-sm"
+                    <a class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-light btn-sm border border-gray-200 bg-white text-gray-700 hover:border-brand-200 hover:bg-brand-50 focus:ring-brand-100"
                        th:href="@{/admin/auditoria}">
 
                         Ver auditoría
@@ -227,7 +226,7 @@
 
 
 
-                    <span class="badge badge-purple"
+                    <span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold badge-purple bg-brand-50 text-brand-700"
                           th:text="${
                               a.fecha != null
                               ? a.fecha
@@ -242,7 +241,7 @@
 
 
 
-                <div class="empty"
+                <div class="empty rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center text-sm text-gray-500"
                      th:if="${#lists.isEmpty(auditorias)}">
 
                     Aún no hay eventos registrados.
@@ -257,17 +256,17 @@
                  USUARIOS RECIENTES
                  ========================================== -->
 
-            <section class="card section">
+            <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm section">
 
 
-                <div class="card-title">
+                <div class="card-title mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 
                     <h2>
                         Usuarios recientes
                     </h2>
 
 
-                    <a class="btn btn-light btn-sm"
+                    <a class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-light btn-sm border border-gray-200 bg-white text-gray-700 hover:border-brand-200 hover:bg-brand-50 focus:ring-brand-100"
                        th:href="@{/admin/usuarios}">
 
                         Ver todos
@@ -278,29 +277,29 @@
 
 
 
-                <div class="table-wrap">
+                <div class="table-wrap overflow-x-auto rounded-xl border border-gray-200">
 
 
-                    <table>
+                    <table class="w-full min-w-[720px] border-collapse text-left text-sm">
 
 
-                        <thead>
+                        <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
 
                         <tr>
 
-                            <th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                 Usuario
                             </th>
 
-                            <th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                 Rol
                             </th>
 
-                            <th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                 Correo
                             </th>
 
-                            <th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                 Estado
                             </th>
 
@@ -310,7 +309,7 @@
 
 
 
-                        <tbody>
+                        <tbody class="divide-y divide-gray-100 bg-white">
 
 
                         <tr th:each="u : ${ultimosUsuarios}">
@@ -318,7 +317,7 @@
 
                             <!-- USUARIO -->
 
-                            <td>
+                            <td class="px-4 py-3 align-middle text-sm text-gray-700">
 
                                 <div class="table-user">
 
@@ -357,9 +356,9 @@
 
                             <!-- ROL -->
 
-                            <td>
+                            <td class="px-4 py-3 align-middle text-sm text-gray-700">
 
-                                <span class="badge badge-purple"
+                                <span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold badge-purple bg-brand-50 text-brand-700"
                                       th:text="${u.rol.nombre}">
 
                                     COLABORADOR
@@ -372,7 +371,7 @@
 
                             <!-- CORREO -->
 
-                            <td th:text="${u.correo}">
+                            <td class="px-4 py-3 align-middle text-sm text-gray-700" th:text="${u.correo}">
 
                                 correo@skillbridge.com
 
@@ -382,9 +381,9 @@
 
                             <!-- ESTADO -->
 
-                            <td>
+                            <td class="px-4 py-3 align-middle text-sm text-gray-700">
 
-                                <span class="badge"
+                                <span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
                                       th:classappend="${
                                           u.estado.name() == 'ACTIVO'
                                           ? ' badge-success'

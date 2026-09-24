@@ -13,14 +13,13 @@
         Monitoreo | SkillBridge AI
     </title>
 
-    <link rel="stylesheet"
-          th:href="@{/css/app.css}">
 
-</head>
+
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
 
 <body>
 
-<div class="app-shell">
+<div class="app-shell min-h-screen bg-gray-50 font-outfit text-gray-900">
 
 
     <!-- SIDEBAR -->
@@ -28,7 +27,7 @@
     </aside>
 
 
-    <main class="main">
+    <main class="main min-w-0">
 
 
         <!-- TOPBAR -->
@@ -36,19 +35,19 @@
         </header>
 
 
-        <div class="content">
+        <div class="content mx-auto w-full max-w-[1600px]">
 
 
             <!-- =========================================
                  INDICADORES
                  ========================================= -->
 
-            <div class="grid-4">
+            <div class="grid-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
 
                 <!-- ESTADO DEL SISTEMA -->
 
-                <div class="metric green">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm green">
 
                     <div class="label">
                         Estado del sistema
@@ -67,7 +66,7 @@
 
                 <!-- USUARIOS -->
 
-                <div class="metric">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm">
 
                     <div class="label">
                         Usuarios
@@ -87,7 +86,7 @@
 
                 <!-- EVENTOS -->
 
-                <div class="metric blue">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm blue">
 
                     <div class="label">
                         Eventos auditados
@@ -107,7 +106,7 @@
 
                 <!-- HABILIDADES -->
 
-                <div class="metric orange">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm orange">
 
                     <div class="label">
                         Habilidades
@@ -132,17 +131,17 @@
                  MONITOREO
                  ========================================= -->
 
-            <div class="grid-2 section">
+            <div class="grid-2 grid grid-cols-1 gap-5 lg:grid-cols-2 section">
 
 
                 <!-- =====================================
                      ESTADO DE SERVICIOS
                      ===================================== -->
 
-                <section class="card monitor-services-card">
+                <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm monitor-services-card">
 
 
-                    <div class="card-title">
+                    <div class="card-title mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 
                         <h2>
                             Estado de servicios
@@ -224,10 +223,10 @@
                      EVENTOS RECIENTES
                      ===================================== -->
 
-                <section class="card">
+                <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm">
 
 
-                    <div class="card-title">
+                    <div class="card-title mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 
                         <h2>
                             Eventos recientes
@@ -271,7 +270,7 @@
 
                     <!-- SI NO HAY EVENTOS -->
 
-                    <div class="empty"
+                    <div class="empty rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center text-sm text-gray-500"
                          th:if="${#lists.isEmpty(actividad)}">
 
                         No hay eventos recientes.

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ingresar | SkillBridge AI</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-</head>
+
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
 <body>
 <div class="login-shell">
     <section class="login-art">
@@ -20,7 +20,7 @@
     </section>
 
     <section class="login-card-wrap">
-        <div class="card login-card" id="loginCard"
+        <div class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm login-card" id="loginCard"
              th:attr="data-show-credentials=${mostrarCredenciales},data-selected-role=${rolSeleccionado}">
             <form th:action="@{/acceder}" method="post" id="loginForm">
                 <section id="roleStep" class="login-step">
@@ -48,7 +48,7 @@
                         </div>
                     </div>
 
-                    <button class="btn btn-primary btn-lg login-main-action" id="continueLogin" type="button">Ingresar SkillBridge AI</button>
+                    <button class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-primary btn-lg login-main-action bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-100" id="continueLogin" type="button">Ingresar SkillBridge AI</button>
                 </section>
 
                 <section id="credentialStep" class="login-step login-step-hidden">
@@ -63,15 +63,15 @@
 
                     <div class="login-alert" th:if="${errorLogin != null}"><span>!</span><p th:text="${errorLogin}">Credenciales incorrectas.</p></div>
 
-                    <div class="form-group login-form-group">
+                    <div class="form-group space-y-2 login-form-group">
                         <label for="correo">Correo institucional</label>
-                        <input id="correo" name="correo" type="email" required autocomplete="username" placeholder="nombre@skillbridge.com" th:value="${correoIngresado}">
+                        <input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" id="correo" name="correo" type="email" required autocomplete="username" placeholder="nombre@skillbridge.com" th:value="${correoIngresado}">
                     </div>
-                    <div class="form-group login-form-group">
+                    <div class="form-group space-y-2 login-form-group">
                         <label for="password">Contraseña</label>
-                        <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Ingresa tu contraseña">
+                        <input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" id="password" name="password" type="password" required autocomplete="current-password" placeholder="Ingresa tu contraseña">
                     </div>
-                    <button class="btn btn-primary btn-lg login-main-action" type="submit">Acceder al workspace</button>
+                    <button class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-primary btn-lg login-main-action bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-100" type="submit">Acceder al workspace</button>
                 </section>
             </form>
         </div>

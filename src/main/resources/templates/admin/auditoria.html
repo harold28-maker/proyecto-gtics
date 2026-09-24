@@ -9,26 +9,25 @@
 
     <title>Auditoría | SkillBridge AI</title>
 
-    <link rel="stylesheet"
-          th:href="@{/css/app.css}">
-</head>
+
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
 
 <body>
 
-<div class="app-shell">
+<div class="app-shell min-h-screen bg-gray-50 font-outfit text-gray-900">
 
     <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
     </aside>
 
-    <main class="main">
+    <main class="main min-w-0">
 
         <header th:replace="~{fragments/layout :: topbar(${titulo})}">
         </header>
 
-        <div class="content">
+        <div class="content mx-auto w-full max-w-[1600px]">
 
             <!-- ENCABEZADO -->
-            <section class="page-intro">
+            <section class="page-intro flex flex-col gap-4 border-b border-gray-100 pb-5 md:flex-row md:items-end md:justify-between">
 
                 <div>
                     <h2>
@@ -44,21 +43,21 @@
 
 
             <!-- CONTENIDO -->
-            <section class="card">
+            <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm">
 
                 <!-- FILTROS -->
-                <form class="filters"
+                <form class="filters flex flex-col gap-3 rounded-xl bg-gray-50 p-3 sm:flex-row sm:flex-wrap sm:items-center"
                       method="get"
                       th:action="@{/admin/auditoria}">
 
-                    <input class="search"
+                    <input class="search w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                            type="text"
                            name="q"
                            th:value="${q}"
                            placeholder="Buscar usuario, acción o módulo">
 
 
-                    <select class="compact"
+                    <select class="compact w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
                             name="modulo">
 
                         <option value=""
@@ -94,13 +93,13 @@
                     </select>
 
 
-                    <button class="btn btn-light"
+                    <button class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-light border border-gray-200 bg-white text-gray-700 hover:border-brand-200 hover:bg-brand-50 focus:ring-brand-100"
                             type="submit">
                         Buscar
                     </button>
 
 
-                    <a class="btn btn-light"
+                    <a class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-light border border-gray-200 bg-white text-gray-700 hover:border-brand-200 hover:bg-brand-50 focus:ring-brand-100"
                        th:href="@{/admin/auditoria}">
                         Limpiar
                     </a>
@@ -109,26 +108,26 @@
 
 
                 <!-- TABLA -->
-                <div class="table-wrap">
+                <div class="table-wrap overflow-x-auto rounded-xl border border-gray-200">
 
-                    <table>
+                    <table class="w-full min-w-[720px] border-collapse text-left text-sm">
 
-                        <thead>
+                        <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                         <tr>
-                            <th>Fecha</th>
-                            <th>Usuario</th>
-                            <th>Acción</th>
-                            <th>Módulo</th>
-                            <th>Detalle</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Fecha</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Usuario</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Acción</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Módulo</th>
+                            <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Detalle</th>
                         </tr>
                         </thead>
 
-                        <tbody>
+                        <tbody class="divide-y divide-gray-100 bg-white">
 
                         <tr th:each="a : ${auditorias}">
 
                             <!-- FECHA -->
-                            <td th:text="${a.fecha != null
+                            <td class="px-4 py-3 align-middle text-sm text-gray-700" th:text="${a.fecha != null
                                 ? #temporals.format(a.fecha, 'dd/MM/yyyy HH:mm')
                                 : '-'}">
                                 24/09/2026 09:33
@@ -136,7 +135,7 @@
 
 
                             <!-- USUARIO -->
-                            <td>
+                            <td class="px-4 py-3 align-middle text-sm text-gray-700">
 
                                 <strong th:text="${a.usuario != null
                                     ? a.usuario.nombreCompleto
@@ -150,15 +149,15 @@
 
 
                             <!-- ACCIÓN -->
-                            <td th:text="${a.accion}">
+                            <td class="px-4 py-3 align-middle text-sm text-gray-700" th:text="${a.accion}">
                                 Cambiar estado de usuario
                             </td>
 
 
                             <!-- MÓDULO -->
-                            <td>
+                            <td class="px-4 py-3 align-middle text-sm text-gray-700">
 
-                                <span class="badge badge-purple"
+                                <span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold badge-purple bg-brand-50 text-brand-700"
                                       th:text="${a.modulo != null
                                           ? a.modulo
                                           : '-'}">
@@ -171,7 +170,7 @@
 
 
                             <!-- DETALLE -->
-                            <td th:text="${a.detalle != null
+                            <td class="px-4 py-3 align-middle text-sm text-gray-700" th:text="${a.detalle != null
                                 ? a.detalle
                                 : '-'}">
 
@@ -190,7 +189,7 @@
 
                 <!-- SIN RESULTADOS -->
                 <div th:if="${#lists.isEmpty(auditorias)}"
-                     class="empty">
+                     class="empty rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center text-sm text-gray-500">
 
                     No se encontraron registros de auditoría.
 

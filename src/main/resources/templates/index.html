@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkillBridge AI</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-</head>
+
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
 <body class="hero-public">
 <nav class="public-nav">
     <a class="public-brand" th:href="@{/}"><span class="public-brand-mark">SB</span><span>SkillBridge AI</span></a>
@@ -18,8 +18,8 @@
         <h1>Talento, proyectos y conocimiento en un solo lugar.</h1>
         <p>Centraliza perfiles, habilidades, proyectos, asignaciones y disponibilidad para conectar a las personas adecuadas con cada iniciativa de la organización.</p>
         <div class="page-actions public-actions">
-            <a class="btn btn-primary btn-lg" th:href="@{/login}">Explorar la plataforma</a>
-            <a class="btn btn-light btn-lg" href="#modulos">Conocer módulos</a>
+            <a class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-primary btn-lg bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-100" th:href="@{/login}">Explorar la plataforma</a>
+            <a class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-light btn-lg border border-gray-200 bg-white text-gray-700 hover:border-brand-200 hover:bg-brand-50 focus:ring-brand-100" href="#modulos">Conocer módulos</a>
         </div>
     </div>
 

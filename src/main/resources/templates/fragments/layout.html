@@ -9,8 +9,9 @@
      MENÚ LATERAL
      ========================================================= -->
 
-<aside th:fragment="sidebar(rol)"
-       class="sidebar"
+<th:block th:fragment="sidebar(rol)">
+<aside
+       class="sidebar shrink-0"
        id="sidebarPrincipal"
        th:classappend="${rol == 'ADMIN'}
             ? ' sidebar-admin'
@@ -25,7 +26,7 @@
          NOMBRE DEL SISTEMA
          ===================================================== -->
 
-    <a class="sidebar-simple-brand"
+    <a class="sidebar-simple-brand group"
        th:href="${rol == 'ADMIN'}
             ? @{/admin/inicio}
             : (${rol == 'PM'}
@@ -80,7 +81,7 @@
          OPCIONES
          ===================================================== -->
 
-    <nav class="sidebar-simple-nav"
+    <nav class="sidebar-simple-nav select-none"
          th:switch="${rol}">
 
 
@@ -268,6 +269,8 @@
 
     </div>
 
+</aside>
+
 
     <!-- =====================================================
          MODAL CERRAR SESIÓN
@@ -319,7 +322,7 @@
 
 
                 <button type="button"
-                        class="btn btn-light logout-cancel"
+                        class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-light logout-cancel border border-gray-200 bg-white text-gray-700 hover:border-brand-200 hover:bg-brand-50 focus:ring-brand-100"
                         onclick="cerrarModalLogout()">
 
                     Cancelar
@@ -327,12 +330,14 @@
                 </button>
 
 
-                <a th:href="@{/logout}"
-                   class="btn logout-confirm">
+                <form th:action="@{/logout}" method="post">
+                <button type="submit"
+                   class="btn inline-flex w-full items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 logout-confirm">
 
                     Cerrar sesión
 
-                </a>
+                </button>
+                </form>
 
 
             </div>
@@ -485,7 +490,7 @@
     </script>
 
 
-</aside>
+</th:block>
 
 
 
@@ -495,7 +500,7 @@
      ========================================================= -->
 
 <header th:fragment="topbar(titulo)"
-        class="topbar"
+        class="topbar relative"
         th:classappend="${rolSesion == 'ADMIN'}
             ? ' topbar-admin'
             : (${rolSesion == 'PM'}
@@ -518,7 +523,10 @@
     </div>
 
 
-    <div class="topbar-tools">
+    <button class="sidebar-toggle" type="button" aria-label="Abrir navegación" aria-controls="sidebarPrincipal" aria-expanded="false"
+            onclick="const open=document.getElementById('sidebarPrincipal').classList.toggle('is-open');this.setAttribute('aria-expanded',String(open));this.setAttribute('aria-label',open?'Cerrar navegación':'Abrir navegación');">☰</button>
+
+    <div class="topbar-tools shrink-0">
 
 
         <div class="top-context">

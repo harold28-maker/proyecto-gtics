@@ -1,26 +1,26 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Notificaciones | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
-<div class="grid-3 notification-summary">
-    <div class="metric"><div class="metric-icon">♢</div><div class="label">Notificaciones</div><div class="value" th:text="${totalNotificaciones}">0</div><div class="hint">Historial registrado</div></div>
-    <div class="metric orange"><div class="metric-icon">!</div><div class="label">No leídas</div><div class="value" th:text="${noLeidas}">0</div><div class="hint">Pendientes de revisar</div></div>
-    <div class="metric green"><div class="metric-icon">✓</div><div class="label">Leídas</div><div class="value" th:text="${leidas}">0</div><div class="hint">Ya revisadas</div></div>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Notificaciones | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
+<body><div class="app-shell min-h-screen bg-gray-50 font-outfit text-gray-900"><aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside><main class="main min-w-0"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content mx-auto w-full max-w-[1600px]">
+<div class="grid-3 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 notification-summary">
+    <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm"><div class="metric-icon">♢</div><div class="label">Notificaciones</div><div class="value" th:text="${totalNotificaciones}">0</div><div class="hint">Historial registrado</div></div>
+    <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm orange"><div class="metric-icon">!</div><div class="label">No leídas</div><div class="value" th:text="${noLeidas}">0</div><div class="hint">Pendientes de revisar</div></div>
+    <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm green"><div class="metric-icon">✓</div><div class="label">Leídas</div><div class="value" th:text="${leidas}">0</div><div class="hint">Ya revisadas</div></div>
 </div>
-<section class="card section">
-    <div class="card-title"><div><h2>Centro de notificaciones</h2><p class="muted">Mantén al día cambios de asignaciones, chat, foro y proyectos.</p></div><form th:if="${noLeidas > 0}" th:action="@{/colaborador/notificaciones/leer-todas}" method="post"><button class="btn btn-light">✓ Marcar todas como leídas</button></form></div>
+<section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm section">
+    <div class="card-title mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2>Centro de notificaciones</h2><p class="muted">Mantén al día cambios de asignaciones, chat, foro y proyectos.</p></div><form th:if="${noLeidas > 0}" th:action="@{/colaborador/notificaciones/leer-todas}" method="post"><button class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-light border border-gray-200 bg-white text-gray-700 hover:border-brand-200 hover:bg-brand-50 focus:ring-brand-100">✓ Marcar todas como leídas</button></form></div>
     <div class="notification-list">
         <article class="notice" th:classappend="${!n.leida} ? ' unread' : ''" th:each="n : ${notificaciones}">
             <div class="notice-icon" th:text="${n.tipo.name() == 'ASIGNACION' ? '☷' : (n.tipo.name() == 'CHAT' ? '◍' : (n.tipo.name() == 'FORO' ? '◌' : (n.tipo.name() == 'PROYECTO' ? '▣' : '♢')))}">♢</div>
             <div class="notice-main">
-                <div class="notice-head"><strong class="notice-title" th:text="${n.titulo}"></strong><span class="badge badge-purple" th:text="${n.tipo.name() == 'ASIGNACION' ? 'Asignación' : (n.tipo.name() == 'CHAT' ? 'Chat' : (n.tipo.name() == 'FORO' ? 'Foro' : (n.tipo.name() == 'PROYECTO' ? 'Proyecto' : (n.tipo.name() == 'SISTEMA' ? 'Sistema' : 'Información'))))}"></span></div>
+                <div class="notice-head"><strong class="notice-title" th:text="${n.titulo}"></strong><span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold badge-purple bg-brand-50 text-brand-700" th:text="${n.tipo.name() == 'ASIGNACION' ? 'Asignación' : (n.tipo.name() == 'CHAT' ? 'Chat' : (n.tipo.name() == 'FORO' ? 'Foro' : (n.tipo.name() == 'PROYECTO' ? 'Proyecto' : (n.tipo.name() == 'SISTEMA' ? 'Sistema' : 'Información'))))}"></span></div>
                 <p class="notice-copy" th:text="${n.mensaje}"></p>
                 <small class="muted" th:text="${n.fechaCreacion != null ? #temporals.format(n.fechaCreacion,'dd-MM-yyyy HH:mm') : ''}"></small>
-                <div class="notice-actions" th:if="${!n.leida}"><form th:action="@{/colaborador/notificaciones/{id}/leer(id=${n.idNotificacion})}" method="post"><input type="hidden" name="page" th:value="${paginaActual}"><button class="btn btn-success-soft btn-sm">Marcar como leída</button></form></div>
+                <div class="notice-actions" th:if="${!n.leida}"><form th:action="@{/colaborador/notificaciones/{id}/leer(id=${n.idNotificacion})}" method="post"><input type="hidden" name="page" th:value="${paginaActual}"><button class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-success-soft btn-sm bg-success-50 text-success-700 hover:bg-success-100 focus:ring-success-100">Marcar como leída</button></form></div>
             </div>
         </article>
     </div>
-    <div class="empty" th:if="${#lists.isEmpty(notificaciones)}">No tienes notificaciones en esta página.</div>
+    <div class="empty rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center text-sm text-gray-500" th:if="${#lists.isEmpty(notificaciones)}">No tienes notificaciones en esta página.</div>
     <nav class="pagination" th:if="${totalPaginas > 1}" aria-label="Paginación de notificaciones">
         <a class="page-link" th:classappend="${paginaActual == 1} ? ' disabled'" th:href="@{/colaborador/notificaciones(page=${paginaActual - 1})}">‹</a>
         <a class="page-link" th:each="p : ${#numbers.sequence(1,totalPaginas)}" th:classappend="${p == paginaActual} ? ' active'" th:href="@{/colaborador/notificaciones(page=${p})}" th:text="${p}">1</a>

@@ -3,56 +3,56 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Habilidades requeridas | SkillBridge AI</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-</head>
+
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
 <body>
-<div class="app-shell">
+<div class="app-shell min-h-screen bg-gray-50 font-outfit text-gray-900">
     <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
-    <main class="main">
+    <main class="main min-w-0">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
+        <div class="content mx-auto w-full max-w-[1600px]">
             <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
-            <section class="page-intro">
+            <section class="page-intro flex flex-col gap-4 border-b border-gray-100 pb-5 md:flex-row md:items-end md:justify-between">
                 <div>
                     <p class="eyebrow">Requerimientos técnicos</p>
                     <h2 th:text="${proyecto.nombre}">Proyecto</h2>
                     <p>Define las habilidades, nivel esperado y número de vacantes técnicas que necesita el proyecto.</p>
                 </div>
-                <a class="btn btn-light" th:href="@{/pm/proyectos}">← Volver a proyectos</a>
+                <a class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-light border border-gray-200 bg-white text-gray-700 hover:border-brand-200 hover:bg-brand-50 focus:ring-brand-100" th:href="@{/pm/proyectos}">← Volver a proyectos</a>
             </section>
 
-            <div class="grid-3">
-                <section class="card" style="grid-column:span 2">
-                    <div class="card-title"><div><h2>Stack requerido</h2><p class="muted">La combinación proyecto + habilidad es única y puede actualizarse desde el mismo formulario.</p></div><span class="badge badge-purple" th:text="|${#lists.size(requerimientos)} skills|"></span></div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead><tr><th>Habilidad</th><th>Categoría</th><th>Nivel</th><th>Vacantes</th><th></th></tr></thead>
-                            <tbody>
+            <div class="grid-3 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm" style="grid-column:span 2">
+                    <div class="card-title mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><h2>Stack requerido</h2><p class="muted">La combinación proyecto + habilidad es única y puede actualizarse desde el mismo formulario.</p></div><span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold badge-purple bg-brand-50 text-brand-700" th:text="|${#lists.size(requerimientos)} skills|"></span></div>
+                    <div class="table-wrap overflow-x-auto rounded-xl border border-gray-200">
+                        <table class="w-full min-w-[720px] border-collapse text-left text-sm">
+                            <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500"><tr><th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Habilidad</th><th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Categoría</th><th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Nivel</th><th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Vacantes</th><th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"></th></tr></thead>
+                            <tbody class="divide-y divide-gray-100 bg-white">
                             <tr th:each="h : ${requerimientos}">
-                                <td><strong th:text="${h.nombre}"></strong></td>
-                                <td><span class="badge badge-purple" th:text="${h.categoria}"></span></td>
-                                <td th:text="${h.nivel}"></td>
-                                <td th:text="${h.vacantes}"></td>
-                                <td class="text-right">
+                                <td class="px-4 py-3 align-middle text-sm text-gray-700"><strong th:text="${h.nombre}"></strong></td>
+                                <td class="px-4 py-3 align-middle text-sm text-gray-700"><span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold badge-purple bg-brand-50 text-brand-700" th:text="${h.categoria}"></span></td>
+                                <td class="px-4 py-3 align-middle text-sm text-gray-700" th:text="${h.nivel}"></td>
+                                <td class="px-4 py-3 align-middle text-sm text-gray-700" th:text="${h.vacantes}"></td>
+                                <td class="px-4 py-3 align-middle text-sm text-gray-700" class="text-right">
                                     <form th:action="@{/pm/proyectos/{id}/habilidades/{idHabilidad}/eliminar(id=${proyecto.idProyecto},idHabilidad=${h.idHabilidad})}" method="post">
-                                        <button class="btn btn-danger-soft btn-sm" type="submit">Quitar</button>
+                                        <button class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-danger-soft btn-sm border border-error-200 bg-error-50 text-error-700 hover:bg-error-100 focus:ring-error-100" type="submit">Quitar</button>
                                     </form>
                                 </td>
                             </tr>
                             </tbody>
                         </table>
                     </div>
-                    <div class="empty" th:if="${#lists.isEmpty(requerimientos)}">Aún no se han definido habilidades requeridas para este proyecto.</div>
+                    <div class="empty rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center text-sm text-gray-500" th:if="${#lists.isEmpty(requerimientos)}">Aún no se han definido habilidades requeridas para este proyecto.</div>
                 </section>
 
-                <aside class="card hero-card">
+                <aside class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm hero-card">
                     <p class="eyebrow">Agregar o actualizar</p>
                     <h3>Requerimiento técnico</h3>
                     <form th:action="@{/pm/proyectos/{id}/habilidades/guardar(id=${proyecto.idProyecto})}" method="post">
-                        <div class="form-group" style="margin-top:14px"><label>Habilidad</label><select name="idHabilidad" required><option value="">Selecciona</option><option th:each="h : ${catalogo}" th:value="${h.idHabilidad}" th:text="|${h.nombre} · ${h.categoria}|"></option></select></div>
-                        <div class="form-group" style="margin-top:12px"><label>Nivel requerido</label><select name="nivel" required><option>BASICO</option><option>INTERMEDIO</option><option>AVANZADO</option><option>EXPERTO</option></select></div>
-                        <div class="form-group" style="margin-top:12px"><label>Vacantes</label><input type="number" name="vacantes" min="1" value="1" required></div>
-                        <button class="btn btn-primary" style="width:100%;margin-top:15px">Guardar requerimiento</button>
+                        <div class="form-group space-y-2" style="margin-top:14px"><label>Habilidad</label><select class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" name="idHabilidad" required><option value="">Selecciona</option><option th:each="h : ${catalogo}" th:value="${h.idHabilidad}" th:text="|${h.nombre} · ${h.categoria}|"></option></select></div>
+                        <div class="form-group space-y-2" style="margin-top:12px"><label>Nivel requerido</label><select class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" name="nivel" required><option>BASICO</option><option>INTERMEDIO</option><option>AVANZADO</option><option>EXPERTO</option></select></div>
+                        <div class="form-group space-y-2" style="margin-top:12px"><label>Vacantes</label><input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" type="number" name="vacantes" min="1" value="1" required></div>
+                        <button class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-primary bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-100" style="width:100%;margin-top:15px">Guardar requerimiento</button>
                     </form>
                     <div class="knowledge-tip"><strong>Cómo funciona</strong><p>Si la habilidad ya existe en el proyecto, se actualizan el nivel y las vacantes. Si no existe, se crea la relación.</p></div>
                 </aside>

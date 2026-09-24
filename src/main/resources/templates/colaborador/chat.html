@@ -4,25 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Chat | SkillBridge AI</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-</head>
+
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
 <body>
-<div class="app-shell">
+<div class="app-shell min-h-screen bg-gray-50 font-outfit text-gray-900">
     <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
-    <main class="main">
+    <main class="main min-w-0">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
+        <div class="content mx-auto w-full max-w-[1600px]">
             <div class="alert-error" th:if="${mensajeError != null}" th:text="${mensajeError}"></div>
             <div class="alert-success" th:if="${mensajeExito != null}" th:text="${mensajeExito}"></div>
 
-            <section class="card chat-shell chat-shell-v4">
+            <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm chat-shell chat-shell-v4">
                 <aside class="chat-list">
                     <div class="chat-list-head">
                         <div>
                             <p class="eyebrow">Conversaciones</p>
                             <h3>Mis proyectos</h3>
                         </div>
-                        <span class="badge badge-purple" th:text="${#lists.size(asignaciones)} + ' proyectos'">1 proyecto</span>
+                        <span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold badge-purple bg-brand-50 text-brand-700" th:text="${#lists.size(asignaciones)} + ' proyectos'">1 proyecto</span>
                     </div>
 
                     <a class="chat-project"
@@ -36,7 +36,7 @@
                         </span>
                     </a>
 
-                    <div class="empty chat-empty" th:if="${#lists.isEmpty(asignaciones)}">
+                    <div class="empty chat-empty rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center text-sm text-gray-500" th:if="${#lists.isEmpty(asignaciones)}">
                         No tienes proyectos disponibles para conversar.
                     </div>
                 </aside>
@@ -51,7 +51,7 @@
                                 Activo
                             </small>
                         </div>
-                        <span class="badge badge-success" th:if="${proyectoSeleccionado.estado.name() == 'ACTIVE'}">Proyecto activo</span>
+                        <span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold badge-success bg-success-50 text-success-700" th:if="${proyectoSeleccionado.estado.name() == 'ACTIVE'}">Proyecto activo</span>
                     </header>
 
                     <div class="chat-messages">
@@ -66,7 +66,7 @@
                             </small>
                         </div>
 
-                        <div class="empty chat-empty" th:if="${#lists.isEmpty(mensajes)}">
+                        <div class="empty chat-empty rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center text-sm text-gray-500" th:if="${#lists.isEmpty(mensajes)}">
                             <strong>Aún no hay mensajes.</strong>
                             <span>Inicia la conversación con el equipo del proyecto.</span>
                         </div>
@@ -75,15 +75,15 @@
                     <form class="chat-form chat-form-v4" th:action="@{/colaborador/chat/enviar}" method="post">
                         <input type="hidden" name="idProyecto" th:value="${proyectoSeleccionado.idProyecto}">
                         <div class="chat-input-wrap">
-                            <input type="text" name="contenido" maxlength="500"
+                            <input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" type="text" name="contenido" maxlength="500"
                                    placeholder="Escribe un mensaje al equipo..." autocomplete="off" required>
                             <small>Máximo 500 caracteres</small>
                         </div>
-                        <button class="btn btn-primary" type="submit">Enviar</button>
+                        <button class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-primary bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-100" type="submit">Enviar</button>
                     </form>
                 </div>
 
-                <div class="empty chat-empty chat-no-project" th:if="${proyectoSeleccionado == null}">
+                <div class="empty chat-empty chat-no-project rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center text-sm text-gray-500" th:if="${proyectoSeleccionado == null}">
                     <strong>Sin conversación disponible</strong>
                     <span>Necesitas estar asignado a un proyecto para utilizar el chat.</span>
                 </div>

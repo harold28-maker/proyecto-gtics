@@ -11,14 +11,13 @@
 
     <title>Habilidad | SkillBridge AI</title>
 
-    <link rel="stylesheet"
-          th:href="@{/css/app.css}">
 
-</head>
+
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
 
 <body>
 
-<div class="app-shell">
+<div class="app-shell min-h-screen bg-gray-50 font-outfit text-gray-900">
 
 
     <!-- SIDEBAR -->
@@ -26,7 +25,7 @@
     </aside>
 
 
-    <main class="main">
+    <main class="main min-w-0">
 
 
         <!-- TOPBAR -->
@@ -34,7 +33,7 @@
         </header>
 
 
-        <div class="content">
+        <div class="content mx-auto w-full max-w-[1600px]">
 
 
             <!-- =========================================
@@ -71,7 +70,7 @@
                  FORMULARIO
                  ========================================= -->
 
-            <section class="card form-card habilidad-form-card">
+            <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm form-card habilidad-form-card">
 
 
                 <form id="habilidadForm"
@@ -85,14 +84,14 @@
                            th:field="*{idHabilidad}">
 
 
-                    <div class="form-grid">
+                    <div class="form-grid grid grid-cols-1 gap-5 md:grid-cols-2">
 
 
                         <!-- =================================
                              NOMBRE
                              ================================= -->
 
-                        <div class="form-group">
+                        <div class="form-group space-y-2">
 
                             <label for="nombre">
 
@@ -102,7 +101,7 @@
                             </label>
 
 
-                            <input id="nombre"
+                            <input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" id="nombre"
                                    type="text"
                                    th:field="*{nombre}"
                                    maxlength="40"
@@ -121,7 +120,7 @@
                              CATEGORÍA
                              ================================= -->
 
-                        <div class="form-group">
+                        <div class="form-group space-y-2">
 
                             <label for="categoria">
 
@@ -131,7 +130,7 @@
                             </label>
 
 
-                            <input id="categoria"
+                            <input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" id="categoria"
                                    type="text"
                                    th:field="*{categoria}"
                                    maxlength="30"
@@ -150,7 +149,7 @@
                              DESCRIPCIÓN
                              ================================= -->
 
-                        <div class="form-group full">
+                        <div class="form-group space-y-2 full">
 
                             <label for="descripcion">
 
@@ -160,7 +159,7 @@
                             </label>
 
 
-                            <textarea id="descripcion"
+                            <textarea class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" id="descripcion"
                                       rows="5"
                                       th:field="*{descripcion}"
                                       maxlength="150"
@@ -187,7 +186,7 @@
                              ESTADO
                              ================================= -->
 
-                        <div class="form-group">
+                        <div class="form-group space-y-2">
 
                             <label for="estado">
 
@@ -197,7 +196,7 @@
                             </label>
 
 
-                            <select id="estado"
+                            <select class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" id="estado"
                                     th:field="*{estado}"
                                     required>
 
@@ -221,10 +220,10 @@
                          BOTONES
                          ========================================= -->
 
-                    <div class="form-actions">
+                    <div class="form-actions flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end">
 
 
-                        <a class="btn btn-light"
+                        <a class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-light border border-gray-200 bg-white text-gray-700 hover:border-brand-200 hover:bg-brand-50 focus:ring-brand-100"
                            th:href="@{/admin/habilidades}">
 
                             Cancelar
@@ -232,7 +231,7 @@
                         </a>
 
 
-                        <button class="btn btn-primary"
+                        <button class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-primary bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-100"
                                 type="submit">
 
                             <span th:text="${habilidad.idHabilidad == null

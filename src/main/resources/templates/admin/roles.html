@@ -13,38 +13,37 @@
         Roles y permisos | SkillBridge AI
     </title>
 
-    <link rel="stylesheet"
-          th:href="@{/css/app.css}">
 
-</head>
+
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
 
 <body>
 
-<div class="app-shell">
+<div class="app-shell min-h-screen bg-gray-50 font-outfit text-gray-900">
 
     <!-- SIDEBAR -->
     <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
     </aside>
 
 
-    <main class="main">
+    <main class="main min-w-0">
 
         <!-- TOPBAR -->
         <header th:replace="~{fragments/layout :: topbar(${titulo})}">
         </header>
 
 
-        <div class="content">
+        <div class="content mx-auto w-full max-w-[1600px]">
 
 
             <!-- ==========================================
                  RESUMEN
                  ========================================== -->
 
-            <div class="grid-3">
+            <div class="grid-3 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
 
 
-                <div class="metric">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm">
 
                     <div class="label">
                         Roles
@@ -62,7 +61,7 @@
                 </div>
 
 
-                <div class="metric green">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm green">
 
                     <div class="label">
                         Permisos
@@ -80,7 +79,7 @@
                 </div>
 
 
-                <div class="metric blue">
+                <div class="metric relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm blue">
 
                     <div class="label">
                         Usuarios
@@ -106,7 +105,7 @@
                  ROLES
                  ========================================== -->
 
-            <section class="card section">
+            <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm section">
 
                 <div class="simple-section-title">
 
@@ -155,7 +154,7 @@
                             </strong>
 
 
-                            <span class="badge"
+                            <span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
                                   th:classappend="${r.estado}
                                   ? ' badge-success'
                                   : ' badge-warning'"
@@ -199,7 +198,7 @@
                  PERMISOS DEL ROL
                  ========================================== -->
 
-            <section class="card section">
+            <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm section">
 
 
                 <div class="simple-permission-panel"
@@ -244,7 +243,7 @@
                         </div>
 
 
-                        <span class="badge badge-purple">
+                        <span class="badge inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold badge-purple bg-brand-50 text-brand-700">
 
                             <span th:text="${#lists.size(
                                 permisos.?[rol.idRol == __${r.idRol}__]
@@ -263,23 +262,23 @@
 
                     <!-- TABLA -->
 
-                    <div class="table-wrap">
+                    <div class="table-wrap overflow-x-auto rounded-xl border border-gray-200">
 
-                        <table class="simple-permission-table">
+                        <table class="simple-permission-table w-full min-w-[720px] border-collapse text-left text-sm">
 
-                            <thead>
+                            <thead class="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
 
                             <tr>
 
-                                <th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                     Permiso
                                 </th>
 
-                                <th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                     Módulo
                                 </th>
 
-                                <th>
+                                <th class="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                                     Descripción
                                 </th>
 
@@ -288,14 +287,14 @@
                             </thead>
 
 
-                            <tbody>
+                            <tbody class="divide-y divide-gray-100 bg-white">
 
 
                             <tr th:each="p : ${permisos}"
                                 th:if="${p.rol.idRol == r.idRol}">
 
 
-                                <td>
+                                <td class="px-4 py-3 align-middle text-sm text-gray-700">
 
                                     <strong th:text="${p.nombre}">
                                         Consultar perfil
@@ -304,9 +303,9 @@
                                 </td>
 
 
-                                <td>
+                                <td class="px-4 py-3 align-middle text-sm text-gray-700">
 
-                                    <span class="tag"
+                                    <span class="tag inline-flex items-center rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700"
                                           th:text="${p.modulo}">
                                         Perfil
                                     </span>
@@ -314,7 +313,7 @@
                                 </td>
 
 
-                                <td th:text="${p.descripcion != null
+                                <td class="px-4 py-3 align-middle text-sm text-gray-700" th:text="${p.descripcion != null
                                     and !#strings.isEmpty(p.descripcion)
                                     ? p.descripcion
                                     : '-'}">
@@ -337,7 +336,7 @@
 
                     <!-- SIN PERMISOS -->
 
-                    <div class="empty"
+                    <div class="empty rounded-xl border border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center text-sm text-gray-500"
                          th:if="${#lists.isEmpty(
                              permisos.?[rol.idRol == __${r.idRol}__]
                          )}">

@@ -3,32 +3,32 @@
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Certificación | SkillBridge AI</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-</head>
+
+<link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/tailwind.css}"></head>
 <body>
-<div class="app-shell">
+<div class="app-shell min-h-screen bg-gray-50 font-outfit text-gray-900">
     <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
-    <main class="main">
+    <main class="main min-w-0">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
-            <section class="page-intro"><div><p class="eyebrow">Credenciales profesionales</p><h2 th:text="${titulo}"></h2><p>Registra una certificación para enriquecer tu perfil y respaldar tu experiencia profesional.</p></div></section>
+        <div class="content mx-auto w-full max-w-[1600px]">
+            <section class="page-intro flex flex-col gap-4 border-b border-gray-100 pb-5 md:flex-row md:items-end md:justify-between"><div><p class="eyebrow">Credenciales profesionales</p><h2 th:text="${titulo}"></h2><p>Registra una certificación para enriquecer tu perfil y respaldar tu experiencia profesional.</p></div></section>
             <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
-            <div class="grid-3">
-                <section class="card" style="grid-column:span 2">
+            <div class="grid-3 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <section class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm" style="grid-column:span 2">
                     <form th:action="@{/colaborador/certificaciones/guardar}" th:object="${certificacion}" method="post">
                         <input type="hidden" th:field="*{idCertificacion}">
-                        <div class="form-grid">
-                            <div class="form-group full"><label>Nombre de la certificación</label><input th:field="*{nombre}" maxlength="40" required placeholder="Ej. AWS Certified Developer - Associate"><div class="form-note">Máximo 40 caracteres.</div></div>
-                            <div class="form-group"><label>Entidad emisora</label><input th:field="*{entidadEmisora}" maxlength="40" placeholder="Amazon Web Services"><div class="form-note">Máximo 40 caracteres.</div></div>
-                            <div class="form-group"><label>Estado</label><select th:field="*{estado}"><option value="VIGENTE">Vigente</option><option value="VENCIDA">Vencida</option><option value="SIN_EXPIRACION">Sin expiración</option></select></div>
-                            <div class="form-group"><label>Fecha de emisión</label><input type="date" th:field="*{fechaEmision}"></div>
-                            <div class="form-group"><label>Fecha de expiración</label><input type="date" th:field="*{fechaExpiracion}"></div>
-                            <div class="form-group full"><label>URL de credencial</label><input type="text" th:field="*{urlCredencial}" maxlength="300" placeholder="https://..."></div>
+                        <div class="form-grid grid grid-cols-1 gap-5 md:grid-cols-2">
+                            <div class="form-group space-y-2 full"><label>Nombre de la certificación</label><input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" th:field="*{nombre}" maxlength="40" required placeholder="Ej. AWS Certified Developer - Associate"><div class="form-note">Máximo 40 caracteres.</div></div>
+                            <div class="form-group space-y-2"><label>Entidad emisora</label><input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" th:field="*{entidadEmisora}" maxlength="40" placeholder="Amazon Web Services"><div class="form-note">Máximo 40 caracteres.</div></div>
+                            <div class="form-group space-y-2"><label>Estado</label><select class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" th:field="*{estado}"><option value="VIGENTE">Vigente</option><option value="VENCIDA">Vencida</option><option value="SIN_EXPIRACION">Sin expiración</option></select></div>
+                            <div class="form-group space-y-2"><label>Fecha de emisión</label><input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" type="date" th:field="*{fechaEmision}"></div>
+                            <div class="form-group space-y-2"><label>Fecha de expiración</label><input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" type="date" th:field="*{fechaExpiracion}"></div>
+                            <div class="form-group space-y-2 full"><label>URL de credencial</label><input class="w-full rounded-lg border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 shadow-xs transition placeholder:text-gray-400 focus:border-brand-500 focus:ring-4 focus:ring-brand-100" type="text" th:field="*{urlCredencial}" maxlength="300" placeholder="https://..."></div>
                         </div>
-                        <div class="form-actions"><a class="btn btn-light" th:href="@{/colaborador/certificaciones}">Cancelar</a><button class="btn btn-primary">Guardar certificación</button></div>
+                        <div class="form-actions flex flex-col-reverse gap-3 border-t border-gray-100 pt-5 sm:flex-row sm:justify-end"><a class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-light border border-gray-200 bg-white text-gray-700 hover:border-brand-200 hover:bg-brand-50 focus:ring-brand-100" th:href="@{/colaborador/certificaciones}">Cancelar</a><button class="btn inline-flex items-center justify-center rounded-lg font-semibold transition duration-150 focus:outline-none focus:ring-4 btn-primary bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-100">Guardar certificación</button></div>
                     </form>
                 </section>
-                <aside class="card hero-card"><p class="eyebrow">Perfil SkillBridge</p><h3>Haz visible tu experiencia</h3><p class="muted">Las certificaciones complementan tus habilidades y fortalecen tu perfil frente a nuevas oportunidades.</p><div class="knowledge-tip cert-tip"><strong>Consejo</strong><p>Incluye la entidad emisora y la URL de verificación cuando estén disponibles. Mantener estos datos actualizados facilita validar tu experiencia.</p></div></aside>
+                <aside class="card rounded-2xl border border-gray-200 bg-white p-5 shadow-theme-sm hero-card"><p class="eyebrow">Perfil SkillBridge</p><h3>Haz visible tu experiencia</h3><p class="muted">Las certificaciones complementan tus habilidades y fortalecen tu perfil frente a nuevas oportunidades.</p><div class="knowledge-tip cert-tip"><strong>Consejo</strong><p>Incluye la entidad emisora y la URL de verificación cuando estén disponibles. Mantener estos datos actualizados facilita validar tu experiencia.</p></div></aside>
             </div>
         </div>
     </main>
