@@ -19,6 +19,7 @@ public class SecurityConfig {
                           AuthenticationSuccessHandler successHandler) {
         this.userDetailsService = userDetailsService;
         this.successHandler = successHandler;
+
     }
 
     @Bean
