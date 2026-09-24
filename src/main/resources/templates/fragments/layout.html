@@ -47,6 +47,16 @@
 
     </a>
 
+    <button type="button"
+            class="sidebar-toggle"
+            id="sidebarToggle"
+            aria-label="Contraer menú lateral"
+            aria-controls="sidebarPrincipal"
+            aria-expanded="true"
+            title="Contraer menú">
+        <span aria-hidden="true">‹</span>
+    </button>
+
 
     <!-- =====================================================
          ROL ACTUAL
@@ -402,6 +412,64 @@
         document.addEventListener(
             "DOMContentLoaded",
             function () {
+
+                const sidebar =
+                    document.getElementById("sidebarPrincipal");
+
+                const sidebarToggle =
+                    document.getElementById("sidebarToggle");
+
+                const appShell =
+                    sidebar ? sidebar.closest(".app-shell") : null;
+
+                const storageKey = "skillbridge-sidebar-collapsed";
+
+                function actualizarSidebar(colapsado) {
+
+                    if (!sidebar || !appShell || !sidebarToggle) {
+                        return;
+                    }
+
+                    sidebar.classList.toggle("sidebar-collapsed", colapsado);
+                    appShell.classList.toggle("sidebar-is-collapsed", colapsado);
+                    sidebarToggle.setAttribute("aria-expanded", String(!colapsado));
+                    sidebarToggle.setAttribute(
+                        "aria-label",
+                        colapsado ? "Desplegar menú lateral" : "Contraer menú lateral"
+                    );
+                    sidebarToggle.title =
+                        colapsado ? "Desplegar menú" : "Contraer menú";
+
+                }
+
+                let sidebarColapsado = false;
+
+                try {
+                    sidebarColapsado =
+                        window.localStorage.getItem(storageKey) === "true";
+                } catch (error) {
+                    sidebarColapsado = false;
+                }
+
+                actualizarSidebar(sidebarColapsado);
+
+                if (sidebarToggle) {
+                    sidebarToggle.addEventListener("click", function () {
+                        sidebarColapsado =
+                            !sidebar.classList.contains("sidebar-collapsed");
+
+                        actualizarSidebar(sidebarColapsado);
+
+                        try {
+                            window.localStorage.setItem(
+                                storageKey,
+                                String(sidebarColapsado)
+                            );
+                        } catch (error) {
+                            // El menú sigue funcionando aunque el navegador bloquee storage.
+                        }
+                    });
+                }
 
                 const rutaActual =
                     window.location.pathname;

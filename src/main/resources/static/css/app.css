@@ -2903,6 +2903,127 @@
     }
 
     /* ============================================================
+       BARRA LATERAL PLEGABLE
+       ============================================================ */
+
+    .app-shell,
+    .sidebar,
+    .sidebar-simple-brand,
+    .sidebar-simple-role,
+    .sidebar-simple-title,
+    .sidebar-simple-nav,
+    .sidebar-simple-bottom {
+        transition: grid-template-columns .22s ease,
+                    width .22s ease,
+                    padding .22s ease,
+                    margin .22s ease,
+                    opacity .16s ease;
+    }
+
+    .sidebar-toggle {
+        position: absolute;
+        top: 28px;
+        right: 10px;
+        z-index: 2;
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, .18);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .08);
+        color: #ffffff;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        transition: background .15s ease, transform .22s ease;
+    }
+
+    .sidebar-toggle:hover {
+        background: rgba(255, 255, 255, .16);
+    }
+
+    .sidebar-simple-brand {
+        padding-right: 42px;
+    }
+
+    .app-shell.sidebar-is-collapsed {
+        grid-template-columns: 72px minmax(0, 1fr);
+    }
+
+    .app-shell:not(.sidebar-is-collapsed) {
+        grid-template-columns: 254px minmax(0, 1fr);
+    }
+
+    .sidebar.sidebar-collapsed {
+        padding-right: 10px;
+        padding-left: 10px;
+        overflow: hidden;
+    }
+
+    .sidebar.sidebar-collapsed .sidebar-simple-brand {
+        justify-content: center;
+        padding-right: 0;
+        padding-left: 0;
+    }
+
+    .sidebar.sidebar-collapsed .sidebar-simple-name,
+    .sidebar.sidebar-collapsed .sidebar-simple-role,
+    .sidebar.sidebar-collapsed .sidebar-simple-title,
+    .sidebar.sidebar-collapsed .sidebar-simple-nav,
+    .sidebar.sidebar-collapsed .sidebar-simple-bottom {
+        display: none;
+    }
+
+    .sidebar.sidebar-collapsed .sidebar-toggle {
+        top: 76px;
+        right: 20px;
+        transform: rotate(180deg);
+    }
+
+    @media (max-width: 780px) {
+        .sidebar {
+            position: sticky;
+            top: 0;
+            width: 100%;
+            height: auto;
+            min-height: 64px;
+            padding: 14px 16px;
+            flex-direction: column;
+            overflow: visible;
+        }
+
+        .sidebar-simple-brand {
+            padding: 0 46px 14px 0;
+        }
+
+        .sidebar-toggle {
+            top: 16px;
+            right: 16px;
+        }
+
+        .sidebar.sidebar-collapsed {
+            min-height: 64px;
+            padding: 14px 16px;
+        }
+
+        .sidebar.sidebar-collapsed .sidebar-simple-brand {
+            justify-content: flex-start;
+            padding: 0 46px 0 0;
+        }
+
+        .sidebar.sidebar-collapsed .sidebar-simple-name {
+            display: inline;
+        }
+
+        .sidebar.sidebar-collapsed .sidebar-toggle {
+            top: 16px;
+            right: 16px;
+        }
+    }
+
+    /* ============================================================
    CATEGORÍAS
    ============================================================ */
 
