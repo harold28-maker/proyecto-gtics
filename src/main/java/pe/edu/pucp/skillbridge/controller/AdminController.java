@@ -1,5 +1,8 @@
 package pe.edu.pucp.skillbridge.controller;
 
+import jakarta.servlet.http.HttpSession;
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -10,7 +13,7 @@ import pe.edu.pucp.skillbridge.repository.*;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/admin")
@@ -23,6 +26,10 @@ public class AdminController {
     private final ColaboradorRepository colaboradorRepository;
     private final HabilidadRepository habilidadRepository;
     private final AuditoriaRepository auditoriaRepository;
+
+    // BCrypt se usa únicamente para almacenar contraseñas de forma hasheada.
+    private final BCryptPasswordEncoder passwordEncoder =
+            new BCryptPasswordEncoder();
 
 
     public AdminController(
@@ -54,7 +61,15 @@ public class AdminController {
                     RequestMethod.POST
             }
     )
-    public String inicio(Model model) {
+    public String inicio(
+            HttpSession session,
+            Model model
+    ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
 
         List<Usuario> usuarios =
                 usuarioRepository.findAll();
@@ -130,8 +145,14 @@ public class AdminController {
             )
             String q,
 
+            HttpSession session,
             Model model
     ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
 
         List<Usuario> lista =
                 usuarioRepository.findAll();
@@ -248,7 +269,15 @@ public class AdminController {
        ========================================================= */
 
     @GetMapping("/usuarios/nuevo")
-    public String nuevoUsuario(Model model) {
+    public String nuevoUsuario(
+            HttpSession session,
+            Model model
+    ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
 
         Usuario usuario =
                 new Usuario();
@@ -287,9 +316,33 @@ public class AdminController {
 
     @GetMapping("/usuarios/editar/{id}")
     public String editarUsuario(
-            @PathVariable("id") Integer id,
+            @PathVariable("id") String idTexto,
+            HttpSession session,
             Model model
     ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
+
+        Integer id;
+
+        try {
+            id = Integer.valueOf(idTexto);
+        } catch (Exception e) {
+            return "redirect:/admin/usuarios";
+        }
+
+
+        Optional<Usuario> encontrado =
+                usuarioRepository.findById(id);
+
+
+        if (encontrado.isEmpty()) {
+            return "redirect:/admin/usuarios";
+        }
+
 
         model.addAttribute(
                 "titulo",
@@ -299,9 +352,7 @@ public class AdminController {
 
         model.addAttribute(
                 "usuario",
-                usuarioRepository
-                        .findById(id)
-                        .orElseThrow()
+                encontrado.get()
         );
 
 
@@ -321,32 +372,496 @@ public class AdminController {
 
     @PostMapping("/usuarios/guardar")
     public String guardarUsuario(
-            Usuario usuario,
 
-            @RequestParam("idRol")
-            Integer idRol,
+            @RequestParam(
+                    value = "idUsuario",
+                    required = false
+            )
+            String idUsuarioTexto,
 
+            @RequestParam(
+                    value = "nombres",
+                    required = false
+            )
+            String nombres,
+
+            @RequestParam(
+                    value = "apellidos",
+                    required = false
+            )
+            String apellidos,
+
+            @RequestParam(
+                    value = "correo",
+                    required = false
+            )
+            String correo,
+
+            @RequestParam(
+                    value = "telefono",
+                    required = false
+            )
+            String telefono,
+
+            @RequestParam(
+                    value = "idRol",
+                    required = false
+            )
+            String idRolTexto,
+
+            @RequestParam(
+                    value = "estado",
+                    required = false
+            )
+            String estadoTexto,
+
+            @RequestParam(
+                    value = "password",
+                    required = false
+            )
+            String password,
+
+            @RequestParam(
+                    value = "confirmarPassword",
+                    required = false
+            )
+            String confirmarPassword,
+
+            HttpSession session,
             Model model
     ) {
+
+        /* =====================================================
+           SEGURIDAD DE LA RUTA
+           ===================================================== */
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
+
+        /* =====================================================
+           ID DEL USUARIO
+           ===================================================== */
+
+        Integer idUsuario = null;
+
+        if (
+                idUsuarioTexto != null
+                        &&
+                        !idUsuarioTexto.isBlank()
+        ) {
+
+            try {
+
+                idUsuario =
+                        Integer.valueOf(
+                                idUsuarioTexto
+                        );
+
+            } catch (NumberFormatException e) {
+
+                Usuario formulario =
+                        construirUsuarioFormulario(
+                                null,
+                                nombres,
+                                apellidos,
+                                correo,
+                                telefono,
+                                null,
+                                Usuario.EstadoUsuario.ACTIVO
+                        );
+
+                return volverFormularioUsuario(
+                        model,
+                        formulario,
+                        "El identificador del usuario no es válido."
+                );
+            }
+        }
+
+
+        /* =====================================================
+           ROL
+           ===================================================== */
+
+        Integer idRol;
+
+        try {
+
+            idRol =
+                    Integer.valueOf(
+                            idRolTexto
+                    );
+
+        } catch (Exception e) {
+
+            Usuario formulario =
+                    construirUsuarioFormulario(
+                            idUsuario,
+                            nombres,
+                            apellidos,
+                            correo,
+                            telefono,
+                            null,
+                            Usuario.EstadoUsuario.ACTIVO
+                    );
+
+            return volverFormularioUsuario(
+                    model,
+                    formulario,
+                    "El rol seleccionado no es válido."
+            );
+        }
+
 
         Rol rol =
                 rolRepository
                         .findById(idRol)
-                        .orElseThrow();
+                        .orElse(null);
 
 
-        usuario.setRol(rol);
+        if (rol == null) {
 
+            Usuario formulario =
+                    construirUsuarioFormulario(
+                            idUsuario,
+                            nombres,
+                            apellidos,
+                            correo,
+                            telefono,
+                            null,
+                            Usuario.EstadoUsuario.ACTIVO
+                    );
+
+            return volverFormularioUsuario(
+                    model,
+                    formulario,
+                    "El rol seleccionado no existe."
+            );
+        }
+
+
+        /* =====================================================
+           ESTADO
+           ===================================================== */
+
+        Usuario.EstadoUsuario estado;
+
+        try {
+
+            estado =
+                    Usuario.EstadoUsuario.valueOf(
+                            estadoTexto
+                    );
+
+        } catch (Exception e) {
+
+            Usuario formulario =
+                    construirUsuarioFormulario(
+                            idUsuario,
+                            nombres,
+                            apellidos,
+                            correo,
+                            telefono,
+                            rol,
+                            Usuario.EstadoUsuario.ACTIVO
+                    );
+
+            return volverFormularioUsuario(
+                    model,
+                    formulario,
+                    "El estado seleccionado no es válido."
+            );
+        }
+
+
+        Usuario formulario =
+                construirUsuarioFormulario(
+                        idUsuario,
+                        nombres,
+                        apellidos,
+                        correo,
+                        telefono,
+                        rol,
+                        estado
+                );
+
+
+        /* =====================================================
+           LIMPIEZA DE DATOS
+           ===================================================== */
+
+        String nombresLimpios =
+                nombres == null
+                        ? ""
+                        : nombres.trim();
+
+        String apellidosLimpios =
+                apellidos == null
+                        ? ""
+                        : apellidos.trim();
+
+        String correoLimpio =
+                correo == null
+                        ? ""
+                        : correo.trim().toLowerCase();
+
+        String telefonoLimpio =
+                telefono == null
+                        ? ""
+                        : telefono.trim();
+
+
+        /* =====================================================
+           VALIDACIONES BACKEND
+           No se confía en maxlength, required o pattern del HTML.
+           ===================================================== */
+
+        if (
+                !nombresLimpios.matches(
+                        "[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]{1,20}"
+                )
+        ) {
+
+            return volverFormularioUsuario(
+                    model,
+                    formulario,
+                    "Los nombres son obligatorios, solo pueden contener letras y deben tener máximo 20 caracteres."
+            );
+        }
+
+
+        if (
+                !apellidosLimpios.matches(
+                        "[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]{1,20}"
+                )
+        ) {
+
+            return volverFormularioUsuario(
+                    model,
+                    formulario,
+                    "Los apellidos son obligatorios, solo pueden contener letras y deben tener máximo 20 caracteres."
+            );
+        }
+
+
+        if (
+                correoLimpio.isBlank()
+                        ||
+                        correoLimpio.length() > 150
+                        ||
+                        !correoLimpio.matches(
+                                "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+                        )
+        ) {
+
+            return volverFormularioUsuario(
+                    model,
+                    formulario,
+                    "Ingresa un correo válido."
+            );
+        }
+
+
+        if (
+                telefonoLimpio.isBlank()
+                        ||
+                        !telefonoLimpio.matches(
+                                "[0-9]{9}"
+                        )
+        ) {
+
+            return volverFormularioUsuario(
+                    model,
+                    formulario,
+                    "El teléfono es obligatorio y debe tener exactamente 9 números."
+            );
+        }
+
+
+        /* =====================================================
+           CORREO ÚNICO
+           ===================================================== */
+
+        Optional<Usuario> usuarioConCorreo =
+                usuarioRepository
+                        .findByCorreoIgnoreCase(
+                                correoLimpio
+                        );
+
+
+        if (
+                usuarioConCorreo.isPresent()
+                        &&
+                        (
+                                idUsuario == null
+                                        ||
+                                        !usuarioConCorreo
+                                                .get()
+                                                .getIdUsuario()
+                                                .equals(idUsuario)
+                        )
+        ) {
+
+            return volverFormularioUsuario(
+                    model,
+                    formulario,
+                    "El correo ya se encuentra registrado."
+            );
+        }
+
+
+        /* =====================================================
+           NUEVO O EDICIÓN
+           ===================================================== */
+
+        boolean nuevo =
+                idUsuario == null;
+
+        Usuario usuario;
+
+
+        if (nuevo) {
+
+            usuario =
+                    new Usuario();
+
+        } else {
+
+            usuario =
+                    usuarioRepository
+                            .findById(idUsuario)
+                            .orElse(null);
+
+            if (usuario == null) {
+
+                return volverFormularioUsuario(
+                        model,
+                        formulario,
+                        "El usuario que intentas editar no existe."
+                );
+            }
+        }
+
+
+        /* =====================================================
+           CONTRASEÑA
+           ===================================================== */
+
+        String clave =
+                password == null
+                        ? ""
+                        : password;
+
+        String confirmacion =
+                confirmarPassword == null
+                        ? ""
+                        : confirmarPassword;
+
+
+        if (
+                nuevo
+                        &&
+                        clave.isBlank()
+        ) {
+
+            return volverFormularioUsuario(
+                    model,
+                    formulario,
+                    "La contraseña es obligatoria para un usuario nuevo."
+            );
+        }
+
+
+        if (
+                !nuevo
+                        &&
+                        clave.isBlank()
+                        &&
+                        !confirmacion.isBlank()
+        ) {
+
+            return volverFormularioUsuario(
+                    model,
+                    formulario,
+                    "Ingresa la nueva contraseña antes de confirmarla."
+            );
+        }
+
+
+        if (!clave.isBlank()) {
+
+            if (
+                    !clave.matches(
+                            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,30}$"
+                    )
+            ) {
+
+                return volverFormularioUsuario(
+                        model,
+                        formulario,
+                        "La contraseña debe tener entre 8 y 30 caracteres, una mayúscula, una minúscula y un número."
+                );
+            }
+
+
+            if (!clave.equals(confirmacion)) {
+
+                return volverFormularioUsuario(
+                        model,
+                        formulario,
+                        "Las contraseñas no coinciden."
+                );
+            }
+
+
+            usuario.setPasswordHash(
+                    passwordEncoder.encode(
+                            clave
+                    )
+            );
+        }
+
+
+        /* =====================================================
+           COPIAR SOLO CAMPOS YA VALIDADOS
+           ===================================================== */
+
+        usuario.setNombres(
+                nombresLimpios
+        );
+
+        usuario.setApellidos(
+                apellidosLimpios
+        );
+
+        usuario.setCorreo(
+                correoLimpio
+        );
+
+        usuario.setTelefono(
+                telefonoLimpio
+        );
+
+        usuario.setEstado(
+                estado
+        );
+
+        usuario.setRol(
+                rol
+        );
+
+
+        /* =====================================================
+           GUARDAR
+           ===================================================== */
 
         Usuario guardado =
-                usuarioRepository.save(usuario);
+                usuarioRepository.save(
+                        usuario
+                );
 
-
-        /*
-         * Modelo final:
-         * un Usuario puede tener como máximo
-         * un perfil Colaborador.
-         */
 
         if (
                 !"ADMINISTRADOR".equals(
@@ -363,26 +878,21 @@ public class AdminController {
             Colaborador colaborador =
                     new Colaborador();
 
-
             colaborador.setUsuario(
                     guardado
             );
-
 
             colaborador.setCargo(
                     "Por definir"
             );
 
-
             colaborador.setArea(
                     "Por definir"
             );
 
-
             colaborador.setDisponibilidadBase(
                     100
             );
-
 
             colaboradorRepository.save(
                     colaborador
@@ -391,9 +901,11 @@ public class AdminController {
 
 
         registrarAuditoria(
-                "Guardar usuario",
+                nuevo ? "Crear usuario" : "Actualizar usuario",
                 "Administración",
-                "Se registró o actualizó la cuenta de "
+                (nuevo
+                        ? "Se registró la cuenta de "
+                        : "Se actualizó la cuenta de ")
                         + guardado.getNombreCompleto()
         );
 
@@ -407,12 +919,104 @@ public class AdminController {
 
         model.addAttribute(
                 "mensajeExito",
-                "Usuario guardado correctamente."
+                nuevo
+                        ? "Usuario registrado correctamente."
+                        : "Usuario actualizado correctamente."
         );
 
 
         return "admin/usuarios";
     }
+
+
+    private Usuario construirUsuarioFormulario(
+            Integer idUsuario,
+            String nombres,
+            String apellidos,
+            String correo,
+            String telefono,
+            Rol rol,
+            Usuario.EstadoUsuario estado
+    ) {
+
+        Usuario usuario =
+                new Usuario();
+
+
+        usuario.setIdUsuario(
+                idUsuario
+        );
+
+
+        usuario.setNombres(
+                nombres
+        );
+
+
+        usuario.setApellidos(
+                apellidos
+        );
+
+
+        usuario.setCorreo(
+                correo
+        );
+
+
+        usuario.setTelefono(
+                telefono
+        );
+
+
+        usuario.setRol(
+                rol
+        );
+
+
+        usuario.setEstado(
+                estado
+        );
+
+
+        return usuario;
+    }
+
+
+    private String volverFormularioUsuario(
+            Model model,
+            Usuario usuario,
+            String error
+    ) {
+
+        model.addAttribute(
+                "titulo",
+                usuario.getIdUsuario() == null
+                        ? "Nuevo usuario"
+                        : "Editar usuario"
+        );
+
+
+        model.addAttribute(
+                "usuario",
+                usuario
+        );
+
+
+        model.addAttribute(
+                "roles",
+                rolRepository.findAll()
+        );
+
+
+        model.addAttribute(
+                "error",
+                error
+        );
+
+
+        return "admin/usuario-form";
+    }
+
 
 
     /* =========================================================
@@ -424,23 +1028,42 @@ public class AdminController {
 
     @PostMapping("/usuarios/{id}/estado")
     public String cambiarEstadoUsuario(
-            @PathVariable Integer id,
+            @PathVariable("id") String idTexto,
+            HttpSession session,
             Model model
     ) {
 
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
+
+        Integer id;
+
+        try {
+            id = Integer.valueOf(idTexto);
+        } catch (Exception e) {
+            return "redirect:/admin/usuarios";
+        }
+
+
+        Optional<Usuario> encontrado =
+                usuarioRepository.findById(id);
+
+
+        if (encontrado.isEmpty()) {
+            return "redirect:/admin/usuarios";
+        }
+
+
         Usuario usuario =
-                usuarioRepository
-                        .findById(id)
-                        .orElseThrow();
+                encontrado.get();
 
 
         usuario.setEstado(
-
                 usuario.getEstado()
                         == Usuario.EstadoUsuario.ACTIVO
-
                         ? Usuario.EstadoUsuario.INACTIVO
-
                         : Usuario.EstadoUsuario.ACTIVO
         );
 
@@ -481,7 +1104,15 @@ public class AdminController {
        ========================================================= */
 
     @GetMapping("/roles")
-    public String roles(Model model) {
+    public String roles(
+            HttpSession session,
+            Model model
+    ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
 
         List<Rol> roles =
                 rolRepository.findAll();
@@ -533,8 +1164,14 @@ public class AdminController {
             )
             String q,
 
+            HttpSession session,
             Model model
     ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
 
         List<Habilidad> habilidades =
 
@@ -622,8 +1259,14 @@ public class AdminController {
 
     @GetMapping("/habilidades/nueva")
     public String nuevaHabilidad(
+            HttpSession session,
             Model model
     ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
 
         Habilidad habilidad =
                 new Habilidad();
@@ -656,11 +1299,33 @@ public class AdminController {
 
     @GetMapping("/habilidades/editar/{id}")
     public String editarHabilidad(
-            @PathVariable("id")
-            Integer id,
-
+            @PathVariable("id") String idTexto,
+            HttpSession session,
             Model model
     ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
+
+        Integer id;
+
+        try {
+            id = Integer.valueOf(idTexto);
+        } catch (Exception e) {
+            return "redirect:/admin/habilidades";
+        }
+
+
+        Optional<Habilidad> encontrada =
+                habilidadRepository.findById(id);
+
+
+        if (encontrada.isEmpty()) {
+            return "redirect:/admin/habilidades";
+        }
+
 
         model.addAttribute(
                 "titulo",
@@ -670,9 +1335,7 @@ public class AdminController {
 
         model.addAttribute(
                 "habilidad",
-                habilidadRepository
-                        .findById(id)
-                        .orElseThrow()
+                encontrada.get()
         );
 
 
@@ -686,9 +1349,229 @@ public class AdminController {
 
     @PostMapping("/habilidades/guardar")
     public String guardarHabilidad(
-            Habilidad habilidad,
+
+            @RequestParam(
+                    value = "idHabilidad",
+                    required = false
+            )
+            String idHabilidadTexto,
+
+            @RequestParam(
+                    value = "nombre",
+                    required = false
+            )
+            String nombre,
+
+            @RequestParam(
+                    value = "categoria",
+                    required = false
+            )
+            String categoria,
+
+            @RequestParam(
+                    value = "descripcion",
+                    required = false
+            )
+            String descripcion,
+
+            @RequestParam(
+                    value = "estado",
+                    required = false
+            )
+            String estadoTexto,
+
+            HttpSession session,
             Model model
     ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
+
+        Integer idHabilidad = null;
+
+        if (
+                idHabilidadTexto != null
+                        &&
+                        !idHabilidadTexto.isBlank()
+        ) {
+
+            try {
+                idHabilidad = Integer.valueOf(idHabilidadTexto);
+            } catch (Exception e) {
+                return "redirect:/admin/habilidades";
+            }
+        }
+
+
+        String nombreLimpio =
+                nombre == null
+                        ? ""
+                        : nombre.trim();
+
+        String categoriaLimpia =
+                categoria == null
+                        ? ""
+                        : categoria.trim();
+
+        String descripcionLimpia =
+                descripcion == null
+                        ? ""
+                        : descripcion.trim();
+
+
+        Boolean estado;
+
+        if ("true".equalsIgnoreCase(estadoTexto)) {
+            estado = true;
+        } else if ("false".equalsIgnoreCase(estadoTexto)) {
+            estado = false;
+        } else {
+
+            Habilidad formulario =
+                    construirHabilidadFormulario(
+                            idHabilidad,
+                            nombreLimpio,
+                            categoriaLimpia,
+                            descripcionLimpia,
+                            true
+                    );
+
+            return volverFormularioHabilidad(
+                    model,
+                    formulario,
+                    "El estado seleccionado no es válido."
+            );
+        }
+
+
+        Habilidad formulario =
+                construirHabilidadFormulario(
+                        idHabilidad,
+                        nombreLimpio,
+                        categoriaLimpia,
+                        descripcionLimpia,
+                        estado
+                );
+
+
+        if (
+                nombreLimpio.isBlank()
+                        ||
+                        nombreLimpio.length() > 40
+        ) {
+
+            return volverFormularioHabilidad(
+                    model,
+                    formulario,
+                    "El nombre es obligatorio y debe tener máximo 40 caracteres."
+            );
+        }
+
+
+        if (
+                categoriaLimpia.isBlank()
+                        ||
+                        categoriaLimpia.length() > 30
+        ) {
+
+            return volverFormularioHabilidad(
+                    model,
+                    formulario,
+                    "La categoría es obligatoria y debe tener máximo 30 caracteres."
+            );
+        }
+
+
+        if (
+                descripcionLimpia.isBlank()
+                        ||
+                        descripcionLimpia.length() > 150
+        ) {
+
+            return volverFormularioHabilidad(
+                    model,
+                    formulario,
+                    "La descripción es obligatoria y debe tener máximo 150 caracteres."
+            );
+        }
+
+
+        boolean nombreRepetido = false;
+
+        List<Habilidad> habilidadesRegistradas =
+                habilidadRepository.findAll();
+
+
+        for (Habilidad h : habilidadesRegistradas) {
+
+            if (
+                    h.getNombre() != null
+                            &&
+                            h.getNombre()
+                                    .equalsIgnoreCase(nombreLimpio)
+                            &&
+                            (
+                                    idHabilidad == null
+                                            ||
+                                            !h.getIdHabilidad()
+                                                    .equals(idHabilidad)
+                            )
+            ) {
+
+                nombreRepetido = true;
+                break;
+            }
+        }
+
+
+        if (nombreRepetido) {
+
+            return volverFormularioHabilidad(
+                    model,
+                    formulario,
+                    "Ya existe una habilidad con ese nombre."
+            );
+        }
+
+
+        Habilidad habilidad;
+
+        if (idHabilidad == null) {
+
+            habilidad =
+                    new Habilidad();
+
+        } else {
+
+            habilidad =
+                    habilidadRepository
+                            .findById(idHabilidad)
+                            .orElse(null);
+
+            if (habilidad == null) {
+                return "redirect:/admin/habilidades";
+            }
+        }
+
+
+        habilidad.setNombre(
+                nombreLimpio
+        );
+
+        habilidad.setCategoria(
+                categoriaLimpia
+        );
+
+        habilidad.setDescripcion(
+                descripcionLimpia
+        );
+
+        habilidad.setEstado(
+                estado
+        );
+
 
         habilidadRepository.save(
                 habilidad
@@ -726,14 +1609,36 @@ public class AdminController {
 
     @PostMapping("/habilidades/{id}/estado")
     public String cambiarEstadoHabilidad(
-            @PathVariable Integer id,
+            @PathVariable("id") String idTexto,
+            HttpSession session,
             Model model
     ) {
 
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
+
+        Integer id;
+
+        try {
+            id = Integer.valueOf(idTexto);
+        } catch (Exception e) {
+            return "redirect:/admin/habilidades";
+        }
+
+
+        Optional<Habilidad> encontrada =
+                habilidadRepository.findById(id);
+
+
+        if (encontrada.isEmpty()) {
+            return "redirect:/admin/habilidades";
+        }
+
+
         Habilidad habilidad =
-                habilidadRepository
-                        .findById(id)
-                        .orElseThrow();
+                encontrada.get();
 
 
         habilidad.setEstado(
@@ -771,8 +1676,14 @@ public class AdminController {
 
     @GetMapping("/categorias")
     public String categorias(
+            HttpSession session,
             Model model
     ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
 
         Map<String, Long> categorias =
                 new LinkedHashMap<>();
@@ -853,8 +1764,14 @@ public class AdminController {
             )
             String modulo,
 
+            HttpSession session,
             Model model
     ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
 
         /*
          * Primero cargamos los últimos
@@ -1014,8 +1931,14 @@ public class AdminController {
 
     @GetMapping("/monitoreo")
     public String monitoreo(
+            HttpSession session,
             Model model
     ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
 
         List<Auditoria> eventos =
                 auditoriaRepository
@@ -1061,6 +1984,133 @@ public class AdminController {
 
 
         return "admin/monitoreo";
+    }
+
+
+    /* =========================================================
+       FORMULARIO HABILIDAD
+       ========================================================= */
+
+    private Habilidad construirHabilidadFormulario(
+            Integer idHabilidad,
+            String nombre,
+            String categoria,
+            String descripcion,
+            Boolean estado
+    ) {
+
+        Habilidad habilidad =
+                new Habilidad();
+
+        habilidad.setIdHabilidad(
+                idHabilidad
+        );
+
+        habilidad.setNombre(
+                nombre
+        );
+
+        habilidad.setCategoria(
+                categoria
+        );
+
+        habilidad.setDescripcion(
+                descripcion
+        );
+
+        habilidad.setEstado(
+                estado
+        );
+
+        return habilidad;
+    }
+
+
+    private String volverFormularioHabilidad(
+            Model model,
+            Habilidad habilidad,
+            String error
+    ) {
+
+        model.addAttribute(
+                "titulo",
+                habilidad.getIdHabilidad() == null
+                        ? "Nueva habilidad"
+                        : "Editar habilidad"
+        );
+
+        model.addAttribute(
+                "habilidad",
+                habilidad
+        );
+
+        model.addAttribute(
+                "error",
+                error
+        );
+
+        return "admin/habilidad-form";
+    }
+
+
+    /* =========================================================
+       VALIDAR SESIÓN ADMINISTRADOR
+       ========================================================= */
+
+    private boolean esAdmin(
+            HttpSession session
+    ) {
+
+        Object idSesion =
+                session.getAttribute(
+                        "usuarioSesionId"
+                );
+
+
+        if (!(idSesion instanceof Integer)) {
+            return false;
+        }
+
+
+        Integer idUsuario =
+                (Integer) idSesion;
+
+
+        Optional<Usuario> encontrado =
+                usuarioRepository.findById(
+                        idUsuario
+                );
+
+
+        if (encontrado.isEmpty()) {
+            return false;
+        }
+
+
+        Usuario usuario =
+                encontrado.get();
+
+
+        if (
+                usuario.getEstado()
+                        != Usuario.EstadoUsuario.ACTIVO
+        ) {
+            return false;
+        }
+
+
+        if (
+                usuario.getRol() == null
+                        ||
+                        usuario.getRol().getNombre() == null
+        ) {
+            return false;
+        }
+
+
+        return "ADMINISTRADOR".equals(
+                usuario.getRol().getNombre()
+        );
     }
 
 

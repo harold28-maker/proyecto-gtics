@@ -1,111 +1,353 @@
 package pe.edu.pucp.skillbridge.controller;
 
 import jakarta.servlet.http.HttpSession;
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+
 import pe.edu.pucp.skillbridge.entity.Usuario;
 import pe.edu.pucp.skillbridge.repository.UsuarioRepository;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+
 @Controller
 public class HomeController {
 
+
     private final UsuarioRepository usuarioRepository;
 
-    public HomeController(UsuarioRepository usuarioRepository) {
-        this.usuarioRepository = usuarioRepository;
+
+    private final BCryptPasswordEncoder passwordEncoder =
+            new BCryptPasswordEncoder();
+
+
+    public HomeController(
+            UsuarioRepository usuarioRepository
+    ) {
+
+        this.usuarioRepository =
+                usuarioRepository;
     }
+
+
+    /* =========================================================
+       INICIO
+       ========================================================= */
 
     @GetMapping("/")
     public String index() {
+
         return "index";
     }
 
+
+    /* =========================================================
+       LOGIN
+       ========================================================= */
+
     @GetMapping("/login")
-    public String login(Model model) {
-        prepararLogin(model, null, false, null, null);
+    public String login(
+            Model model
+    ) {
+
+        prepararLogin(
+                model,
+                null,
+                null
+        );
+
         return "login";
     }
+
+
+    /* =========================================================
+       ACCEDER
+       ========================================================= */
 
     @PostMapping("/acceder")
-    public String entrar(@RequestParam("rol") String rol,
-                         @RequestParam("correo") String correo,
-                         @RequestParam("password") String password,
-                         HttpSession session,
-                         Model model) {
+    public String entrar(
 
-        String rolDb = convertirRolBd(rol);
-        Optional<Usuario> encontrado = usuarioRepository.findByCorreo(correo.trim());
+            @RequestParam("correo")
+            String correo,
+
+            @RequestParam("password")
+            String password,
+
+            HttpSession session,
+
+            Model model
+    ) {
+
+
+        /* VALIDAR CAMPOS */
+
+        if (
+                correo == null
+                        ||
+                        correo.isBlank()
+                        ||
+                        password == null
+                        ||
+                        password.isBlank()
+        ) {
+
+            prepararLogin(
+                    model,
+                    correo,
+                    "Ingresa el correo y la contraseña."
+            );
+
+            return "login";
+        }
+
+
+        String correoLimpio =
+                correo.trim();
+
+
+        /* BUSCAR USUARIO */
+
+        Optional<Usuario> encontrado =
+                usuarioRepository
+                        .findByCorreoIgnoreCase(
+                                correoLimpio
+                        );
+
 
         if (encontrado.isEmpty()) {
-            prepararLogin(model, rol, true, correo, "No encontramos una cuenta con ese correo.");
+
+            prepararLogin(
+                    model,
+                    correoLimpio,
+                    "Correo o contraseña incorrectos."
+            );
+
             return "login";
         }
 
-        Usuario usuario = encontrado.get();
 
-        if (usuario.getEstado() != Usuario.EstadoUsuario.ACTIVO) {
-            prepararLogin(model, rol, true, correo, "La cuenta no se encuentra activa.");
+        Usuario usuario =
+                encontrado.get();
+
+
+        /* VALIDAR ESTADO */
+
+        if (
+                usuario.getEstado()
+                        != Usuario.EstadoUsuario.ACTIVO
+        ) {
+
+            prepararLogin(
+                    model,
+                    correoLimpio,
+                    "La cuenta no se encuentra activa."
+            );
+
             return "login";
         }
 
-        if (usuario.getRol() == null || !rolDb.equals(usuario.getRol().getNombre())) {
-            prepararLogin(model, rol, true, correo,
-                    "La cuenta no pertenece al perfil seleccionado. Verifica el rol e inténtalo nuevamente.");
+
+        /* VALIDAR ROL */
+
+        if (
+                usuario.getRol() == null
+                        ||
+                        usuario.getRol()
+                                .getNombre() == null
+        ) {
+
+            prepararLogin(
+                    model,
+                    correoLimpio,
+                    "La cuenta no tiene un perfil de acceso válido."
+            );
+
             return "login";
         }
 
-        // Para este avance académico los datos demo mantienen texto simple en password_hash.
-        // BCrypt/Spring Security queda para una etapa posterior del curso.
-        if (usuario.getPasswordHash() == null || !usuario.getPasswordHash().equals(password)) {
-            prepararLogin(model, rol, true, correo, "La contraseña ingresada no es correcta.");
+
+        /* VALIDAR CONTRASEÑA BCRYPT */
+
+        if (
+                usuario.getPasswordHash() == null
+                        ||
+                        !passwordEncoder.matches(
+                                password,
+                                usuario.getPasswordHash()
+                        )
+        ) {
+
+            prepararLogin(
+                    model,
+                    correoLimpio,
+                    "Correo o contraseña incorrectos."
+            );
+
             return "login";
         }
 
-        usuario.setUltimoAcceso(LocalDateTime.now());
-        usuarioRepository.save(usuario);
 
-        session.setAttribute("usuarioSesionId", usuario.getIdUsuario());
-        session.setAttribute("rolVista", rol);
+        /* ÚLTIMO ACCESO */
 
-        return switch (rol) {
-            case "ADMIN" -> "forward:/admin/inicio";
-            case "PM" -> "forward:/pm/inicio";
-            case "RM" -> "forward:/resource/inicio";
-            default -> "forward:/colaborador/inicio";
+        usuario.setUltimoAcceso(
+                LocalDateTime.now()
+        );
+
+
+        usuarioRepository.save(
+                usuario
+        );
+
+
+        /* SESIÓN */
+
+        session.setAttribute(
+                "usuarioSesionId",
+                usuario.getIdUsuario()
+        );
+
+
+        String rolDb =
+                usuario.getRol()
+                        .getNombre();
+
+
+        String rolVista =
+                convertirRolVista(
+                        rolDb
+                );
+
+
+        session.setAttribute(
+                "rolVista",
+                rolVista
+        );
+
+
+        /* REDIRECCIÓN SEGÚN ROL */
+
+        return switch (rolDb) {
+
+            case "ADMINISTRADOR" ->
+                    "redirect:/admin/inicio";
+
+            case "PROJECT_MANAGER" ->
+                    "redirect:/pm/inicio";
+
+            case "RESOURCE_MANAGER" ->
+                    "redirect:/resource/inicio";
+
+            case "COLABORADOR" ->
+                    "redirect:/colaborador/inicio";
+
+            default -> {
+
+                session.invalidate();
+
+
+                prepararLogin(
+                        model,
+                        correoLimpio,
+                        "La cuenta no tiene un perfil de acceso válido."
+                );
+
+
+                yield "login";
+            }
         };
     }
 
+
+    /* =========================================================
+       LOGOUT
+       ========================================================= */
+
     @GetMapping("/logout")
-    public String logout(HttpSession session, Model model) {
+    public String logout(
+
+            HttpSession session,
+
+            Model model
+    ) {
+
         session.invalidate();
-        prepararLogin(model, null, false, null, null);
+
+
+        prepararLogin(
+                model,
+                null,
+                null
+        );
+
+
         return "login";
     }
 
-    private String convertirRolBd(String rol) {
-        return switch (rol) {
-            case "ADMIN" -> "ADMINISTRADOR";
-            case "PM" -> "PROJECT_MANAGER";
-            case "RM" -> "RESOURCE_MANAGER";
-            default -> "COLABORADOR";
+
+    /* =========================================================
+       ROL PARA LAS VISTAS
+       ========================================================= */
+
+    private String convertirRolVista(
+            String rolDb
+    ) {
+
+        return switch (rolDb) {
+
+            case "ADMINISTRADOR" ->
+                    "ADMIN";
+
+            case "PROJECT_MANAGER" ->
+                    "PM";
+
+            case "RESOURCE_MANAGER" ->
+                    "RM";
+
+            default ->
+                    "COL";
         };
     }
 
-    private void prepararLogin(Model model,
-                               String rol,
-                               boolean mostrarCredenciales,
-                               String correo,
-                               String error) {
-        model.addAttribute("titulo", "Iniciar sesión");
-        model.addAttribute("rolSeleccionado", rol == null ? "COL" : rol);
-        model.addAttribute("mostrarCredenciales", mostrarCredenciales);
-        model.addAttribute("correoIngresado", correo == null ? "" : correo);
-        model.addAttribute("errorLogin", error);
+
+    /* =========================================================
+       PREPARAR LOGIN
+       ========================================================= */
+
+    private void prepararLogin(
+
+            Model model,
+
+            String correo,
+
+            String error
+    ) {
+
+        model.addAttribute(
+                "titulo",
+                "Iniciar sesión"
+        );
+
+
+        model.addAttribute(
+                "correoIngresado",
+                correo == null
+                        ? ""
+                        : correo
+        );
+
+
+        model.addAttribute(
+                "errorLogin",
+                error
+        );
     }
+
 }

@@ -41,6 +41,7 @@ CREATE TABLE usuarios (
     nombres VARCHAR(20) NOT NULL,
     apellidos VARCHAR(20) NOT NULL,
     correo VARCHAR(150) NOT NULL UNIQUE,
+    -- BCrypt generado por el backend; nunca guardar contraseñas en texto plano.
     password_hash VARCHAR(255) NOT NULL,
     telefono VARCHAR(9),
     foto_url VARCHAR(300),
@@ -272,7 +273,8 @@ CREATE TABLE auditoria (
 );
 
 -- ============================================================
--- DATOS INICIALES PARA DEMOSTRACIÓN
+-- DATOS BASE PARA DEMOSTRACIÓN
+-- Los usuarios demo y sus hashes BCrypt se cargan desde datos_demo_BCrypt.sql
 -- ============================================================
 
 INSERT INTO roles (nombre, descripcion) VALUES

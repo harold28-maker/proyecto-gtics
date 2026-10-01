@@ -2,8 +2,10 @@ USE skillbridge_ai;
 
 -- ============================================================
 -- DATOS DEMO PARA PRESENTAR LAS VISTAS HTML
--- Ejecutar DESPUÉS de skillbridge_ai_18_tablas_corregida.sql
+-- Ejecutar DESPUÉS de skillbridge_ai_18_tablas_corregida_BCrypt.sql
 -- Puede volver a ejecutarse: primero limpia solamente los datos demo.
+-- Contraseña de acceso para TODOS los usuarios demo: Demo1234
+-- password_hash almacena únicamente BCrypt; no se guarda la contraseña en texto plano.
 -- ============================================================
 
 SET SQL_SAFE_UPDATES = 0;
@@ -25,15 +27,15 @@ DELETE FROM usuarios;
 SET FOREIGN_KEY_CHECKS = 1;
 
 INSERT INTO usuarios (id_rol,nombres,apellidos,correo,password_hash,telefono,estado,ultimo_acceso) VALUES
-((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'María','González','maria.gonzalez@skillbridge.com','demo','999111001','ACTIVO',NOW()),
-((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'Carlos','Ramírez','carlos.ramirez@skillbridge.com','demo','999111002','ACTIVO',NOW()),
-((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'Ana','Torres','ana.torres@skillbridge.com','demo','999111003','ACTIVO',NOW()),
-((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'Luis','Hernández','luis.hernandez@skillbridge.com','demo','999111004','ACTIVO',NOW()),
-((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'Sofía','Lima','sofia.lima@skillbridge.com','demo','999111005','ACTIVO',NOW()),
-((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'Diego','Morales','diego.morales@skillbridge.com','demo','999111006','ACTIVO',NOW()),
-((SELECT id_rol FROM roles WHERE nombre='PROJECT_MANAGER'),'Paula','Silva','paula.silva@skillbridge.com','demo','999111007','ACTIVO',NOW()),
-((SELECT id_rol FROM roles WHERE nombre='RESOURCE_MANAGER'),'Jorge','Medina','jorge.medina@skillbridge.com','demo','999111008','ACTIVO',NOW()),
-((SELECT id_rol FROM roles WHERE nombre='ADMINISTRADOR'),'Administrador','SkillBridge','admin@skillbridge.com','demo',NULL,'ACTIVO',NOW());
+((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'María','González','maria.gonzalez@skillbridge.com','$2y$10$aN3ZZ.6779uMP5NesH071.zDZshohy74Pm160FbIVCt7oodCrHEnW','999111001','ACTIVO',NOW()),
+((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'Carlos','Ramírez','carlos.ramirez@skillbridge.com','$2y$10$COrSYBxJAeLRb.iB0hf8C.iyTEb9qMVvcsI4ra5OWeD0drp/h6pTK','999111002','ACTIVO',NOW()),
+((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'Ana','Torres','ana.torres@skillbridge.com','$2y$10$.C9tey8wEiMoxwFt3QCjKud3BZOCUoRv6.OC6pvQDEuyiBnIjUjVS','999111003','ACTIVO',NOW()),
+((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'Luis','Hernández','luis.hernandez@skillbridge.com','$2y$10$VJYW9Ixs4viDZ4zvm6vqROnrDwCSHaHpnHk.uFExPCS/PVc2WNgcu','999111004','ACTIVO',NOW()),
+((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'Sofía','Lima','sofia.lima@skillbridge.com','$2y$10$DUFjD5e1FLAZYLpGVA72Me.kC8E29h5KauOfnWPVrPHFJpui3WPFW','999111005','ACTIVO',NOW()),
+((SELECT id_rol FROM roles WHERE nombre='COLABORADOR'),'Diego','Morales','diego.morales@skillbridge.com','$2y$10$sHVXxHQ5nPRvfEvDpCgPDu.AWFPr5Q96wCqtPFyMmJpMEjiyHtu1i','999111006','ACTIVO',NOW()),
+((SELECT id_rol FROM roles WHERE nombre='PROJECT_MANAGER'),'Paula','Silva','paula.silva@skillbridge.com','$2y$10$6DeqWau1dljZMDSCZtuvhuhM1ZVDTcojJUSE7H.CDdJuWCyloVzp6','999111007','ACTIVO',NOW()),
+((SELECT id_rol FROM roles WHERE nombre='RESOURCE_MANAGER'),'Jorge','Medina','jorge.medina@skillbridge.com','$2y$10$6OpbYSYlBKnnLTCCRHKbg.VycKtAW7p8gr8utQN1jH6p8MVE4AkWW','999111008','ACTIVO',NOW()),
+((SELECT id_rol FROM roles WHERE nombre='ADMINISTRADOR'),'Administrador','SkillBridge','admin@skillbridge.com','$2y$10$vgxfyYR/fNa69lGiCLaZSOEqIh0shAv99e1aFU8a0BpMQc0.PuIFK',NULL,'ACTIVO',NOW());
 
 INSERT INTO colaboradores (id_usuario,cargo,area,seniority,biografia,intereses_profesionales,disponibilidad_base) VALUES
 ((SELECT id_usuario FROM usuarios WHERE correo='maria.gonzalez@skillbridge.com'),'Desarrolladora Java','Desarrollo','SENIOR','Desarrolladora backend con experiencia en APIs y sistemas empresariales.','Backend, Cloud, DevOps',80),

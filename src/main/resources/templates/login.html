@@ -1,127 +1,192 @@
 <!DOCTYPE html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<html lang="es"
+      xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
     <title>Ingresar | SkillBridge AI</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}">
+
+    <link rel="stylesheet"
+          th:href="@{/css/app.css}">
 </head>
+
 <body>
-<div class="login-shell">
-    <section class="login-art">
-        <div class="login-brand-line"><span class="brand-mark large">SB</span><strong>SkillBridge AI</strong></div>
-        <div class="login-copy">
-            <span class="hero-chip glass">TALENTO · PROYECTOS · CONOCIMIENTO</span>
-            <h1>El talento correcto, en el proyecto correcto.</h1>
-            <p>Conecta capacidades, experiencia y disponibilidad con las necesidades reales de cada proyecto, manteniendo el conocimiento de la organización en un solo espacio.</p>
-            <div class="login-feature-row"><span>✦ Skills & expertise</span><span>▣ Project staffing</span><span>◫ Capacity planning</span><span>◌ Foro de conocimiento</span></div>
+
+<div class="login-shell-simple">
+
+    <!-- =====================================================
+         LADO IZQUIERDO
+         ===================================================== -->
+
+    <section class="login-side">
+
+        <div class="login-side-brand">
+
+            <span class="login-logo-simple">
+                SB
+            </span>
+
+            <strong>
+                SkillBridge AI
+            </strong>
+
         </div>
-        <small class="login-foot">Una experiencia interna para equipos que construyen juntos.</small>
+
+
+        <div class="login-side-content">
+
+            <h1>
+                Gestión de talento,
+                proyectos y conocimiento
+            </h1>
+
+            <p>
+                Plataforma interna para organizar la información
+                de colaboradores, proyectos, habilidades y
+                asignaciones de la organización.
+            </p>
+
+
+            <div class="login-side-list">
+
+                <div>
+                    <strong>Talento</strong>
+
+                    <span>
+                        Habilidades, experiencia y disponibilidad.
+                    </span>
+                </div>
+
+                <div>
+                    <strong>Proyectos</strong>
+
+                    <span>
+                        Requerimientos, integrantes y asignaciones.
+                    </span>
+                </div>
+
+                <div>
+                    <strong>Conocimiento</strong>
+
+                    <span>
+                        Foros, chat e información histórica.
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <small class="login-side-footer">
+            SkillBridge AI · Plataforma interna
+        </small>
+
     </section>
 
-    <section class="login-card-wrap">
-        <div class="card login-card" id="loginCard"
-             th:attr="data-show-credentials=${mostrarCredenciales},data-selected-role=${rolSeleccionado}">
-            <form th:action="@{/acceder}" method="post" id="loginForm">
-                <section id="roleStep" class="login-step">
-                    <p class="eyebrow">Acceso a SkillBridge AI</p>
-                    <h2>Elige tu espacio de trabajo</h2>
-                    <p class="muted login-description">Selecciona el rol con el que ingresarás. Cada perfil dispone de una navegación y herramientas acordes a sus responsabilidades dentro de la organización.</p>
 
-                    <p class="field-caption">Perfil de acceso</p>
-                    <div class="role-grid role-grid-access">
-                        <div class="role-option role-col">
-                            <input id="col" type="radio" name="rol" value="COL" th:checked="${rolSeleccionado == null || rolSeleccionado == 'COL'}">
-                            <label for="col"><span class="role-symbol">✦</span><strong>Colaborador</strong><small>Perfil, habilidades, proyectos y conocimiento.</small></label>
-                        </div>
-                        <div class="role-option role-pm">
-                            <input id="pm" type="radio" name="rol" value="PM" th:checked="${rolSeleccionado == 'PM'}">
-                            <label for="pm"><span class="role-symbol">▣</span><strong>Project Manager</strong><small>Proyectos, equipo, asignaciones y seguimiento.</small></label>
-                        </div>
-                        <div class="role-option role-rm">
-                            <input id="rm" type="radio" name="rol" value="RM" th:checked="${rolSeleccionado == 'RM'}">
-                            <label for="rm"><span class="role-symbol">◫</span><strong>Resource Manager</strong><small>Talento, disponibilidad, carga y staffing.</small></label>
-                        </div>
-                        <div class="role-option role-admin">
-                            <input id="adm" type="radio" name="rol" value="ADMIN" th:checked="${rolSeleccionado == 'ADMIN'}">
-                            <label for="adm"><span class="role-symbol">◆</span><strong>Administrador</strong><small>Usuarios, gobierno, catálogos y monitoreo.</small></label>
-                        </div>
-                    </div>
+    <!-- =====================================================
+         LADO DERECHO
+         ===================================================== -->
 
-                    <button class="btn btn-primary btn-lg login-main-action" id="continueLogin" type="button">Ingresar SkillBridge AI</button>
-                </section>
+    <section class="login-access-side">
 
-                <section id="credentialStep" class="login-step login-step-hidden">
-                    <button type="button" class="login-back" id="backToRoles">← Cambiar rol</button>
-                    <div class="credential-role-card" id="credentialRoleCard">
-                        <span class="credential-role-icon" id="credentialRoleIcon">✦</span>
-                        <div><small>Acceso seleccionado</small><strong id="credentialRoleName">Colaborador</strong></div>
-                    </div>
-                    <p class="eyebrow">Credenciales de acceso</p>
-                    <h2>Inicia sesión en tu cuenta</h2>
-                    <p class="muted login-description">Ingresa las credenciales asociadas al perfil seleccionado para continuar a tu workspace.</p>
+        <div class="login-box-simple">
 
-                    <div class="login-alert" th:if="${errorLogin != null}"><span>!</span><p th:text="${errorLogin}">Credenciales incorrectas.</p></div>
+            <div class="login-box-header">
 
-                    <div class="form-group login-form-group">
-                        <label for="correo">Correo institucional</label>
-                        <input id="correo" name="correo" type="email" required autocomplete="username" placeholder="nombre@skillbridge.com" th:value="${correoIngresado}">
-                    </div>
-                    <div class="form-group login-form-group">
-                        <label for="password">Contraseña</label>
-                        <input id="password" name="password" type="password" required autocomplete="current-password" placeholder="Ingresa tu contraseña">
-                    </div>
-                    <button class="btn btn-primary btn-lg login-main-action" type="submit">Acceder al workspace</button>
-                </section>
+                <h2>
+                    Iniciar sesión
+                </h2>
+
+                <p class="login-simple-description">
+                    Ingresa con tu cuenta de SkillBridge AI.
+                    El sistema identificará automáticamente
+                    tu perfil de acceso.
+                </p>
+
+            </div>
+
+
+            <!-- ERROR DEL BACKEND -->
+
+            <div class="login-alert-simple"
+                 th:if="${errorLogin != null}"
+                 th:text="${errorLogin}">
+
+                Correo o contraseña incorrectos.
+
+            </div>
+
+
+            <form th:action="@{/acceder}"
+                  method="post">
+
+
+                <!-- CORREO -->
+
+                <div class="login-field-simple">
+
+                    <label for="correo">
+                        Correo institucional
+                    </label>
+
+                    <input id="correo"
+                           name="correo"
+                           type="email"
+                           maxlength="150"
+                           required
+                           autocomplete="username"
+                           placeholder="nombre@skillbridge.com"
+                           th:value="${correoIngresado}">
+
+                </div>
+
+
+                <!-- CONTRASEÑA -->
+
+                <div class="login-field-simple">
+
+                    <label for="password">
+                        Contraseña
+                    </label>
+
+                    <input id="password"
+                           name="password"
+                           type="password"
+                           minlength="8"
+                           maxlength="30"
+                           required
+                           autocomplete="current-password"
+                           placeholder="Ingresa tu contraseña">
+
+                </div>
+
+
+                <button type="submit"
+                        class="login-button-simple">
+
+                    Ingresar
+
+                </button>
+
             </form>
+
+
+            <p class="login-security-note">
+                El acceso se asigna según el rol registrado
+                para tu cuenta.
+            </p>
+
         </div>
+
     </section>
+
 </div>
 
-<script>
-(() => {
-    const card = document.getElementById('loginCard');
-    const roleStep = document.getElementById('roleStep');
-    const credentialStep = document.getElementById('credentialStep');
-    const continueButton = document.getElementById('continueLogin');
-    const backButton = document.getElementById('backToRoles');
-    const roleName = document.getElementById('credentialRoleName');
-    const roleIcon = document.getElementById('credentialRoleIcon');
-    const roleCard = document.getElementById('credentialRoleCard');
-    const correo = document.getElementById('correo');
-
-    const roles = {
-        COL: {name: 'Colaborador', icon: '✦', css: 'credential-col'},
-        PM: {name: 'Project Manager', icon: '▣', css: 'credential-pm'},
-        RM: {name: 'Resource Manager', icon: '◫', css: 'credential-rm'},
-        ADMIN: {name: 'Administrador', icon: '◆', css: 'credential-admin'}
-    };
-
-    function selectedRole() {
-        const selected = document.querySelector('input[name="rol"]:checked');
-        return selected ? selected.value : 'COL';
-    }
-    function paintCredentialRole() {
-        const info = roles[selectedRole()] || roles.COL;
-        roleName.textContent = info.name;
-        roleIcon.textContent = info.icon;
-        roleCard.className = 'credential-role-card ' + info.css;
-    }
-    function showCredentials() {
-        paintCredentialRole();
-        roleStep.classList.add('login-step-hidden');
-        credentialStep.classList.remove('login-step-hidden');
-        setTimeout(() => correo.focus(), 80);
-    }
-    function showRoles() {
-        credentialStep.classList.add('login-step-hidden');
-        roleStep.classList.remove('login-step-hidden');
-    }
-
-    continueButton.addEventListener('click', showCredentials);
-    backButton.addEventListener('click', showRoles);
-    if (String(card.dataset.showCredentials).toLowerCase() === 'true') showCredentials();
-})();
-</script>
 </body>
 </html>
