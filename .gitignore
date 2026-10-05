@@ -1,4 +1,6 @@
 target/
+.m2repo/
+tmp/
 .idea/
 *.iml
 .DS_Store
