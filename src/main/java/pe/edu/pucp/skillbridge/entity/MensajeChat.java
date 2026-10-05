@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,13 +14,17 @@ public class MensajeChat {
 
     @ManyToOne
     @JoinColumn(name = "id_proyecto", nullable = false)
+    @NotNull(message = "{validation.chat.proyecto.required}")
     private Proyecto proyecto;
 
     @ManyToOne
     @JoinColumn(name = "id_usuario", nullable = false)
+    @NotNull(message = "{validation.chat.usuario.required}")
     private Usuario usuario;
 
     @Column(nullable = false, columnDefinition = "TEXT")
+    @NotBlank(message = "{validation.chat.contenido.required}")
+    @Size(max = 2000, message = "{validation.chat.contenido.size}")
     private String contenido;
 
     @Column(name = "fecha_envio", insertable = false, updatable = false)

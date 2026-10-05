@@ -1,8 +1,10 @@
 package pe.edu.pucp.skillbridge.controller;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -104,7 +106,8 @@ public class ForoController {
     }
 
     @PostMapping("/guardar")
-    public String guardar(Foro foro,
+    public String guardar(@Valid @ModelAttribute("foro") Foro foro,
+                          BindingResult bindingResult,
                           @RequestParam(value = "idProyecto", required = false) Integer idProyecto,
                           @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
                           Model model) {
@@ -118,6 +121,13 @@ public class ForoController {
         if (foro.getEstado() == null) foro.setEstado(Foro.EstadoForo.ABIERTO);
         if (foro.getCategoria() == null || foro.getCategoria().isBlank()) foro.setCategoria("General");
         foro.setProyecto(idProyecto == null ? null : proyectoRepository.findById(idProyecto).orElse(null));
+
+        if (bindingResult.hasErrors()) {
+            prepararFormulario(foro, vista,
+                    foro.getIdForo() == null ? "Nueva publicación" : "Editar publicación", model);
+            model.addAttribute("mensajeError", bindingResult.getAllErrors().get(0).getDefaultMessage());
+            return "foro/form";
+        }
 
         Foro guardado = foroRepository.save(foro);
         cargarDetalle(guardado.getIdForo(), vista, model);

@@ -1,10 +1,12 @@
 package pe.edu.pucp.skillbridge.controller;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import pe.edu.pucp.skillbridge.entity.*;
@@ -1349,37 +1351,8 @@ public class AdminController {
 
     @PostMapping("/habilidades/guardar")
     public String guardarHabilidad(
-
-            @RequestParam(
-                    value = "idHabilidad",
-                    required = false
-            )
-            String idHabilidadTexto,
-
-            @RequestParam(
-                    value = "nombre",
-                    required = false
-            )
-            String nombre,
-
-            @RequestParam(
-                    value = "categoria",
-                    required = false
-            )
-            String categoria,
-
-            @RequestParam(
-                    value = "descripcion",
-                    required = false
-            )
-            String descripcion,
-
-            @RequestParam(
-                    value = "estado",
-                    required = false
-            )
-            String estadoTexto,
-
+            @Valid @ModelAttribute("habilidad") Habilidad habilidad,
+            BindingResult bindingResult,
             HttpSession session,
             Model model
     ) {
@@ -1389,188 +1362,31 @@ public class AdminController {
         }
 
 
-        Integer idHabilidad = null;
-
-        if (
-                idHabilidadTexto != null
-                        &&
-                        !idHabilidadTexto.isBlank()
-        ) {
-
-            try {
-                idHabilidad = Integer.valueOf(idHabilidadTexto);
-            } catch (Exception e) {
-                return "redirect:/admin/habilidades";
-            }
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("titulo", habilidad.getIdHabilidad() == null
+                    ? "Nueva habilidad" : "Editar habilidad");
+            model.addAttribute("error", bindingResult.getAllErrors().get(0).getDefaultMessage());
+            return "admin/habilidad-form";
         }
 
-
-        String nombreLimpio =
-                nombre == null
-                        ? ""
-                        : nombre.trim();
-
-        String categoriaLimpia =
-                categoria == null
-                        ? ""
-                        : categoria.trim();
-
-        String descripcionLimpia =
-                descripcion == null
-                        ? ""
-                        : descripcion.trim();
-
-
-        Boolean estado;
-
-        if ("true".equalsIgnoreCase(estadoTexto)) {
-            estado = true;
-        } else if ("false".equalsIgnoreCase(estadoTexto)) {
-            estado = false;
-        } else {
-
-            Habilidad formulario =
-                    construirHabilidadFormulario(
-                            idHabilidad,
-                            nombreLimpio,
-                            categoriaLimpia,
-                            descripcionLimpia,
-                            true
-                    );
-
-            return volverFormularioHabilidad(
-                    model,
-                    formulario,
-                    "El estado seleccionado no es válido."
-            );
-        }
-
-
-        Habilidad formulario =
-                construirHabilidadFormulario(
-                        idHabilidad,
-                        nombreLimpio,
-                        categoriaLimpia,
-                        descripcionLimpia,
-                        estado
-                );
-
-
-        if (
-                nombreLimpio.isBlank()
-                        ||
-                        nombreLimpio.length() > 40
-        ) {
-
-            return volverFormularioHabilidad(
-                    model,
-                    formulario,
-                    "El nombre es obligatorio y debe tener máximo 40 caracteres."
-            );
-        }
-
-
-        if (
-                categoriaLimpia.isBlank()
-                        ||
-                        categoriaLimpia.length() > 30
-        ) {
-
-            return volverFormularioHabilidad(
-                    model,
-                    formulario,
-                    "La categoría es obligatoria y debe tener máximo 30 caracteres."
-            );
-        }
-
-
-        if (
-                descripcionLimpia.isBlank()
-                        ||
-                        descripcionLimpia.length() > 150
-        ) {
-
-            return volverFormularioHabilidad(
-                    model,
-                    formulario,
-                    "La descripción es obligatoria y debe tener máximo 150 caracteres."
-            );
-        }
-
-
-        boolean nombreRepetido = false;
-
-        List<Habilidad> habilidadesRegistradas =
-                habilidadRepository.findAll();
-
-
-        for (Habilidad h : habilidadesRegistradas) {
-
-            if (
-                    h.getNombre() != null
-                            &&
-                            h.getNombre()
-                                    .equalsIgnoreCase(nombreLimpio)
-                            &&
-                            (
-                                    idHabilidad == null
-                                            ||
-                                            !h.getIdHabilidad()
-                                                    .equals(idHabilidad)
-                            )
-            ) {
-
-                nombreRepetido = true;
-                break;
-            }
-        }
-
+        String nombreLimpio = habilidad.getNombre().trim();
+        boolean nombreRepetido = habilidadRepository.findAll().stream()
+                .anyMatch(registrada -> registrada.getNombre() != null
+                        && registrada.getNombre().equalsIgnoreCase(nombreLimpio)
+                        && (habilidad.getIdHabilidad() == null
+                        || !registrada.getIdHabilidad().equals(habilidad.getIdHabilidad())));
 
         if (nombreRepetido) {
-
-            return volverFormularioHabilidad(
-                    model,
-                    formulario,
-                    "Ya existe una habilidad con ese nombre."
-            );
+            bindingResult.rejectValue("nombre", "validation.habilidad.nombre.unique");
+            model.addAttribute("titulo", habilidad.getIdHabilidad() == null
+                    ? "Nueva habilidad" : "Editar habilidad");
+            model.addAttribute("error", bindingResult.getFieldError("nombre").getDefaultMessage());
+            return "admin/habilidad-form";
         }
 
-
-        Habilidad habilidad;
-
-        if (idHabilidad == null) {
-
-            habilidad =
-                    new Habilidad();
-
-        } else {
-
-            habilidad =
-                    habilidadRepository
-                            .findById(idHabilidad)
-                            .orElse(null);
-
-            if (habilidad == null) {
-                return "redirect:/admin/habilidades";
-            }
-        }
-
-
-        habilidad.setNombre(
-                nombreLimpio
-        );
-
-        habilidad.setCategoria(
-                categoriaLimpia
-        );
-
-        habilidad.setDescripcion(
-                descripcionLimpia
-        );
-
-        habilidad.setEstado(
-                estado
-        );
+        habilidad.setNombre(nombreLimpio);
+        habilidad.setCategoria(habilidad.getCategoria().trim());
+        habilidad.setDescripcion(habilidad.getDescripcion().trim());
 
 
         habilidadRepository.save(
@@ -1984,72 +1800,6 @@ public class AdminController {
 
 
         return "admin/monitoreo";
-    }
-
-
-    /* =========================================================
-       FORMULARIO HABILIDAD
-       ========================================================= */
-
-    private Habilidad construirHabilidadFormulario(
-            Integer idHabilidad,
-            String nombre,
-            String categoria,
-            String descripcion,
-            Boolean estado
-    ) {
-
-        Habilidad habilidad =
-                new Habilidad();
-
-        habilidad.setIdHabilidad(
-                idHabilidad
-        );
-
-        habilidad.setNombre(
-                nombre
-        );
-
-        habilidad.setCategoria(
-                categoria
-        );
-
-        habilidad.setDescripcion(
-                descripcion
-        );
-
-        habilidad.setEstado(
-                estado
-        );
-
-        return habilidad;
-    }
-
-
-    private String volverFormularioHabilidad(
-            Model model,
-            Habilidad habilidad,
-            String error
-    ) {
-
-        model.addAttribute(
-                "titulo",
-                habilidad.getIdHabilidad() == null
-                        ? "Nueva habilidad"
-                        : "Editar habilidad"
-        );
-
-        model.addAttribute(
-                "habilidad",
-                habilidad
-        );
-
-        model.addAttribute(
-                "error",
-                error
-        );
-
-        return "admin/habilidad-form";
     }
 
 

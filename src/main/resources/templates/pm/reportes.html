@@ -1,1 +1,110 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reportes | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content"><div class="grid-4"><div class="metric"><div class="metric-icon">▣</div><div class="label">Proyectos</div><div class="value" th:text="${totalProyectos}"></div><div class="hint">Portafolio total</div></div><div class="metric green"><div class="metric-icon">●</div><div class="label">Activos</div><div class="value" th:text="${proyectosActivos}"></div><div class="hint">En curso</div></div><div class="metric blue"><div class="metric-icon">✓</div><div class="label">Completados</div><div class="value" th:text="${proyectosCompletados}"></div><div class="hint">Cerrados</div></div><div class="metric orange"><div class="metric-icon">☷</div><div class="label">Asignaciones</div><div class="value" th:text="${totalAsignaciones}"></div><div class="hint">Participaciones</div></div></div><div class="grid-2 section"><section class="card"><div class="card-title"><h2>Plantillas de reporte</h2></div><div class="grid-2"><div class="soft-panel"><strong>Resumen de proyectos</strong><p class="muted">Estados, progreso y fechas.</p><button class="btn btn-light btn-sm">Vista previa</button></div><div class="soft-panel"><strong>Asignaciones por proyecto</strong><p class="muted">Equipo, roles y dedicación.</p><button class="btn btn-light btn-sm">Vista previa</button></div><div class="soft-panel"><strong>Carga de trabajo</strong><p class="muted">Distribución de capacidad.</p><button class="btn btn-light btn-sm">Vista previa</button></div><div class="soft-panel"><strong>Historial</strong><p class="muted">Proyectos finalizados.</p><button class="btn btn-light btn-sm">Vista previa</button></div></div></section><section class="card"><div class="card-title"><h2>Progreso del portafolio</h2></div><div class="bar-list"><div class="bar-item" th:each="p : ${proyectos}"><span th:text="${p.nombre}"></span><div class="bar-track"><span th:style="|width:${p.progreso}%|"></span></div><strong th:text="|${p.progreso}%|"></strong></div></div></section></div></div></main></div></body></html>
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Reportes | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
+      <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content">
+          <div class="grid-4">
+            <div class="metric">
+              <div class="metric-icon">▣</div>
+              <div class="label">Proyectos</div>
+              <div class="value" th:text="${totalProyectos}"></div>
+              <div class="hint">Portafolio total</div>
+            </div>
+            <div class="metric green">
+              <div class="metric-icon">●</div>
+              <div class="label">Activos</div>
+              <div class="value" th:text="${proyectosActivos}"></div>
+              <div class="hint">En curso</div>
+            </div>
+            <div class="metric blue">
+              <div class="metric-icon">✓</div>
+              <div class="label">Completados</div>
+              <div class="value" th:text="${proyectosCompletados}"></div>
+              <div class="hint">Cerrados</div>
+            </div>
+            <div class="metric orange">
+              <div class="metric-icon">☷</div>
+              <div class="label">Asignaciones</div>
+              <div class="value" th:text="${totalAsignaciones}"></div>
+              <div class="hint">Participaciones</div>
+            </div>
+          </div>
+          <div class="grid-2 section">
+            <section class="card">
+              <div class="card-title"><h2>Plantillas de reporte</h2></div>
+              <div class="grid-2">
+                <div class="soft-panel">
+                  <strong>Resumen de proyectos</strong>
+                  <p class="muted">Estados, progreso y fechas.</p>
+                  <a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='proyectos')} + '#vista-previa'">Vista previa</a>
+                </div>
+                <div class="soft-panel">
+                  <strong>Asignaciones por proyecto</strong>
+                  <p class="muted">Equipo, roles y dedicación.</p>
+                  <a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='asignaciones')} + '#vista-previa'">Vista previa</a>
+                </div>
+                <div class="soft-panel">
+                  <strong>Carga de trabajo</strong>
+                  <p class="muted">Distribución de capacidad.</p>
+                  <a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='carga')} + '#vista-previa'">Vista previa</a>
+                </div>
+                <div class="soft-panel">
+                  <strong>Historial</strong>
+                  <p class="muted">Proyectos finalizados.</p>
+                  <a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='historial')} + '#vista-previa'">Vista previa</a>
+                </div>
+              </div>
+            </section>
+            <section class="card">
+              <div class="card-title"><h2>Progreso del portafolio</h2></div>
+              <div class="bar-list">
+                <div class="bar-item" th:each="p : ${proyectos}">
+                  <span th:text="${p.nombre}"></span>
+                  <div class="bar-track">
+                    <span th:style="|width:${p.progreso}%|"></span>
+                  </div>
+                  <strong th:text="|${p.progreso}%|"></strong>
+                </div>
+              </div>
+            </section>
+          </div>
+          <section class="card section" id="vista-previa" th:if="${reporteSeleccionado != null}">
+            <div class="card-title">
+              <h2>Vista previa del reporte</h2>
+              <a class="btn btn-light btn-sm" th:href="@{/pm/reportes}">Cerrar</a>
+            </div>
+
+            <div class="table-wrap" th:if="${reporteSeleccionado == 'proyectos'}">
+              <table><thead><tr><th>Proyecto</th><th>Estado</th><th>Inicio</th><th>Fin</th><th>Progreso</th></tr></thead>
+              <tbody><tr th:each="p : ${proyectos}"><td th:text="${p.nombre}"></td><td th:text="${p.estado}"></td><td th:text="${p.fechaInicio}"></td><td th:text="${p.fechaFin ?: '-'}"></td><td th:text="|${p.progreso}%|"></td></tr></tbody></table>
+            </div>
+
+            <div class="table-wrap" th:if="${reporteSeleccionado == 'asignaciones'}">
+              <table><thead><tr><th>Proyecto</th><th>Colaborador</th><th>Rol</th><th>Dedicación</th><th>Estado</th></tr></thead>
+              <tbody><tr th:each="a : ${asignaciones}"><td th:text="${a.proyecto.nombre}"></td><td th:text="${a.colaborador.usuario.nombreCompleto}"></td><td th:text="${a.rolProyecto}"></td><td th:text="|${a.porcentajeDedicacion}%|"></td><td th:text="${a.estado}"></td></tr></tbody></table>
+            </div>
+
+            <div class="table-wrap" th:if="${reporteSeleccionado == 'carga'}">
+              <table><thead><tr><th>Colaborador</th><th>Cargo</th><th>Carga</th><th>Disponibilidad</th></tr></thead>
+              <tbody><tr th:each="c : ${cargas}"><td th:text="${c.colaborador}"></td><td th:text="${c.cargo}"></td><td th:text="|${c.carga}%|"></td><td th:text="|${c.disponibilidad}%|"></td></tr></tbody></table>
+            </div>
+
+            <div class="table-wrap" th:if="${reporteSeleccionado == 'historial'}">
+              <table><thead><tr><th>Proyecto</th><th>Estado final</th><th>Periodo</th><th>Progreso</th></tr></thead>
+              <tbody><tr th:each="p : ${proyectos}" th:if="${p.estado.name() == 'COMPLETED' or p.estado.name() == 'CANCELLED'}"><td th:text="${p.nombre}"></td><td th:text="${p.estado}"></td><td th:text="|${p.fechaInicio} - ${p.fechaFin ?: '-'}|"></td><td th:text="|${p.progreso}%|"></td></tr></tbody></table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

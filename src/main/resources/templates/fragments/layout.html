@@ -327,12 +327,13 @@
                 </button>
 
 
-                <a th:href="@{/logout}"
-                   class="btn logout-confirm">
+                <form th:action="@{/logout}" method="post">
+                <button type="submit" class="btn logout-confirm">
 
                     Cerrar sesión
 
-                </a>
+                </button>
+                </form>
 
 
             </div>

@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,27 +16,42 @@ public class Usuario {
 
     @ManyToOne
     @JoinColumn(name = "id_rol", nullable = false)
+    @NotNull(message = "{validation.usuario.rol.required}")
     private Rol rol;
 
     @Column(nullable = false, length = 20)
+    @NotBlank(message = "{validation.usuario.nombres.required}")
+    @Size(max = 20, message = "{validation.usuario.nombres.size}")
+    @Pattern(regexp = "^[\\p{L} .'-]+$", message = "{validation.usuario.nombres.pattern}")
     private String nombres;
 
     @Column(nullable = false, length = 20)
+    @NotBlank(message = "{validation.usuario.apellidos.required}")
+    @Size(max = 20, message = "{validation.usuario.apellidos.size}")
+    @Pattern(regexp = "^[\\p{L} .'-]+$", message = "{validation.usuario.apellidos.pattern}")
     private String apellidos;
 
     @Column(nullable = false, unique = true, length = 150)
+    @NotBlank(message = "{validation.usuario.correo.required}")
+    @Email(message = "{validation.usuario.correo.email}")
+    @Size(max = 150, message = "{validation.usuario.correo.size}")
     private String correo;
 
     @Column(name = "password_hash", nullable = false, length = 255)
+    @NotBlank(message = "{validation.usuario.password.required}")
+    @Size(max = 255, message = "{validation.usuario.password.size}")
     private String passwordHash;
 
     @Column(length = 9)
+    @Pattern(regexp = "^$|^[0-9]{9}$", message = "{validation.usuario.telefono.pattern}")
     private String telefono;
 
     @Column(name = "foto_url", length = 300)
+    @Size(max = 300, message = "{validation.usuario.foto.size}")
     private String fotoUrl;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "{validation.usuario.estado.required}")
     private EstadoUsuario estado = EstadoUsuario.ACTIVO;
 
     @Column(name = "ultimo_acceso")

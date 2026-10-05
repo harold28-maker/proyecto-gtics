@@ -1,6 +1,8 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 @Entity
 @Table(name = "etiquetas")
@@ -11,6 +13,8 @@ public class Etiqueta {
     private Integer idEtiqueta;
 
     @Column(nullable = false, unique = true, length = 60)
+    @NotBlank(message = "{validation.etiqueta.nombre.required}")
+    @Size(max = 60, message = "{validation.etiqueta.nombre.size}")
     private String nombre;
 
     public Integer getIdEtiqueta() { return idEtiqueta; }

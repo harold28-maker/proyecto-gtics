@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 
 @Entity
@@ -18,9 +19,12 @@ public class Certificacion {
     private Colaborador colaborador;
 
     @Column(nullable = false, length = 40)
+    @NotBlank(message = "{validation.certificacion.nombre.required}")
+    @Size(max = 40, message = "{validation.certificacion.nombre.size}")
     private String nombre;
 
     @Column(name = "entidad_emisora", length = 40)
+    @Size(max = 40, message = "{validation.certificacion.entidad.size}")
     private String entidadEmisora;
 
     @Column(name = "fecha_emision")
@@ -30,10 +34,18 @@ public class Certificacion {
     private LocalDate fechaExpiracion;
 
     @Column(name = "url_credencial", length = 300)
+    @Size(max = 300, message = "{validation.certificacion.url.size}")
+    @Pattern(regexp = "^$|^https?://.+$", message = "{validation.certificacion.url.pattern}")
     private String urlCredencial;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "{validation.certificacion.estado.required}")
     private EstadoCertificacion estado = EstadoCertificacion.VIGENTE;
+
+    @AssertTrue(message = "{validation.certificacion.periodo}")
+    public boolean isPeriodoValido() {
+        return fechaEmision == null || fechaExpiracion == null || !fechaExpiracion.isBefore(fechaEmision);
+    }
 
     public Integer getIdCertificacion() { return idCertificacion; }
     public void setIdCertificacion(Integer idCertificacion) { this.idCertificacion = idCertificacion; }

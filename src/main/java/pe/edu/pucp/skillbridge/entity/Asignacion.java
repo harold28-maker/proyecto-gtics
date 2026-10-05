@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 
 @Entity
@@ -22,19 +23,31 @@ public class Asignacion {
     private Colaborador colaborador;
 
     @Column(name = "rol_proyecto", length = 100)
+    @NotBlank(message = "{validation.asignacion.rol.required}")
+    @Size(max = 100, message = "{validation.asignacion.rol.size}")
     private String rolProyecto;
 
     @Column(name = "fecha_inicio", nullable = false)
+    @NotNull(message = "{validation.asignacion.inicio.required}")
     private LocalDate fechaInicio;
 
     @Column(name = "fecha_fin")
     private LocalDate fechaFin;
 
     @Column(name = "porcentaje_dedicacion", nullable = false)
+    @NotNull(message = "{validation.asignacion.dedicacion.required}")
+    @Min(value = 1, message = "{validation.asignacion.dedicacion.min}")
+    @Max(value = 100, message = "{validation.asignacion.dedicacion.max}")
     private Integer porcentajeDedicacion;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "{validation.asignacion.estado.required}")
     private EstadoAsignacion estado = EstadoAsignacion.PLANIFICADA;
+
+    @AssertTrue(message = "{validation.asignacion.periodo}")
+    public boolean isPeriodoValido() {
+        return fechaInicio == null || fechaFin == null || !fechaFin.isBefore(fechaInicio);
+    }
 
     public Integer getIdAsignacion() { return idAsignacion; }
     public void setIdAsignacion(Integer idAsignacion) { this.idAsignacion = idAsignacion; }

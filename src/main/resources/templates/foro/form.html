@@ -11,6 +11,7 @@
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
         <div class="content">
+            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
             <section class="page-intro"><div><p class="eyebrow">Foro de conocimiento</p><h2 th:text="${titulo}"></h2><p>Convierte una duda, hallazgo o decisión del proyecto en conocimiento fácil de recuperar.</p></div><span class="badge badge-purple">Publicación estructurada</span></section>
 
             <div class="forum-compose-grid">
@@ -21,11 +22,11 @@
                             <input type="hidden" th:field="*{idForo}">
                             <input type="hidden" name="vista" th:value="${rolVista}">
                             <div class="form-grid">
-                                <div class="form-group full"><label>Título de la publicación</label><input th:field="*{titulo}" maxlength="180" required placeholder="Ej. Timeout al consumir Certification API desde EC2"></div>
+                                <div class="form-group full"><label>Título de la publicación</label><input th:field="*{titulo}" th:errorclass="is-invalid" maxlength="180" required placeholder="Ej. Timeout al consumir Certification API desde EC2"><div class="field-error" th:errors="*{titulo}"></div></div>
                                 <div class="form-group"><label>Proyecto relacionado</label><select name="idProyecto"><option value="">Tema general</option><option th:each="p : ${proyectos}" th:value="${p.idProyecto}" th:text="${p.nombre}" th:selected="${foro.proyecto != null and foro.proyecto.idProyecto == p.idProyecto}"></option></select></div>
-                                <div class="form-group"><label>Categoría</label><select th:field="*{categoria}" required><option th:each="cat : ${categoriasForo}" th:value="${cat}" th:text="${cat}"></option></select></div>
-                                <div class="form-group full"><label>Contexto y detalle</label><textarea rows="11" th:field="*{contenido}" required placeholder="Describe qué ocurre, qué esperabas, qué ya probaste y cualquier dato que ayude a reproducir o entender el caso."></textarea><p class="help">Evita mensajes de una sola línea: el objetivo es que esta publicación siga siendo útil más adelante.</p></div>
-                                <div class="form-group" th:if="${foro.idForo != null}"><label>Estado</label><select th:field="*{estado}"><option value="ABIERTO">Abierto</option><option value="RESUELTO">Resuelto</option><option value="CERRADO">Cerrado</option></select></div>
+                                <div class="form-group"><label>Categoría</label><select th:field="*{categoria}" th:errorclass="is-invalid" required><option th:each="cat : ${categoriasForo}" th:value="${cat}" th:text="${cat}"></option></select><div class="field-error" th:errors="*{categoria}"></div></div>
+                                <div class="form-group full"><label>Contexto y detalle</label><textarea rows="11" th:field="*{contenido}" th:errorclass="is-invalid" required placeholder="Describe qué ocurre, qué esperabas, qué ya probaste y cualquier dato que ayude a reproducir o entender el caso."></textarea><div class="field-error" th:errors="*{contenido}"></div><p class="help">Evita mensajes de una sola línea: el objetivo es que esta publicación siga siendo útil más adelante.</p></div>
+                                <div class="form-group" th:if="${foro.idForo != null}"><label>Estado</label><select th:field="*{estado}" th:errorclass="is-invalid"><option value="ABIERTO">Abierto</option><option value="RESUELTO">Resuelto</option><option value="CERRADO">Cerrado</option></select><div class="field-error" th:errors="*{estado}"></div></div>
                                 <input th:if="${foro.idForo == null}" type="hidden" th:field="*{estado}" value="ABIERTO">
                             </div>
                             <div class="form-actions"><a class="btn btn-light" th:if="${rolVista == 'PM'}" th:href="@{/pm/foros}">Cancelar</a><a class="btn btn-light" th:unless="${rolVista == 'PM'}" th:href="@{/colaborador/foros}">Cancelar</a><button class="btn btn-primary" type="submit" th:text="${foro.idForo == null ? 'Publicar en el foro' : 'Guardar cambios'}"></button></div>

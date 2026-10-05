@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -22,15 +23,21 @@ public class Foro {
     private Usuario autor;
 
     @Column(nullable = false, length = 180)
+    @NotBlank(message = "{validation.foro.titulo.required}")
+    @Size(max = 180, message = "{validation.foro.titulo.size}")
     private String titulo;
 
     @Column(nullable = false, columnDefinition = "TEXT")
+    @NotBlank(message = "{validation.foro.contenido.required}")
+    @Size(max = 5000, message = "{validation.foro.contenido.size}")
     private String contenido;
 
     @Column(length = 80)
+    @Size(max = 80, message = "{validation.foro.categoria.size}")
     private String categoria;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "{validation.foro.estado.required}")
     private EstadoForo estado = EstadoForo.ABIERTO;
 
     @Column(name = "fecha_creacion", insertable = false, updatable = false)

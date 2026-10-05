@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -13,16 +14,21 @@ public class RespuestaForo {
 
     @ManyToOne
     @JoinColumn(name = "id_foro", nullable = false)
+    @NotNull(message = "{validation.respuesta.foro.required}")
     private Foro foro;
 
     @ManyToOne
     @JoinColumn(name = "id_autor", nullable = false)
+    @NotNull(message = "{validation.respuesta.autor.required}")
     private Usuario autor;
 
     @Column(nullable = false, columnDefinition = "TEXT")
+    @NotBlank(message = "{validation.respuesta.contenido.required}")
+    @Size(max = 5000, message = "{validation.respuesta.contenido.size}")
     private String contenido;
 
     @Column(name = "es_solucion")
+    @NotNull(message = "{validation.respuesta.solucion.required}")
     private Boolean esSolucion = false;
 
     @Column(name = "fecha_creacion", insertable = false, updatable = false)

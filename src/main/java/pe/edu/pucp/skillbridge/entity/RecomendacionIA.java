@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -14,16 +15,22 @@ public class RecomendacionIA {
 
     @ManyToOne
     @JoinColumn(name = "id_proyecto", nullable = false)
+    @NotNull(message = "{validation.recomendacion.proyecto.required}")
     private Proyecto proyecto;
 
     @ManyToOne
     @JoinColumn(name = "id_colaborador", nullable = false)
+    @NotNull(message = "{validation.recomendacion.colaborador.required}")
     private Colaborador colaborador;
 
     @Column(name = "porcentaje_match")
+    @NotNull(message = "{validation.recomendacion.porcentaje.required}")
+    @DecimalMin(value = "0.0", message = "{validation.recomendacion.porcentaje.min}")
+    @DecimalMax(value = "100.0", message = "{validation.recomendacion.porcentaje.max}")
     private BigDecimal porcentajeMatch;
 
     @Column(columnDefinition = "TEXT")
+    @Size(max = 2000, message = "{validation.recomendacion.justificacion.size}")
     private String justificacion;
 
     @ManyToOne

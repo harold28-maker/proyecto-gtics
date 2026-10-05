@@ -36,6 +36,10 @@
 
         <div class="content">
 
+            <div class="alert-error"
+                 th:if="${error}"
+                 th:text="${error}"></div>
+
 
             <!-- =========================================
                  TEXTO SUPERIOR
@@ -105,9 +109,12 @@
                             <input id="nombre"
                                    type="text"
                                    th:field="*{nombre}"
+                                   th:errorclass="is-invalid"
                                    maxlength="40"
                                    required
                                    placeholder="Ej. Spring Boot">
+
+                            <div class="field-error" th:errors="*{nombre}"></div>
 
 
                             <p class="form-note">
@@ -134,9 +141,12 @@
                             <input id="categoria"
                                    type="text"
                                    th:field="*{categoria}"
+                                   th:errorclass="is-invalid"
                                    maxlength="30"
                                    required
                                    placeholder="Ej. Backend">
+
+                            <div class="field-error" th:errors="*{categoria}"></div>
 
 
                             <p class="form-note">
@@ -163,9 +173,12 @@
                             <textarea id="descripcion"
                                       rows="5"
                                       th:field="*{descripcion}"
+                                      th:errorclass="is-invalid"
                                       maxlength="150"
                                       required
                                       placeholder="Describe el alcance o uso principal de la habilidad."></textarea>
+
+                            <div class="field-error" th:errors="*{descripcion}"></div>
 
 
                             <div class="habilidad-description-footer">
@@ -199,6 +212,7 @@
 
                             <select id="estado"
                                     th:field="*{estado}"
+                                    th:errorclass="is-invalid"
                                     required>
 
                                 <option th:value="true">
@@ -210,6 +224,8 @@
                                 </option>
 
                             </select>
+
+                            <div class="field-error" th:errors="*{estado}"></div>
 
                         </div>
 

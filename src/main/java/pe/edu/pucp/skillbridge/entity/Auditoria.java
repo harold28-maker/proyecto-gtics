@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -16,12 +17,16 @@ public class Auditoria {
     private Usuario usuario;
 
     @Column(nullable = false, length = 100)
+    @NotBlank(message = "{validation.auditoria.accion.required}")
+    @Size(max = 100, message = "{validation.auditoria.accion.size}")
     private String accion;
 
     @Column(length = 80)
+    @Size(max = 80, message = "{validation.auditoria.modulo.size}")
     private String modulo;
 
     @Column(length = 500)
+    @Size(max = 500, message = "{validation.auditoria.detalle.size}")
     private String detalle;
 
     @Column(insertable = false, updatable = false)

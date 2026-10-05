@@ -1,8 +1,10 @@
 package pe.edu.pucp.skillbridge.controller;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -85,15 +87,10 @@ public class ColaboradorController {
         return valor != null && valor.matches("^[\\p{L} ]{1,20}$");
     }
 
-    private String validarPerfil(String nombres, String apellidos, String telefono, Colaborador colaborador) {
+    private String validarDatosUsuario(String nombres, String apellidos, String telefono) {
         if (!soloLetrasHasta20(nombres)) return "Los nombres solo pueden contener letras y espacios, con un máximo de 20 caracteres.";
         if (!soloLetrasHasta20(apellidos)) return "Los apellidos solo pueden contener letras y espacios, con un máximo de 20 caracteres.";
         if (telefono == null || !telefono.matches("^[0-9]{9}$")) return "El teléfono debe contener exactamente 9 dígitos.";
-        if (!soloLetrasHasta20(colaborador.getCargo())) return "El cargo solo puede contener letras y espacios, con un máximo de 20 caracteres.";
-        if (!soloLetrasHasta20(colaborador.getArea())) return "El área solo puede contener letras y espacios, con un máximo de 20 caracteres.";
-        if (colaborador.getDisponibilidadBase() == null || colaborador.getDisponibilidadBase() < 0 || colaborador.getDisponibilidadBase() > 100) {
-            return "La disponibilidad debe estar entre 0 y 100%.";
-        }
         return null;
     }
 
@@ -141,13 +138,20 @@ public class ColaboradorController {
     }
 
     @PostMapping("/perfil/guardar")
-    public String guardarPerfil(Colaborador colaborador,
+    public String guardarPerfil(@Valid @ModelAttribute("colaborador") Colaborador colaborador,
+                                BindingResult bindingResult,
                                 @RequestParam("nombres") String nombres,
                                 @RequestParam("apellidos") String apellidos,
                                 @RequestParam("telefono") String telefono,
                                 Model model) {
         Colaborador actual = colaboradorRepository.findById(colaborador.getIdColaborador()).orElseThrow();
-        String error = validarPerfil(nombres.trim(), apellidos.trim(), telefono.trim(), colaborador);
+        if (bindingResult.hasErrors()) {
+            colaborador.setUsuario(actual.getUsuario());
+            model.addAttribute("titulo", "Editar perfil profesional");
+            model.addAttribute("mensajeError", bindingResult.getAllErrors().get(0).getDefaultMessage());
+            return "colaborador/perfil-form";
+        }
+        String error = validarDatosUsuario(nombres.trim(), apellidos.trim(), telefono.trim());
         if (error != null) {
             colaborador.setUsuario(actual.getUsuario());
             model.addAttribute("titulo", "Editar perfil profesional");
@@ -160,14 +164,14 @@ public class ColaboradorController {
         usuario.setNombres(nombres.trim());
         usuario.setApellidos(apellidos.trim());
         usuario.setTelefono(telefono.trim());
-        usuarioRepository.save(usuario);
-
         actual.setCargo(colaborador.getCargo().trim());
         actual.setArea(colaborador.getArea().trim());
         actual.setSeniority(colaborador.getSeniority());
         actual.setBiografia(colaborador.getBiografia());
         actual.setInteresesProfesionales(colaborador.getInteresesProfesionales());
         actual.setDisponibilidadBase(colaborador.getDisponibilidadBase());
+
+        usuarioRepository.save(usuario);
         colaboradorRepository.save(actual);
 
         perfil(model);
@@ -207,23 +211,16 @@ public class ColaboradorController {
     }
 
     @PostMapping("/certificaciones/guardar")
-    public String guardarCertificacion(Certificacion certificacion, Model model) {
+    public String guardarCertificacion(@Valid @ModelAttribute("certificacion") Certificacion certificacion,
+                                       BindingResult bindingResult,
+                                       Model model) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("titulo", certificacion.getIdCertificacion() == null ? "Nueva certificación" : "Editar certificación");
+            model.addAttribute("mensajeError", bindingResult.getAllErrors().get(0).getDefaultMessage());
+            return "colaborador/certificacion-form";
+        }
         String nombre = certificacion.getNombre() == null ? "" : certificacion.getNombre().trim();
         String entidad = certificacion.getEntidadEmisora() == null ? "" : certificacion.getEntidadEmisora().trim();
-        if (nombre.isBlank() || nombre.length() > 40 || entidad.length() > 40) {
-            model.addAttribute("titulo", certificacion.getIdCertificacion() == null ? "Nueva certificación" : "Editar certificación");
-            model.addAttribute("certificacion", certificacion);
-            model.addAttribute("mensajeError", "El nombre y la entidad emisora admiten como máximo 40 caracteres.");
-            return "colaborador/certificacion-form";
-        }
-        if (certificacion.getFechaEmision() != null && certificacion.getFechaExpiracion() != null
-                && certificacion.getFechaExpiracion().isBefore(certificacion.getFechaEmision())) {
-            model.addAttribute("titulo", certificacion.getIdCertificacion() == null ? "Nueva certificación" : "Editar certificación");
-            model.addAttribute("certificacion", certificacion);
-            model.addAttribute("mensajeError", "La fecha de expiración no puede ser anterior a la fecha de emisión.");
-            return "colaborador/certificacion-form";
-        }
-
         Colaborador c = colaboradorDemo();
         certificacion.setNombre(nombre);
         certificacion.setEntidadEmisora(entidad);

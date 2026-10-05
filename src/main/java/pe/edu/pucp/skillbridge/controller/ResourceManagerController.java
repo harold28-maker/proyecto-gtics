@@ -71,13 +71,21 @@ public class ResourceManagerController {
     }
 
     @GetMapping("/colaboradores")
-    public String colaboradores(@RequestParam(value = "q", required = false) String q, Model model) {
+    public String colaboradores(@RequestParam(value = "q", required = false) String q,
+                                @RequestParam(value = "nivel", required = false) String nivel,
+                                Model model) {
         List<Colaborador> lista = (q == null || q.isBlank())
                 ? colaboradorRepository.findAll()
                 : colaboradorRepository.buscar(q);
+        if (nivel != null && !nivel.isBlank() && !"TODOS".equals(nivel)) {
+            lista = lista.stream()
+                    .filter(c -> c.getSeniority() != null && nivel.equals(c.getSeniority().name()))
+                    .toList();
+        }
         model.addAttribute("titulo", "Colaboradores");
         model.addAttribute("colaboradores", lista);
         model.addAttribute("q", q);
+        model.addAttribute("nivelSeleccionado", nivel);
         return "resource/colaboradores";
     }
 
@@ -113,10 +121,18 @@ public class ResourceManagerController {
     }
 
     @GetMapping("/talent")
-    public String talent(Model model) {
+    public String talent(@RequestParam(value = "proyecto", required = false) Integer idProyecto,
+                         Model model) {
+        var recomendaciones = recomendacionIARepository.findAllByOrderByPorcentajeMatchDesc();
+        if (idProyecto != null) {
+            recomendaciones = recomendaciones.stream()
+                    .filter(r -> r.getProyecto() != null && idProyecto.equals(r.getProyecto().getIdProyecto()))
+                    .toList();
+        }
         model.addAttribute("titulo", "Talent Matching IA");
-        model.addAttribute("recomendaciones", recomendacionIARepository.findAllByOrderByPorcentajeMatchDesc());
+        model.addAttribute("recomendaciones", recomendaciones);
         model.addAttribute("proyectos", proyectoRepository.findAll());
+        model.addAttribute("proyectoSeleccionado", idProyecto);
         return "resource/talent";
     }
 

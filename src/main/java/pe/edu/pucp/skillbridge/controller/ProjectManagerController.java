@@ -1,8 +1,10 @@
 package pe.edu.pucp.skillbridge.controller;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -149,8 +151,15 @@ public class ProjectManagerController {
     }
 
     @PostMapping("/proyectos/guardar")
-    public String guardarProyecto(Proyecto proyecto, Model model) {
+    public String guardarProyecto(@Valid @ModelAttribute("proyecto") Proyecto proyecto,
+                                  BindingResult bindingResult,
+                                  Model model) {
         proyecto.setProjectManager(pmDemo());
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("titulo", proyecto.getIdProyecto() == null ? "Nuevo proyecto" : "Editar proyecto");
+            model.addAttribute("mensajeError", bindingResult.getAllErrors().get(0).getDefaultMessage());
+            return "pm/proyecto-form";
+        }
         proyectoRepository.save(proyecto);
         cargarProyectos(model,
                 proyectoRepository.findByProjectManagerIdUsuarioOrderByFechaCreacionDesc(pmDemo().getIdUsuario()), null);
@@ -239,12 +248,19 @@ public class ProjectManagerController {
     }
 
     @PostMapping("/asignaciones/guardar")
-    public String guardarAsignacion(Asignacion asignacion,
+    public String guardarAsignacion(@Valid @ModelAttribute("asignacion") Asignacion asignacion,
+                                    BindingResult bindingResult,
                                     @RequestParam("idProyecto") Integer idProyecto,
                                     @RequestParam("idColaborador") Integer idColaborador,
                                     Model model) {
         asignacion.setProyecto(proyectoRepository.findById(idProyecto).orElseThrow());
         asignacion.setColaborador(colaboradorRepository.findById(idColaborador).orElseThrow());
+        if (bindingResult.hasErrors()) {
+            prepararFormularioAsignacion(asignacion,
+                    asignacion.getIdAsignacion() == null ? "Nueva asignación" : "Editar asignación", model);
+            model.addAttribute("mensajeError", bindingResult.getAllErrors().get(0).getDefaultMessage());
+            return "pm/asignacion-form";
+        }
         asignacionRepository.save(asignacion);
         cargarAsignaciones(model,
                 asignacionRepository.findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(pmDemo().getIdUsuario()));
@@ -266,11 +282,19 @@ public class ProjectManagerController {
     }
 
     @GetMapping("/colaboradores")
-    public String colaboradores(@RequestParam(value = "q", required = false) String q, Model model) {
+    public String colaboradores(@RequestParam(value = "q", required = false) String q,
+                                @RequestParam(value = "nivel", required = false) String nivel,
+                                Model model) {
         List<Colaborador> lista = (q == null || q.isBlank()) ? colaboradorRepository.findAll() : colaboradorRepository.buscar(q);
+        if (nivel != null && !nivel.isBlank() && !"TODOS".equals(nivel)) {
+            lista = lista.stream()
+                    .filter(c -> c.getSeniority() != null && nivel.equals(c.getSeniority().name()))
+                    .toList();
+        }
         model.addAttribute("titulo", "Directorio de colaboradores");
         model.addAttribute("colaboradores", lista);
         model.addAttribute("q", q);
+        model.addAttribute("nivelSeleccionado", nivel);
         return "pm/colaboradores";
     }
 
@@ -285,10 +309,18 @@ public class ProjectManagerController {
     }
 
     @GetMapping("/recomendaciones")
-    public String recomendaciones(Model model) {
+    public String recomendaciones(@RequestParam(value = "proyecto", required = false) Integer idProyecto,
+                                  Model model) {
+        var recomendaciones = recomendacionIARepository.findAllByOrderByPorcentajeMatchDesc();
+        if (idProyecto != null) {
+            recomendaciones = recomendaciones.stream()
+                    .filter(r -> r.getProyecto() != null && idProyecto.equals(r.getProyecto().getIdProyecto()))
+                    .toList();
+        }
         model.addAttribute("titulo", "Recomendaciones IA");
-        model.addAttribute("recomendaciones", recomendacionIARepository.findAllByOrderByPorcentajeMatchDesc());
+        model.addAttribute("recomendaciones", recomendaciones);
         model.addAttribute("proyectos", proyectoRepository.findAll());
+        model.addAttribute("proyectoSeleccionado", idProyecto);
         return "pm/recomendaciones";
     }
 
@@ -330,7 +362,8 @@ public class ProjectManagerController {
     }
 
     @GetMapping("/reportes")
-    public String reportes(Model model) {
+    public String reportes(@RequestParam(value = "reporte", required = false) String reporte,
+                           Model model) {
         Usuario pm = pmDemo();
         List<Proyecto> proyectos = pm == null ? List.of() : proyectoRepository.findByProjectManagerIdUsuarioOrderByFechaCreacionDesc(pm.getIdUsuario());
         List<Asignacion> asignaciones = pm == null ? List.of() : asignacionRepository.findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(pm.getIdUsuario());
@@ -340,6 +373,9 @@ public class ProjectManagerController {
         model.addAttribute("proyectosActivos", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.ACTIVE).count());
         model.addAttribute("proyectosCompletados", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.COMPLETED).count());
         model.addAttribute("totalAsignaciones", asignaciones.size());
+        model.addAttribute("asignaciones", asignaciones);
+        model.addAttribute("cargas", cargas());
+        model.addAttribute("reporteSeleccionado", reporte);
         return "pm/reportes";
     }
 

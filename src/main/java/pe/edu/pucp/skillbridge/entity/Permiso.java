@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 
 @Entity
 @Table(name = "permisos")
@@ -12,15 +13,21 @@ public class Permiso {
 
     @ManyToOne
     @JoinColumn(name = "id_rol", nullable = false)
+    @NotNull(message = "{validation.permiso.rol.required}")
     private Rol rol;
 
     @Column(nullable = false, length = 100)
+    @NotBlank(message = "{validation.permiso.nombre.required}")
+    @Size(max = 100, message = "{validation.permiso.nombre.size}")
     private String nombre;
 
     @Column(nullable = false, length = 60)
+    @NotBlank(message = "{validation.permiso.modulo.required}")
+    @Size(max = 60, message = "{validation.permiso.modulo.size}")
     private String modulo;
 
     @Column(length = 200)
+    @Size(max = 200, message = "{validation.permiso.descripcion.size}")
     private String descripcion;
 
     public Integer getIdPermiso() { return idPermiso; }

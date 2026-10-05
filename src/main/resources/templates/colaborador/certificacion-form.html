@@ -18,12 +18,13 @@
                     <form th:action="@{/colaborador/certificaciones/guardar}" th:object="${certificacion}" method="post">
                         <input type="hidden" th:field="*{idCertificacion}">
                         <div class="form-grid">
-                            <div class="form-group full"><label>Nombre de la certificación</label><input th:field="*{nombre}" maxlength="40" required placeholder="Ej. AWS Certified Developer - Associate"><div class="form-note">Máximo 40 caracteres.</div></div>
-                            <div class="form-group"><label>Entidad emisora</label><input th:field="*{entidadEmisora}" maxlength="40" placeholder="Amazon Web Services"><div class="form-note">Máximo 40 caracteres.</div></div>
-                            <div class="form-group"><label>Estado</label><select th:field="*{estado}"><option value="VIGENTE">Vigente</option><option value="VENCIDA">Vencida</option><option value="SIN_EXPIRACION">Sin expiración</option></select></div>
+                            <div class="form-group full"><label>Nombre de la certificación</label><input th:field="*{nombre}" th:errorclass="is-invalid" maxlength="40" required placeholder="Ej. AWS Certified Developer - Associate"><div class="field-error" th:errors="*{nombre}"></div><div class="form-note">Máximo 40 caracteres.</div></div>
+                            <div class="form-group"><label>Entidad emisora</label><input th:field="*{entidadEmisora}" th:errorclass="is-invalid" maxlength="40" placeholder="Amazon Web Services"><div class="field-error" th:errors="*{entidadEmisora}"></div><div class="form-note">Máximo 40 caracteres.</div></div>
+                            <div class="form-group"><label>Estado</label><select th:field="*{estado}" th:errorclass="is-invalid"><option value="VIGENTE">Vigente</option><option value="VENCIDA">Vencida</option><option value="SIN_EXPIRACION">Sin expiración</option></select><div class="field-error" th:errors="*{estado}"></div></div>
                             <div class="form-group"><label>Fecha de emisión</label><input type="date" th:field="*{fechaEmision}"></div>
                             <div class="form-group"><label>Fecha de expiración</label><input type="date" th:field="*{fechaExpiracion}"></div>
-                            <div class="form-group full"><label>URL de credencial</label><input type="text" th:field="*{urlCredencial}" maxlength="300" placeholder="https://..."></div>
+                            <div class="field-error form-error" th:if="${#fields.hasErrors('periodoValido')}" th:errors="*{periodoValido}"></div>
+                            <div class="form-group full"><label>URL de credencial</label><input type="text" th:field="*{urlCredencial}" th:errorclass="is-invalid" maxlength="300" placeholder="https://..."><div class="field-error" th:errors="*{urlCredencial}"></div></div>
                         </div>
                         <div class="form-actions"><a class="btn btn-light" th:href="@{/colaborador/certificaciones}">Cancelar</a><button class="btn btn-primary">Guardar certificación</button></div>
                     </form>

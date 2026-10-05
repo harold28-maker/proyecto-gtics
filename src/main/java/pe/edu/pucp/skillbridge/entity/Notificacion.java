@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,17 +16,24 @@ public class Notificacion {
 
     @ManyToOne
     @JoinColumn(name = "id_usuario", nullable = false)
+    @NotNull(message = "{validation.notificacion.usuario.required}")
     private Usuario usuario;
 
     @Column(nullable = false, length = 150)
+    @NotBlank(message = "{validation.notificacion.titulo.required}")
+    @Size(max = 150, message = "{validation.notificacion.titulo.size}")
     private String titulo;
 
     @Column(nullable = false, length = 500)
+    @NotBlank(message = "{validation.notificacion.mensaje.required}")
+    @Size(max = 500, message = "{validation.notificacion.mensaje.size}")
     private String mensaje;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "{validation.notificacion.tipo.required}")
     private TipoNotificacion tipo = TipoNotificacion.INFO;
 
+    @NotNull(message = "{validation.notificacion.leida.required}")
     private Boolean leida = false;
 
     @Column(name = "fecha_creacion", insertable = false, updatable = false)

@@ -1,6 +1,7 @@
 package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -20,9 +21,12 @@ public class Proyecto {
     private Usuario projectManager;
 
     @Column(nullable = false, length = 150)
+    @NotBlank(message = "{validation.proyecto.nombre.required}")
+    @Size(max = 150, message = "{validation.proyecto.nombre.size}")
     private String nombre;
 
     @Column(columnDefinition = "TEXT")
+    @Size(max = 3000, message = "{validation.proyecto.descripcion.size}")
     private String descripcion;
 
     @Column(name = "fecha_inicio")
@@ -31,18 +35,29 @@ public class Proyecto {
     @Column(name = "fecha_fin")
     private LocalDate fechaFin;
 
+    @PositiveOrZero(message = "{validation.proyecto.vacantes.min}")
     private Integer vacantes = 0;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "{validation.proyecto.prioridad.required}")
     private Prioridad prioridad = Prioridad.MEDIA;
 
     @Enumerated(EnumType.STRING)
+    @NotNull(message = "{validation.proyecto.estado.required}")
     private EstadoProyecto estado = EstadoProyecto.PLANNING;
 
+    @NotNull(message = "{validation.proyecto.progreso.required}")
+    @Min(value = 0, message = "{validation.proyecto.progreso.min}")
+    @Max(value = 100, message = "{validation.proyecto.progreso.max}")
     private Integer progreso = 0;
 
     @Column(name = "fecha_creacion", insertable = false, updatable = false)
     private LocalDateTime fechaCreacion;
+
+    @AssertTrue(message = "{validation.proyecto.periodo}")
+    public boolean isPeriodoValido() {
+        return fechaInicio == null || fechaFin == null || !fechaFin.isBefore(fechaInicio);
+    }
 
     public Integer getIdProyecto() { return idProyecto; }
     public void setIdProyecto(Integer idProyecto) { this.idProyecto = idProyecto; }

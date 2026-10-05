@@ -122,6 +122,10 @@
 
             </div>
 
+            <div class="login-alert-simple" th:if="${logoutExitoso}">
+                Sesión cerrada correctamente.
+            </div>
+
 
             <form th:action="@{/acceder}"
                   method="post">
