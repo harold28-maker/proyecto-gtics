@@ -15,7 +15,7 @@
             <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
             <div class="grid-3">
                 <section class="card" style="grid-column:span 2">
-                    <form th:action="@{/colaborador/certificaciones/guardar}" th:object="${certificacion}" method="post">
+                    <form th:action="@{/colaborador/certificaciones/guardar}" th:object="${certificacion}" method="post" enctype="multipart/form-data">
                         <input type="hidden" th:field="*{idCertificacion}">
                         <div class="form-grid">
                             <div class="form-group full"><label>Nombre de la certificación</label><input th:field="*{nombre}" th:errorclass="is-invalid" maxlength="40" required placeholder="Ej. AWS Certified Developer - Associate"><div class="field-error" th:errors="*{nombre}"></div><div class="form-note">Máximo 40 caracteres.</div></div>
@@ -24,15 +24,70 @@
                             <div class="form-group"><label>Fecha de emisión</label><input type="date" th:field="*{fechaEmision}"></div>
                             <div class="form-group"><label>Fecha de expiración</label><input type="date" th:field="*{fechaExpiracion}"></div>
                             <div class="field-error form-error" th:if="${#fields.hasErrors('periodoValido')}" th:errors="*{periodoValido}"></div>
-                            <div class="form-group full"><label>URL de credencial</label><input type="text" th:field="*{urlCredencial}" th:errorclass="is-invalid" maxlength="300" placeholder="https://..."><div class="field-error" th:errors="*{urlCredencial}"></div></div>
+                            <div class="form-group full">
+                                <label>URL de credencial</label>
+                                <input type="text"
+                                       id="urlCredencial"
+                                       name="urlCredencial"
+                                       maxlength="300"
+                                       placeholder="https://..."
+                                       th:value="${certificacion.urlCredencial != null and #strings.startsWith(certificacion.urlCredencial, 'http') ? certificacion.urlCredencial : ''}">
+                                <div class="field-error" th:errors="*{urlCredencial}"></div>
+                                <div class="form-note">Puedes registrar una URL de verificación o subir un archivo.</div>
+                            </div>
+
+                            <div class="form-group full">
+                                <label for="archivoCredencial">Archivo de credencial</label>
+
+                                <div class="credential-upload-control">
+                                    <span id="archivoCredencialNombre" class="credential-upload-name">
+                                        Ningún archivo seleccionado
+                                    </span>
+
+                                    <label for="archivoCredencial" class="credential-upload-button">
+                                        Elegir archivo
+                                    </label>
+
+                                    <input type="file"
+                                           id="archivoCredencial"
+                                           name="archivoCredencial"
+                                           class="credential-upload-input"
+                                           accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg">
+                                </div>
+
+                                <div class="form-note">
+                                    Formatos permitidos: PDF, PNG, JPG o JPEG. Tamaño máximo: 5 MB.
+                                    Si eliges un archivo, tendrá prioridad sobre la URL.
+                                </div>
+
+                                <div class="form-note credential-current-file"
+                                     th:if="${certificacion.urlCredencial != null and #strings.startsWith(certificacion.urlCredencial, '/colaborador/certificaciones/archivo/')}">
+                                    Archivo actual:
+                                    <a th:href="${certificacion.urlCredencial}" target="_blank" rel="noopener">
+                                        Ver credencial cargada
+                                    </a>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-actions"><a class="btn btn-light" th:href="@{/colaborador/certificaciones}">Cancelar</a><button class="btn btn-primary">Guardar certificación</button></div>
                     </form>
                 </section>
-                <aside class="card hero-card"><p class="eyebrow">Perfil SkillBridge</p><h3>Haz visible tu experiencia</h3><p class="muted">Las certificaciones complementan tus habilidades y fortalecen tu perfil frente a nuevas oportunidades.</p><div class="knowledge-tip cert-tip"><strong>Consejo</strong><p>Incluye la entidad emisora y la URL de verificación cuando estén disponibles. Mantener estos datos actualizados facilita validar tu experiencia.</p></div></aside>
+                <aside class="card hero-card"><p class="eyebrow">Perfil SkillBridge</p><h3>Haz visible tu experiencia</h3><p class="muted">Las certificaciones complementan tus habilidades y fortalecen tu perfil frente a nuevas oportunidades.</p><div class="knowledge-tip cert-tip"><strong>Consejo</strong><p>Incluye la entidad emisora y una URL o archivo de verificación cuando estén disponibles. Mantener estos datos actualizados facilita validar tu experiencia.</p></div></aside>
             </div>
         </div>
     </main>
 </div>
+
+<script>
+    const archivoCredencial = document.getElementById('archivoCredencial');
+    const archivoCredencialNombre = document.getElementById('archivoCredencialNombre');
+
+    archivoCredencial.addEventListener('change', function () {
+        archivoCredencialNombre.textContent =
+            this.files && this.files.length > 0
+                ? this.files[0].name
+                : 'Ningún archivo seleccionado';
+    });
+</script>
 </body>
 </html>
