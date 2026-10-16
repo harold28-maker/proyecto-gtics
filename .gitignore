@@ -1,4 +1,9 @@
 target/
+.m2repo/
+tmp/
 .idea/
 *.iml
 .DS_Store
+
+# Archivos subidos en tiempo de ejecución
+uploads/

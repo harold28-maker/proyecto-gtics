@@ -2,19 +2,33 @@ package pe.edu.pucp.skillbridge.controller;
 
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import pe.edu.pucp.skillbridge.dto.HabilidadColaboradorDTO;
 import pe.edu.pucp.skillbridge.entity.*;
 import pe.edu.pucp.skillbridge.repository.*;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Controller
@@ -30,6 +44,11 @@ public class ColaboradorController {
     private final NotificacionRepository notificacionRepository;
     private final MensajeChatRepository mensajeChatRepository;
     private final RespuestaForoRepository respuestaForoRepository;
+
+    @Value("${skillbridge.upload-dir:uploads}")
+    private String uploadDir;
+
+    private static final long MAX_CREDENCIAL_BYTES = 5L * 1024L * 1024L;
 
     public ColaboradorController(UsuarioRepository usuarioRepository,
                                  ColaboradorRepository colaboradorRepository,
@@ -191,7 +210,9 @@ public class ColaboradorController {
     private void cargarCertificaciones(Model model, List<Certificacion> lista) {
         model.addAttribute("titulo", "Certificaciones y credenciales");
         model.addAttribute("certificaciones", lista);
-        model.addAttribute("vigentes", lista.stream().filter(cert -> cert.getEstado() == Certificacion.EstadoCertificacion.VIGENTE).count());
+        model.addAttribute("vigentes", lista.stream()
+                .filter(cert -> cert.getEstado() == Certificacion.EstadoCertificacion.VIGENTE)
+                .count());
     }
 
     @GetMapping("/certificaciones/nueva")
@@ -205,41 +226,342 @@ public class ColaboradorController {
 
     @GetMapping("/certificaciones/editar/{id}")
     public String editarCertificacion(@PathVariable Integer id, Model model) {
+        Colaborador c = colaboradorDemo();
+        Certificacion certificacion = certificacionRepository.findById(id).orElse(null);
+
+        if (c == null || certificacion == null || !certificacionPerteneceA(certificacion, c)) {
+            List<Certificacion> lista = c == null ? List.of()
+                    : certificacionRepository.findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
+            cargarCertificaciones(model, lista);
+            model.addAttribute("mensajeError", "La certificación que intentas editar no pertenece a tu perfil.");
+            return "colaborador/certificaciones";
+        }
+
         model.addAttribute("titulo", "Editar certificación");
-        model.addAttribute("certificacion", certificacionRepository.findById(id).orElseThrow());
+        model.addAttribute("certificacion", certificacion);
         return "colaborador/certificacion-form";
     }
 
     @PostMapping("/certificaciones/guardar")
     public String guardarCertificacion(@Valid @ModelAttribute("certificacion") Certificacion certificacion,
                                        BindingResult bindingResult,
+                                       @RequestParam(value = "archivoCredencial", required = false) MultipartFile archivoCredencial,
                                        Model model) {
+        Colaborador c = colaboradorDemo();
+
+        if (c == null) {
+            model.addAttribute("titulo", certificacion.getIdCertificacion() == null
+                    ? "Nueva certificación" : "Editar certificación");
+            model.addAttribute("mensajeError", "No se encontró el perfil del colaborador.");
+            return "colaborador/certificacion-form";
+        }
+
+        Certificacion existente = null;
+        if (certificacion.getIdCertificacion() != null) {
+            existente = certificacionRepository.findById(certificacion.getIdCertificacion()).orElse(null);
+            if (existente == null || !certificacionPerteneceA(existente, c)) {
+                List<Certificacion> lista = certificacionRepository
+                        .findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
+                cargarCertificaciones(model, lista);
+                model.addAttribute("mensajeError", "La certificación que intentas modificar no pertenece a tu perfil.");
+                return "colaborador/certificaciones";
+            }
+        }
+
         if (bindingResult.hasErrors()) {
-            model.addAttribute("titulo", certificacion.getIdCertificacion() == null ? "Nueva certificación" : "Editar certificación");
+            if (existente != null && esArchivoLocal(existente.getUrlCredencial())
+                    && (certificacion.getUrlCredencial() == null || certificacion.getUrlCredencial().isBlank())) {
+                certificacion.setUrlCredencial(existente.getUrlCredencial());
+            }
+            model.addAttribute("titulo", certificacion.getIdCertificacion() == null
+                    ? "Nueva certificación" : "Editar certificación");
             model.addAttribute("mensajeError", bindingResult.getAllErrors().get(0).getDefaultMessage());
             return "colaborador/certificacion-form";
         }
+
+        String errorArchivo = validarArchivoCredencial(archivoCredencial);
+        if (errorArchivo != null) {
+            if (existente != null && esArchivoLocal(existente.getUrlCredencial())
+                    && (certificacion.getUrlCredencial() == null || certificacion.getUrlCredencial().isBlank())) {
+                certificacion.setUrlCredencial(existente.getUrlCredencial());
+            }
+            model.addAttribute("titulo", certificacion.getIdCertificacion() == null
+                    ? "Nueva certificación" : "Editar certificación");
+            model.addAttribute("mensajeError", errorArchivo);
+            return "colaborador/certificacion-form";
+        }
+
         String nombre = certificacion.getNombre() == null ? "" : certificacion.getNombre().trim();
         String entidad = certificacion.getEntidadEmisora() == null ? "" : certificacion.getEntidadEmisora().trim();
-        Colaborador c = colaboradorDemo();
+        String urlIngresada = certificacion.getUrlCredencial() == null ? "" : certificacion.getUrlCredencial().trim();
+
         certificacion.setNombre(nombre);
         certificacion.setEntidadEmisora(entidad);
         certificacion.setColaborador(c);
-        certificacionRepository.save(certificacion);
-        List<Certificacion> lista = certificacionRepository.findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
+
+        String urlAnterior = existente == null ? null : existente.getUrlCredencial();
+
+        try {
+            if (archivoCredencial != null && !archivoCredencial.isEmpty()) {
+                String nuevaRuta = guardarArchivoCredencial(archivoCredencial);
+                certificacion.setUrlCredencial(nuevaRuta);
+            } else if (!urlIngresada.isBlank()) {
+                certificacion.setUrlCredencial(urlIngresada);
+            } else if (existente != null && esArchivoLocal(urlAnterior)) {
+                certificacion.setUrlCredencial(urlAnterior);
+            } else {
+                certificacion.setUrlCredencial(null);
+            }
+
+            Certificacion guardada = certificacionRepository.save(certificacion);
+
+            if (existente != null
+                    && esArchivoLocal(urlAnterior)
+                    && urlAnterior != null
+                    && !urlAnterior.equals(guardada.getUrlCredencial())) {
+                eliminarArchivoLocal(urlAnterior);
+            }
+
+        } catch (IOException e) {
+            if (existente != null && esArchivoLocal(urlAnterior)) {
+                certificacion.setUrlCredencial(urlAnterior);
+            }
+            model.addAttribute("titulo", certificacion.getIdCertificacion() == null
+                    ? "Nueva certificación" : "Editar certificación");
+            model.addAttribute("mensajeError", "No se pudo guardar el archivo de la credencial. Intenta nuevamente.");
+            return "colaborador/certificacion-form";
+        }
+
+        List<Certificacion> lista = certificacionRepository
+                .findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
         cargarCertificaciones(model, lista);
         model.addAttribute("mensajeExito", "Certificación guardada correctamente.");
         return "colaborador/certificaciones";
     }
 
+    @GetMapping("/certificaciones/archivo/{nombreArchivo:.+}")
+    public ResponseEntity<Resource> verArchivoCredencial(@PathVariable String nombreArchivo) {
+        Colaborador c = colaboradorDemo();
+
+        if (c == null || nombreArchivo.contains("..") || nombreArchivo.contains("/") || nombreArchivo.contains("\\")) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String urlEsperada = "/colaborador/certificaciones/archivo/" + nombreArchivo;
+        boolean pertenece = certificacionRepository
+                .findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador())
+                .stream()
+                .anyMatch(cert -> urlEsperada.equals(cert.getUrlCredencial()));
+
+        if (!pertenece) {
+            return ResponseEntity.notFound().build();
+        }
+
+        try {
+            Path base = directorioCredenciales();
+            Path archivo = base.resolve(nombreArchivo).normalize();
+
+            if (!archivo.startsWith(base) || !Files.exists(archivo) || !Files.isRegularFile(archivo)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            Resource recurso = new UrlResource(archivo.toUri());
+            String tipo = Files.probeContentType(archivo);
+
+            if (tipo == null) {
+                tipo = switch (extension(nombreArchivo)) {
+                    case "pdf" -> MediaType.APPLICATION_PDF_VALUE;
+                    case "png" -> MediaType.IMAGE_PNG_VALUE;
+                    case "jpg", "jpeg" -> MediaType.IMAGE_JPEG_VALUE;
+                    default -> MediaType.APPLICATION_OCTET_STREAM_VALUE;
+                };
+            }
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + nombreArchivo.replace("\"", "") + "\"")
+                    .contentType(MediaType.parseMediaType(tipo))
+                    .body(recurso);
+
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping("/certificaciones/{id}/eliminar")
     public String eliminarCertificacion(@PathVariable Integer id, Model model) {
-        certificacionRepository.deleteById(id);
         Colaborador c = colaboradorDemo();
-        List<Certificacion> lista = certificacionRepository.findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
+        Certificacion certificacion = certificacionRepository.findById(id).orElse(null);
+
+        if (c == null || certificacion == null || !certificacionPerteneceA(certificacion, c)) {
+            List<Certificacion> lista = c == null ? List.of()
+                    : certificacionRepository.findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
+            cargarCertificaciones(model, lista);
+            model.addAttribute("mensajeError", "La certificación que intentas eliminar no pertenece a tu perfil.");
+            return "colaborador/certificaciones";
+        }
+
+        String urlArchivo = certificacion.getUrlCredencial();
+        certificacionRepository.deleteById(id);
+
+        if (esArchivoLocal(urlArchivo)) {
+            eliminarArchivoLocal(urlArchivo);
+        }
+
+        List<Certificacion> lista = certificacionRepository
+                .findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
         cargarCertificaciones(model, lista);
         model.addAttribute("mensajeExito", "Certificación eliminada del perfil.");
         return "colaborador/certificaciones";
+    }
+
+    private boolean certificacionPerteneceA(Certificacion certificacion, Colaborador colaborador) {
+        return certificacion.getColaborador() != null
+                && certificacion.getColaborador().getIdColaborador() != null
+                && certificacion.getColaborador().getIdColaborador().equals(colaborador.getIdColaborador());
+    }
+
+    private String validarArchivoCredencial(MultipartFile archivo) {
+        if (archivo == null || archivo.isEmpty()) {
+            return null;
+        }
+
+        if (archivo.getSize() > MAX_CREDENCIAL_BYTES) {
+            return "El archivo de la credencial no puede superar los 5 MB.";
+        }
+
+        String nombreOriginal = archivo.getOriginalFilename();
+        String ext = extension(nombreOriginal);
+
+        if (!List.of("pdf", "png", "jpg", "jpeg").contains(ext)) {
+            return "Solo se permiten archivos PDF, PNG, JPG o JPEG.";
+        }
+
+        String tipo = archivo.getContentType() == null
+                ? ""
+                : archivo.getContentType().toLowerCase(Locale.ROOT);
+
+        boolean tipoValido = switch (ext) {
+            case "pdf" -> MediaType.APPLICATION_PDF_VALUE.equals(tipo);
+            case "png" -> MediaType.IMAGE_PNG_VALUE.equals(tipo);
+            case "jpg", "jpeg" -> MediaType.IMAGE_JPEG_VALUE.equals(tipo);
+            default -> false;
+        };
+
+        if (!tipoValido) {
+            return "El tipo del archivo no coincide con su extensión.";
+        }
+
+        try {
+            if (!firmaArchivoValida(archivo, ext)) {
+                return "El contenido del archivo no corresponde a un PDF, PNG, JPG o JPEG válido.";
+            }
+        } catch (IOException e) {
+            return "No se pudo validar el archivo seleccionado.";
+        }
+
+        return null;
+    }
+
+    private boolean firmaArchivoValida(MultipartFile archivo, String ext) throws IOException {
+        byte[] cabecera = new byte[8];
+
+        try (InputStream entrada = archivo.getInputStream()) {
+            int leidos = entrada.read(cabecera);
+
+            if (leidos < 3) {
+                return false;
+            }
+
+            if ("pdf".equals(ext)) {
+                return leidos >= 5
+                        && cabecera[0] == '%'
+                        && cabecera[1] == 'P'
+                        && cabecera[2] == 'D'
+                        && cabecera[3] == 'F'
+                        && cabecera[4] == '-';
+            }
+
+            if ("png".equals(ext)) {
+                return leidos >= 8
+                        && (cabecera[0] & 0xFF) == 0x89
+                        && cabecera[1] == 0x50
+                        && cabecera[2] == 0x4E
+                        && cabecera[3] == 0x47
+                        && cabecera[4] == 0x0D
+                        && cabecera[5] == 0x0A
+                        && cabecera[6] == 0x1A
+                        && cabecera[7] == 0x0A;
+            }
+
+            return (cabecera[0] & 0xFF) == 0xFF
+                    && (cabecera[1] & 0xFF) == 0xD8
+                    && (cabecera[2] & 0xFF) == 0xFF;
+        }
+    }
+
+    private String guardarArchivoCredencial(MultipartFile archivo) throws IOException {
+        String ext = extension(archivo.getOriginalFilename());
+        String nombreSeguro = UUID.randomUUID() + "." + ext;
+
+        Path base = directorioCredenciales();
+        Files.createDirectories(base);
+
+        Path destino = base.resolve(nombreSeguro).normalize();
+
+        if (!destino.startsWith(base)) {
+            throw new IOException("Ruta de archivo inválida.");
+        }
+
+        try (InputStream entrada = archivo.getInputStream()) {
+            Files.copy(entrada, destino, StandardCopyOption.REPLACE_EXISTING);
+        }
+
+        return "/colaborador/certificaciones/archivo/" + nombreSeguro;
+    }
+
+    private Path directorioCredenciales() {
+        return Path.of(uploadDir, "credenciales").toAbsolutePath().normalize();
+    }
+
+    private String extension(String nombreArchivo) {
+        if (nombreArchivo == null) {
+            return "";
+        }
+
+        int punto = nombreArchivo.lastIndexOf('.');
+        if (punto < 0 || punto == nombreArchivo.length() - 1) {
+            return "";
+        }
+
+        return nombreArchivo.substring(punto + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private boolean esArchivoLocal(String url) {
+        return url != null && url.startsWith("/colaborador/certificaciones/archivo/");
+    }
+
+    private void eliminarArchivoLocal(String url) {
+        if (!esArchivoLocal(url)) {
+            return;
+        }
+
+        String nombreArchivo = url.substring("/colaborador/certificaciones/archivo/".length());
+
+        if (nombreArchivo.contains("..") || nombreArchivo.contains("/") || nombreArchivo.contains("\\")) {
+            return;
+        }
+
+        try {
+            Path base = directorioCredenciales();
+            Path archivo = base.resolve(nombreArchivo).normalize();
+
+            if (archivo.startsWith(base)) {
+                Files.deleteIfExists(archivo);
+            }
+        } catch (IOException ignored) {
+            // Si el archivo físico ya no existe, no se impide eliminar/actualizar la certificación.
+        }
     }
 
     @GetMapping("/habilidades")

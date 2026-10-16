@@ -35,7 +35,7 @@ public class Certificacion {
 
     @Column(name = "url_credencial", length = 300)
     @Size(max = 300, message = "{validation.certificacion.url.size}")
-    @Pattern(regexp = "^$|^https?://.+$", message = "{validation.certificacion.url.pattern}")
+    @Pattern(regexp = "^$|^https?://.+$|^/colaborador/certificaciones/archivo/[A-Za-z0-9._-]+$", message = "{validation.certificacion.url.pattern}")
     private String urlCredencial;
 
     @Enumerated(EnumType.STRING)

@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-05",
+  "framework": "Spring Boot 4 + Thymeleaf",
+  "font_stack": "system sans-serif",
+  "palette": "legacy CSS custom properties in app.css",
+  "motion": "CSS transitions only",
+  "spacing": "mixed compact spacing",
+  "design_system": "design.md"
+}
