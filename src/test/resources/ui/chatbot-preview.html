@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chatbot — ocho estados</title>
+    <link rel="stylesheet" href="../../../main/resources/static/css/design-tokens.css">
+    <link rel="stylesheet" href="../../../main/resources/static/css/chatbot.css">
+    <style>
+        body { margin: 0; padding: var(--space-lg); background: var(--color-paper-2); color: var(--color-ink); font-family: var(--font-body); }
+        main { max-width: 42rem; margin: 0 auto; }
+        h1 { font-family: var(--font-display); font-style: normal; }
+        .preview-row { display: grid; grid-template-columns: 8rem minmax(0, 1fr); align-items: center; gap: var(--space-sm); padding-block: var(--space-xs); border-bottom: var(--rule-thin) solid var(--color-rule); }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Enviar — ocho estados</h1>
+    <div class="preview-row"><span>Default</span><button class="chatbot-send"><span class="chatbot-send-label">Enviar</span><span class="chatbot-send-spinner"></span></button></div>
+    <div class="preview-row"><span>Hover</span><button class="chatbot-send is-hover"><span class="chatbot-send-label">Enviar</span><span class="chatbot-send-spinner"></span></button></div>
+    <div class="preview-row"><span>Focus</span><button class="chatbot-send is-focus"><span class="chatbot-send-label">Enviar</span><span class="chatbot-send-spinner"></span></button></div>
+    <div class="preview-row"><span>Active</span><button class="chatbot-send is-active"><span class="chatbot-send-label">Enviar</span><span class="chatbot-send-spinner"></span></button></div>
+    <div class="preview-row"><span>Disabled</span><button class="chatbot-send" disabled><span class="chatbot-send-label">Enviar</span><span class="chatbot-send-spinner"></span></button></div>
+    <div class="preview-row"><span>Loading</span><button class="chatbot-send" data-state="loading"><span class="chatbot-send-label">Enviar</span><span class="chatbot-send-spinner"></span></button></div>
+    <div class="preview-row"><span>Error</span><button class="chatbot-send" data-state="error"><span class="chatbot-send-label">Reintentar</span><span class="chatbot-send-spinner"></span></button></div>
+    <div class="preview-row"><span>Success</span><button class="chatbot-send" data-state="success"><span class="chatbot-send-label">Recibido</span><span class="chatbot-send-spinner"></span></button></div>
+</main>
+</body>
+</html>

@@ -2,6 +2,8 @@ package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import org.springframework.format.annotation.DateTimeFormat;
+
 import java.time.LocalDate;
 
 @Entity
@@ -28,10 +30,12 @@ public class Asignacion {
     private String rolProyecto;
 
     @Column(name = "fecha_inicio", nullable = false)
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     @NotNull(message = "{validation.asignacion.inicio.required}")
     private LocalDate fechaInicio;
 
     @Column(name = "fecha_fin")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate fechaFin;
 
     @Column(name = "porcentaje_dedicacion", nullable = false)

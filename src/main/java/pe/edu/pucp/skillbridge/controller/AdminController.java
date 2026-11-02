@@ -5,6 +5,9 @@ import jakarta.validation.Valid;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +19,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/admin")
@@ -57,7 +62,7 @@ public class AdminController {
        ========================================================= */
 
     @RequestMapping(
-            value = "/inicio",
+            value = {"/inicio", "/dashboard"},
             method = {
                     RequestMethod.GET,
                     RequestMethod.POST
@@ -79,7 +84,7 @@ public class AdminController {
 
         model.addAttribute(
                 "titulo",
-                "Centro de administración"
+                "Dashboard administrativo"
         );
 
 
@@ -1951,6 +1956,133 @@ public class AdminController {
         auditoriaRepository.save(
                 auditoria
         );
+    }
+
+
+    /* =========================================================
+       REPORTES ADMINISTRADOR
+       ========================================================= */
+
+    @GetMapping("/reportes")
+    public String reportes(
+            @RequestParam(value = "reporte", required = false) String reporte,
+            HttpSession session,
+            Model model
+    ) {
+
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
+        List<Usuario> usuarios = usuarioRepository.findAll();
+        List<Habilidad> habilidades = habilidadRepository.findAll();
+        List<Auditoria> auditorias = auditoriaRepository.findTop50ByOrderByFechaDesc();
+
+        Map<String, Long> usuariosPorRol = usuarios.stream()
+                .filter(u -> u.getRol() != null && u.getRol().getNombre() != null)
+                .collect(Collectors.groupingBy(
+                        u -> u.getRol().getNombre(),
+                        LinkedHashMap::new,
+                        Collectors.counting()
+                ));
+
+        Map<String, Long> habilidadesPorCategoria = habilidades.stream()
+                .filter(h -> h.getCategoria() != null && !h.getCategoria().isBlank())
+                .collect(Collectors.groupingBy(
+                        Habilidad::getCategoria,
+                        LinkedHashMap::new,
+                        Collectors.counting()
+                ));
+
+        model.addAttribute("titulo", "Reportes del sistema");
+        model.addAttribute("reporteSeleccionado", reporte);
+        model.addAttribute("usuarios", usuarios);
+        model.addAttribute("habilidades", habilidades);
+        model.addAttribute("auditorias", auditorias);
+        model.addAttribute("usuariosPorRol", usuariosPorRol);
+        model.addAttribute("habilidadesPorCategoria", habilidadesPorCategoria);
+
+        model.addAttribute("totalUsuarios", usuarios.size());
+        model.addAttribute("usuariosActivos", usuarios.stream()
+                .filter(u -> u.getEstado() == Usuario.EstadoUsuario.ACTIVO).count());
+        model.addAttribute("usuariosInactivos", usuarios.stream()
+                .filter(u -> u.getEstado() == Usuario.EstadoUsuario.INACTIVO).count());
+        model.addAttribute("usuariosBloqueados", usuarios.stream()
+                .filter(u -> u.getEstado() == Usuario.EstadoUsuario.BLOQUEADO).count());
+        model.addAttribute("totalHabilidades", habilidades.size());
+        model.addAttribute("habilidadesActivas", habilidades.stream()
+                .filter(h -> Boolean.TRUE.equals(h.getEstado())).count());
+
+        return "admin/reportes";
+    }
+
+
+    @GetMapping(value = "/reportes/exportar", produces = "text/csv")
+    public ResponseEntity<String> exportarReporte(
+            @RequestParam("tipo") String tipo,
+            HttpSession session
+    ) {
+
+        if (!esAdmin(session)) {
+            return ResponseEntity.status(403).body("Acceso denegado");
+        }
+
+        StringBuilder csv = new StringBuilder("\uFEFF");
+        String nombreArchivo;
+
+        switch (tipo == null ? "" : tipo.toLowerCase()) {
+            case "usuarios" -> {
+                nombreArchivo = "reporte_usuarios.csv";
+                csv.append("ID,Nombre,Correo,Rol,Estado,Telefono\n");
+                for (Usuario u : usuarioRepository.findAll()) {
+                    csv.append(csv(u.getIdUsuario())).append(',')
+                            .append(csv(u.getNombreCompleto())).append(',')
+                            .append(csv(u.getCorreo())).append(',')
+                            .append(csv(u.getRol() == null ? "" : u.getRol().getNombre())).append(',')
+                            .append(csv(u.getEstado())).append(',')
+                            .append(csv(u.getTelefono())).append('\n');
+                }
+            }
+            case "habilidades" -> {
+                nombreArchivo = "reporte_habilidades.csv";
+                csv.append("ID,Habilidad,Categoria,Estado,Descripcion\n");
+                for (Habilidad h : habilidadRepository.findAll()) {
+                    csv.append(csv(h.getIdHabilidad())).append(',')
+                            .append(csv(h.getNombre())).append(',')
+                            .append(csv(h.getCategoria())).append(',')
+                            .append(csv(Boolean.TRUE.equals(h.getEstado()) ? "ACTIVA" : "INACTIVA")).append(',')
+                            .append(csv(h.getDescripcion())).append('\n');
+                }
+            }
+            case "auditoria" -> {
+                nombreArchivo = "reporte_auditoria.csv";
+                csv.append("Fecha,Usuario,Accion,Modulo,Detalle\n");
+                for (Auditoria a : auditoriaRepository.findTop50ByOrderByFechaDesc()) {
+                    csv.append(csv(a.getFecha())).append(',')
+                            .append(csv(a.getUsuario() == null ? "Sistema" : a.getUsuario().getNombreCompleto())).append(',')
+                            .append(csv(a.getAccion())).append(',')
+                            .append(csv(a.getModulo())).append(',')
+                            .append(csv(a.getDetalle())).append('\n');
+                }
+            }
+            default -> {
+                return ResponseEntity.badRequest().body("Tipo de reporte no válido");
+            }
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombreArchivo + "\"")
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .body(csv.toString());
+    }
+
+
+    private String csv(Object valor) {
+        String texto = valor == null ? "" : String.valueOf(valor);
+        if (!texto.isEmpty() && "=+-@".indexOf(texto.charAt(0)) >= 0) {
+            texto = "'" + texto;
+        }
+        return "\"" + texto.replace("\"", "\"\"") + "\"";
     }
 
 }

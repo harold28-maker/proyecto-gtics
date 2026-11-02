@@ -1,4 +1,5 @@
 @import url("/css/design-tokens.css");
+@import url("/css/chatbot.css");
 
 :root {
     --bg: #f8f9fa;
@@ -1989,5 +1990,29 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
     .credential-upload-button {
         border-left: 0;
         border-top: 1px solid var(--border-strong);
+    }
+}
+
+
+/* Entregable 7 - acciones para dashboard y reportes */
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.soft-panel .actions {
+    margin-top: 10px;
+}
+
+@media (max-width: 640px) {
+    .actions {
+        width: 100%;
+    }
+
+    .actions .btn {
+        flex: 1 1 auto;
+        text-align: center;
     }
 }

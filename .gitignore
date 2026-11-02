@@ -7,3 +7,12 @@ tmp/
 
 # Archivos subidos en tiempo de ejecución
 uploads/
+
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+application-local.properties
+
+# Artefactos de Docker
+docker-data/

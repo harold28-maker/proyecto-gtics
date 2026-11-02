@@ -1,0 +1,51 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-skillbridge_ai}
+      MYSQL_USER: ${DB_USERNAME:-skillbridge}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-skillbridge_local}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_local}
+      TZ: America/Lima
+    expose:
+      - "3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./src/main/resources/database/skillbridge_ai_18_tablas_corregida.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./src/main/resources/database/actualizacion_colaborador_v3.sql:/docker-entrypoint-initdb.d/02-colaborador.sql:ro
+      - ./src/main/resources/database/actualizacion_chatbot_gemini.sql:/docker-entrypoint-initdb.d/03-chatbot.sql:ro
+      - ./src/main/resources/database/datos_demo.sql:/docker-entrypoint-initdb.d/04-demo.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${DB_NAME:-skillbridge_ai}?serverTimezone=America/Lima&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-skillbridge}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-skillbridge_local}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?Define GEMINI_API_KEY en el archivo .env}
+      SPRING_AI_MODEL_CHAT: google-genai
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      UPLOAD_DIR: /app/uploads
+      JPA_SHOW_SQL: "false"
+      TZ: America/Lima
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    volumes:
+      - uploads-data:/app/uploads
+
+volumes:
+  mysql-data:
+  uploads-data:

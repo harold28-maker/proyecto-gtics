@@ -1,5 +1,7 @@
 USE skillbridge_ai;
 
+SET NAMES utf8mb4;
+
 -- ============================================================
 -- DATOS DEMO PARA PRESENTAR LAS VISTAS HTML
 -- Ejecutar DESPUÉS de skillbridge_ai_18_tablas_corregida_BCrypt.sql
@@ -10,6 +12,7 @@ USE skillbridge_ai;
 
 SET SQL_SAFE_UPDATES = 0;
 SET FOREIGN_KEY_CHECKS = 0;
+DELETE FROM mensajes_chatbot;
 DELETE FROM mensajes_chat;
 DELETE FROM notificaciones;
 DELETE FROM auditoria;

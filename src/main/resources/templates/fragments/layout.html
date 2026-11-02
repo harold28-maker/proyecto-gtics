@@ -118,6 +118,10 @@
                 Monitoreo
             </a>
 
+            <a th:href="@{/admin/reportes}">
+                Reportes
+            </a>
+
         </th:block>
 
 
@@ -194,6 +198,10 @@
 
             <a th:href="@{/resource/talent}">
                 Asignación de talento
+            </a>
+
+            <a th:href="@{/resource/reportes}">
+                Reportes
             </a>
 
             <a th:href="@{/resource/historial}">
@@ -522,6 +530,19 @@
     <div class="topbar-tools">
 
 
+        <button class="chatbot-launch"
+                type="button"
+                data-chatbot-launch
+                aria-controls="skillbridgeChatbot"
+                aria-expanded="false">
+
+            <span class="chatbot-launch-mark" aria-hidden="true">AI</span>
+
+            <span>Asistente IA</span>
+
+        </button>
+
+
         <div class="top-context">
 
             <span class="pulse-dot">
@@ -588,6 +609,107 @@
 
 
     </div>
+
+
+    <section class="chatbot-panel"
+             id="skillbridgeChatbot"
+             data-chatbot
+             role="dialog"
+             aria-modal="false"
+             aria-labelledby="chatbotTitle"
+             th:attr="data-csrf-token=${_csrf.token},data-csrf-header=${_csrf.headerName}"
+             hidden>
+
+        <div class="chatbot-panel-head">
+
+            <div class="chatbot-identity">
+
+                <span class="chatbot-avatar" aria-hidden="true">AI</span>
+
+                <div>
+
+                    <h2 id="chatbotTitle">Asistente SkillBridge</h2>
+
+                    <p><span class="chatbot-presence" aria-hidden="true"></span> Gemini · contexto de tu sesión</p>
+
+                </div>
+
+            </div>
+
+            <button class="chatbot-icon-button"
+                    type="button"
+                    data-chatbot-close
+                    aria-label="Cerrar asistente">×</button>
+
+        </div>
+
+        <div class="chatbot-messages"
+             data-chatbot-messages
+             role="log"
+             aria-live="polite"
+             aria-relevant="additions">
+
+            <article class="chatbot-message chatbot-message-assistant" data-chatbot-welcome>
+
+                <span class="chatbot-message-author">SkillBridge AI</span>
+
+                <p>Hola. Puedo orientarte sobre los módulos y resumir la información disponible para tu rol. ¿Qué necesitas revisar?</p>
+
+            </article>
+
+        </div>
+
+        <div class="chatbot-suggestions" data-chatbot-suggestions>
+
+            <button type="button" data-chatbot-prompt="¿Qué puedo hacer desde mi rol?">Funciones de mi rol</button>
+
+            <button type="button" data-chatbot-prompt="Resume mis proyectos y asignaciones actuales.">Mis proyectos</button>
+
+            <button type="button" data-chatbot-prompt="¿Dónde actualizo mis habilidades y certificaciones?">Actualizar perfil</button>
+
+        </div>
+
+        <form class="chatbot-form" data-chatbot-form>
+
+            <label for="chatbotQuestion">Pregunta</label>
+
+            <div class="chatbot-composer">
+
+                <textarea id="chatbotQuestion"
+                          data-chatbot-input
+                          maxlength="1000"
+                          rows="2"
+                          placeholder="Escribe tu consulta…"
+                          aria-describedby="chatbotHelp"
+                          required></textarea>
+
+                <button class="chatbot-send"
+                        type="submit"
+                        data-chatbot-send
+                        data-state="default">
+
+                    <span class="chatbot-send-label">Enviar</span>
+
+                    <span class="chatbot-send-spinner" aria-hidden="true"></span>
+
+                </button>
+
+            </div>
+
+            <div class="chatbot-form-meta">
+
+                <p id="chatbotHelp">No compartas contraseñas ni datos sensibles.</p>
+
+                <p data-chatbot-status role="status">Listo</p>
+
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <script th:src="@{/js/chatbot.js}" defer></script>
 
 
 </header>

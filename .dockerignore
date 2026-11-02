@@ -1,0 +1,15 @@
+.git
+.idea
+.hallmark
+.m2repo
+target
+uploads
+docker-data
+.env
+.env.*
+!.env.example
+*.iml
+*.log
+README_PASO_A_PASO.md
+AVANCE_PRESENTACION.md
+CAMBIOS_*.md

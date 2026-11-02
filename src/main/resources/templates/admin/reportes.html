@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reportes del sistema | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content">
+            <section class="page-intro">
+                <div>
+                    <h2>Reportes administrativos</h2>
+                    <p>Consulta indicadores del sistema y descarga reportes generados con los datos actuales de la base de datos.</p>
+                </div>
+                <a class="btn btn-light" th:href="@{/admin/inicio}">Volver al dashboard</a>
+            </section>
+
+            <div class="grid-4">
+                <div class="metric"><div class="metric-icon">♙</div><div class="label">Usuarios</div><div class="value" th:text="${totalUsuarios}">0</div><div class="hint">Registrados</div></div>
+                <div class="metric green"><div class="metric-icon">✓</div><div class="label">Activos</div><div class="value" th:text="${usuariosActivos}">0</div><div class="hint">Con acceso habilitado</div></div>
+                <div class="metric orange"><div class="metric-icon">!</div><div class="label">Inactivos / bloqueados</div><div class="value" th:text="${usuariosInactivos + usuariosBloqueados}">0</div><div class="hint">Sin acceso normal</div></div>
+                <div class="metric blue"><div class="metric-icon">◇</div><div class="label">Habilidades</div><div class="value" th:text="${totalHabilidades}">0</div><div class="hint" th:text="|${habilidadesActivas} activas|">0 activas</div></div>
+            </div>
+
+            <div class="grid-2 section">
+                <section class="card">
+                    <div class="card-title"><h2>Usuarios por rol</h2></div>
+                    <div class="bar-list">
+                        <div class="bar-item" th:each="entry : ${usuariosPorRol}">
+                            <span th:text="${entry.key}">ROL</span>
+                            <div class="bar-track"><span th:style="|width:${totalUsuarios == 0 ? 0 : (entry.value * 100 / totalUsuarios)}%|"></span></div>
+                            <strong th:text="${entry.value}">0</strong>
+                        </div>
+                    </div>
+                </section>
+                <section class="card">
+                    <div class="card-title"><h2>Habilidades por categoría</h2></div>
+                    <div class="bar-list">
+                        <div class="bar-item" th:each="entry : ${habilidadesPorCategoria}">
+                            <span th:text="${entry.key}">Categoría</span>
+                            <div class="bar-track"><span th:style="|width:${totalHabilidades == 0 ? 0 : (entry.value * 100 / totalHabilidades)}%|"></span></div>
+                            <strong th:text="${entry.value}">0</strong>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <section class="card section">
+                <div class="card-title"><h2>Reportes disponibles</h2></div>
+                <div class="grid-3">
+                    <div class="soft-panel">
+                        <strong>Usuarios y accesos</strong>
+                        <p class="muted">Cuenta, correo, rol, estado y teléfono.</p>
+                        <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='usuarios')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/exportar(tipo='usuarios')}">Descargar CSV</a></div>
+                    </div>
+                    <div class="soft-panel">
+                        <strong>Catálogo de habilidades</strong>
+                        <p class="muted">Habilidad, categoría, estado y descripción.</p>
+                        <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='habilidades')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/exportar(tipo='habilidades')}">Descargar CSV</a></div>
+                    </div>
+                    <div class="soft-panel">
+                        <strong>Auditoría reciente</strong>
+                        <p class="muted">Últimos eventos administrativos registrados.</p>
+                        <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='auditoria')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/exportar(tipo='auditoria')}">Descargar CSV</a></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card section" id="vista-previa" th:if="${reporteSeleccionado != null}">
+                <div class="card-title"><h2>Vista previa</h2><a class="btn btn-light btn-sm" th:href="@{/admin/reportes}">Cerrar</a></div>
+                <div class="table-wrap" th:if="${reporteSeleccionado == 'usuarios'}">
+                    <table><thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Teléfono</th></tr></thead>
+                    <tbody><tr th:each="u : ${usuarios}"><td th:text="${u.nombreCompleto}"></td><td th:text="${u.correo}"></td><td th:text="${u.rolVisual}"></td><td th:text="${u.estado}"></td><td th:text="${u.telefono ?: '-'}"></td></tr></tbody></table>
+                </div>
+                <div class="table-wrap" th:if="${reporteSeleccionado == 'habilidades'}">
+                    <table><thead><tr><th>Habilidad</th><th>Categoría</th><th>Estado</th><th>Descripción</th></tr></thead>
+                    <tbody><tr th:each="h : ${habilidades}"><td th:text="${h.nombre}"></td><td th:text="${h.categoria}"></td><td th:text="${h.estado ? 'ACTIVA' : 'INACTIVA'}"></td><td th:text="${h.descripcion}"></td></tr></tbody></table>
+                </div>
+                <div class="table-wrap" th:if="${reporteSeleccionado == 'auditoria'}">
+                    <table><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Módulo</th><th>Detalle</th></tr></thead>
+                    <tbody><tr th:each="a : ${auditorias}"><td th:text="${a.fecha}"></td><td th:text="${a.usuario != null ? a.usuario.nombreCompleto : 'Sistema'}"></td><td th:text="${a.accion}"></td><td th:text="${a.modulo}"></td><td th:text="${a.detalle}"></td></tr></tbody></table>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

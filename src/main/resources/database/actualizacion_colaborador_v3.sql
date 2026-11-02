@@ -1,5 +1,7 @@
 USE skillbridge_ai;
 
+SET NAMES utf8mb4;
+
 -- ============================================================
 -- SkillBridge AI - Actualización incremental V3
 -- Ejecutar SOLO si ya tienes creada la BD de una versión anterior.

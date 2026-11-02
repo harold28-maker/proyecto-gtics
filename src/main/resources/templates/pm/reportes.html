@@ -45,22 +45,22 @@
                 <div class="soft-panel">
                   <strong>Resumen de proyectos</strong>
                   <p class="muted">Estados, progreso y fechas.</p>
-                  <a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='proyectos')} + '#vista-previa'">Vista previa</a>
+                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='proyectos')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='proyectos')}">Descargar CSV</a></div>
                 </div>
                 <div class="soft-panel">
                   <strong>Asignaciones por proyecto</strong>
                   <p class="muted">Equipo, roles y dedicación.</p>
-                  <a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='asignaciones')} + '#vista-previa'">Vista previa</a>
+                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='asignaciones')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='asignaciones')}">Descargar CSV</a></div>
                 </div>
                 <div class="soft-panel">
                   <strong>Carga de trabajo</strong>
                   <p class="muted">Distribución de capacidad.</p>
-                  <a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='carga')} + '#vista-previa'">Vista previa</a>
+                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='carga')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='carga')}">Descargar CSV</a></div>
                 </div>
                 <div class="soft-panel">
                   <strong>Historial</strong>
                   <p class="muted">Proyectos finalizados.</p>
-                  <a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='historial')} + '#vista-previa'">Vista previa</a>
+                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='historial')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='historial')}">Descargar CSV</a></div>
                 </div>
               </div>
             </section>

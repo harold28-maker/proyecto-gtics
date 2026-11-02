@@ -3,6 +3,9 @@ package pe.edu.pucp.skillbridge.controller;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +18,7 @@ import pe.edu.pucp.skillbridge.repository.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.charset.StandardCharsets;
 
 @Controller
 @RequestMapping("/pm")
@@ -91,7 +95,7 @@ public class ProjectManagerController {
         return lista;
     }
 
-    @RequestMapping(value = "/inicio", method = {RequestMethod.GET, RequestMethod.POST})
+    @RequestMapping(value = {"/inicio", "/dashboard"}, method = {RequestMethod.GET, RequestMethod.POST})
     public String inicio(Model model) {
         Usuario pm = pmDemo();
         List<Proyecto> proyectos = pm == null ? List.of()
@@ -99,7 +103,7 @@ public class ProjectManagerController {
         List<Asignacion> asignaciones = pm == null ? List.of()
                 : asignacionRepository.findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(pm.getIdUsuario());
 
-        model.addAttribute("titulo", "Workspace de proyectos");
+        model.addAttribute("titulo", "Dashboard - Project Manager");
         model.addAttribute("pm", pm);
         model.addAttribute("proyectosActivos", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.ACTIVE).count());
         model.addAttribute("proyectosPlanning", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.PLANNING).count());
@@ -388,4 +392,92 @@ public class ProjectManagerController {
         model.addAttribute("finalizados", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.COMPLETED || p.getEstado() == Proyecto.EstadoProyecto.CANCELLED).count());
         return "pm/historial";
     }
+
+    @GetMapping(value = "/reportes/exportar", produces = "text/csv")
+    public ResponseEntity<String> exportarReporte(@RequestParam("tipo") String tipo) {
+        Usuario pm = pmDemo();
+        if (pm == null) {
+            return ResponseEntity.status(403).body("No se pudo identificar al Project Manager");
+        }
+
+        List<Proyecto> proyectos = proyectoRepository
+                .findByProjectManagerIdUsuarioOrderByFechaCreacionDesc(pm.getIdUsuario());
+        List<Asignacion> asignaciones = asignacionRepository
+                .findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(pm.getIdUsuario());
+
+        StringBuilder csv = new StringBuilder("\uFEFF");
+        String nombreArchivo;
+
+        switch (tipo == null ? "" : tipo.toLowerCase()) {
+            case "proyectos" -> {
+                nombreArchivo = "reporte_proyectos_pm.csv";
+                csv.append("Proyecto,Estado,Prioridad,Progreso,Vacantes,Inicio,Fin\n");
+                for (Proyecto p : proyectos) {
+                    csv.append(csv(p.getNombre())).append(',')
+                            .append(csv(p.getEstado())).append(',')
+                            .append(csv(p.getPrioridad())).append(',')
+                            .append(csv(p.getProgreso())).append(',')
+                            .append(csv(p.getVacantes())).append(',')
+                            .append(csv(p.getFechaInicio())).append(',')
+                            .append(csv(p.getFechaFin())).append('\n');
+                }
+            }
+            case "asignaciones" -> {
+                nombreArchivo = "reporte_asignaciones_pm.csv";
+                csv.append("Proyecto,Colaborador,Rol,Dedicacion,Estado,Inicio,Fin\n");
+                for (Asignacion a : asignaciones) {
+                    csv.append(csv(a.getProyecto() == null ? "" : a.getProyecto().getNombre())).append(',')
+                            .append(csv(a.getColaborador() == null || a.getColaborador().getUsuario() == null ? "" : a.getColaborador().getUsuario().getNombreCompleto())).append(',')
+                            .append(csv(a.getRolProyecto())).append(',')
+                            .append(csv(a.getPorcentajeDedicacion())).append(',')
+                            .append(csv(a.getEstado())).append(',')
+                            .append(csv(a.getFechaInicio())).append(',')
+                            .append(csv(a.getFechaFin())).append('\n');
+                }
+            }
+            case "carga" -> {
+                nombreArchivo = "reporte_carga_pm.csv";
+                csv.append("Colaborador,Cargo,Area,Carga,Disponibilidad\n");
+                for (CargaColaboradorDTO c : cargas()) {
+                    csv.append(csv(c.getColaborador())).append(',')
+                            .append(csv(c.getCargo())).append(',')
+                            .append(csv(c.getArea())).append(',')
+                            .append(csv(c.getCarga())).append(',')
+                            .append(csv(c.getDisponibilidad())).append('\n');
+                }
+            }
+            case "historial" -> {
+                nombreArchivo = "reporte_historial_pm.csv";
+                csv.append("Proyecto,Estado,Progreso,Inicio,Fin\n");
+                for (Proyecto p : proyectos) {
+                    if (p.getEstado() == Proyecto.EstadoProyecto.COMPLETED
+                            || p.getEstado() == Proyecto.EstadoProyecto.CANCELLED) {
+                        csv.append(csv(p.getNombre())).append(',')
+                                .append(csv(p.getEstado())).append(',')
+                                .append(csv(p.getProgreso())).append(',')
+                                .append(csv(p.getFechaInicio())).append(',')
+                                .append(csv(p.getFechaFin())).append('\n');
+                    }
+                }
+            }
+            default -> {
+                return ResponseEntity.badRequest().body("Tipo de reporte no válido");
+            }
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + nombreArchivo + "\"")
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .body(csv.toString());
+    }
+
+
+    private String csv(Object valor) {
+        String texto = valor == null ? "" : String.valueOf(valor);
+        if (!texto.isEmpty() && "=+-@".indexOf(texto.charAt(0)) >= 0) {
+            texto = "'" + texto;
+        }
+        return "\"" + texto.replace("\"", "\"\"") + "\"";
+    }
+
 }
