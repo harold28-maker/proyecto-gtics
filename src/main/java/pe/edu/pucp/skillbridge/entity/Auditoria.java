@@ -6,6 +6,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "auditoria")
+/**
+ * Representa un registro de auditoría de una acción realizada en el sistema.
+ */
 public class Auditoria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,16 +35,76 @@ public class Auditoria {
     @Column(insertable = false, updatable = false)
     private LocalDateTime fecha;
 
+    /**
+     * Obtiene el identificador del registro de auditoría.
+     *
+     * @return identificador del registro
+     */
     public Integer getIdAuditoria() { return idAuditoria; }
+    /**
+     * Establece el identificador del registro de auditoría.
+     *
+     * @param idAuditoria identificador asignado
+     */
     public void setIdAuditoria(Integer idAuditoria) { this.idAuditoria = idAuditoria; }
+    /**
+     * Obtiene el usuario asociado al registro.
+     *
+     * @return usuario asociado
+     */
     public Usuario getUsuario() { return usuario; }
+    /**
+     * Establece el usuario asociado al registro.
+     *
+     * @param usuario usuario asociado
+     */
     public void setUsuario(Usuario usuario) { this.usuario = usuario; }
+    /**
+     * Obtiene la acción registrada.
+     *
+     * @return descripción de la acción
+     */
     public String getAccion() { return accion; }
+    /**
+     * Establece la acción registrada.
+     *
+     * @param accion descripción de la acción
+     */
     public void setAccion(String accion) { this.accion = accion; }
+    /**
+     * Obtiene el módulo donde se realizó la acción.
+     *
+     * @return nombre del módulo
+     */
     public String getModulo() { return modulo; }
+    /**
+     * Establece el módulo donde se realizó la acción.
+     *
+     * @param modulo nombre del módulo
+     */
     public void setModulo(String modulo) { this.modulo = modulo; }
+    /**
+     * Obtiene el detalle del registro de auditoría.
+     *
+     * @return detalle de la acción
+     */
     public String getDetalle() { return detalle; }
+    /**
+     * Establece el detalle del registro de auditoría.
+     *
+     * @param detalle detalle de la acción
+     */
     public void setDetalle(String detalle) { this.detalle = detalle; }
+    /**
+     * Obtiene la fecha del registro de auditoría.
+     *
+     * @return fecha del registro
+     */
     public LocalDateTime getFecha() { return fecha; }
+    /**
+     * Establece la fecha del registro de auditoría.
+     *
+     * @param fecha fecha del registro
+     */
     public void setFecha(LocalDateTime fecha) { this.fecha = fecha; }
 }

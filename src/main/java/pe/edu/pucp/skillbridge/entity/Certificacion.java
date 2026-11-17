@@ -6,7 +6,13 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "certificaciones")
+/**
+ * Representa una certificación obtenida por un colaborador.
+ */
 public class Certificacion {
+    /**
+     * Estados posibles de una certificación.
+     */
     public enum EstadoCertificacion { VIGENTE, VENCIDA, SIN_EXPIRACION }
 
     @Id
@@ -43,24 +49,109 @@ public class Certificacion {
     private EstadoCertificacion estado = EstadoCertificacion.VIGENTE;
 
     @AssertTrue(message = "{validation.certificacion.periodo}")
+    /**
+     * Comprueba que la fecha de expiración no sea anterior a la fecha de emisión.
+     *
+     * @return {@code true} si alguna fecha no está definida o el período es válido
+     */
     public boolean isPeriodoValido() {
         return fechaEmision == null || fechaExpiracion == null || !fechaExpiracion.isBefore(fechaEmision);
     }
 
+    /**
+     * Obtiene el identificador de la certificación.
+     *
+     * @return identificador de la certificación
+     */
     public Integer getIdCertificacion() { return idCertificacion; }
+    /**
+     * Establece el identificador de la certificación.
+     *
+     * @param idCertificacion identificador asignado
+     */
     public void setIdCertificacion(Integer idCertificacion) { this.idCertificacion = idCertificacion; }
+    /**
+     * Obtiene el colaborador asociado a la certificación.
+     *
+     * @return colaborador asociado
+     */
     public Colaborador getColaborador() { return colaborador; }
+    /**
+     * Establece el colaborador asociado a la certificación.
+     *
+     * @param colaborador colaborador asociado
+     */
     public void setColaborador(Colaborador colaborador) { this.colaborador = colaborador; }
+    /**
+     * Obtiene el nombre de la certificación.
+     *
+     * @return nombre de la certificación
+     */
     public String getNombre() { return nombre; }
+    /**
+     * Establece el nombre de la certificación.
+     *
+     * @param nombre nombre asignado
+     */
     public void setNombre(String nombre) { this.nombre = nombre; }
+    /**
+     * Obtiene la entidad emisora de la certificación.
+     *
+     * @return entidad emisora
+     */
     public String getEntidadEmisora() { return entidadEmisora; }
+    /**
+     * Establece la entidad emisora de la certificación.
+     *
+     * @param entidadEmisora entidad emisora asignada
+     */
     public void setEntidadEmisora(String entidadEmisora) { this.entidadEmisora = entidadEmisora; }
+    /**
+     * Obtiene la fecha de emisión de la certificación.
+     *
+     * @return fecha de emisión
+     */
     public LocalDate getFechaEmision() { return fechaEmision; }
+    /**
+     * Establece la fecha de emisión de la certificación.
+     *
+     * @param fechaEmision fecha de emisión
+     */
     public void setFechaEmision(LocalDate fechaEmision) { this.fechaEmision = fechaEmision; }
+    /**
+     * Obtiene la fecha de expiración de la certificación.
+     *
+     * @return fecha de expiración
+     */
     public LocalDate getFechaExpiracion() { return fechaExpiracion; }
+    /**
+     * Establece la fecha de expiración de la certificación.
+     *
+     * @param fechaExpiracion fecha de expiración
+     */
     public void setFechaExpiracion(LocalDate fechaExpiracion) { this.fechaExpiracion = fechaExpiracion; }
+    /**
+     * Obtiene la URL de la credencial de la certificación.
+     *
+     * @return URL de la credencial
+     */
     public String getUrlCredencial() { return urlCredencial; }
+    /**
+     * Establece la URL de la credencial de la certificación.
+     *
+     * @param urlCredencial URL asignada
+     */
     public void setUrlCredencial(String urlCredencial) { this.urlCredencial = urlCredencial; }
+    /**
+     * Obtiene el estado actual de la certificación.
+     *
+     * @return estado de la certificación
+     */
     public EstadoCertificacion getEstado() { return estado; }
+    /**
+     * Establece el estado actual de la certificación.
+     *
+     * @param estado estado asignado
+     */
     public void setEstado(EstadoCertificacion estado) { this.estado = estado; }
 }
