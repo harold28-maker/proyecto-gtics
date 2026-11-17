@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "foros")
 /**
  * Representa una publicación dentro del foro asociada opcionalmente a un proyecto.
  */
+@Entity
+@Table(name = "foros")
 public class Foro {
     /**
      * Estados posibles de una publicación del foro.

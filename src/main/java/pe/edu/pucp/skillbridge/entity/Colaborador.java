@@ -3,11 +3,11 @@ package pe.edu.pucp.skillbridge.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
-@Entity
-@Table(name = "colaboradores")
 /**
  * Contiene los datos profesionales y de disponibilidad de un usuario colaborador.
  */
+@Entity
+@Table(name = "colaboradores")
 public class Colaborador {
     /**
      * Niveles de seniority disponibles para un colaborador.

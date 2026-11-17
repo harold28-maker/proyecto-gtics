@@ -14,11 +14,11 @@ import pe.edu.pucp.skillbridge.repository.UsuarioRepository;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
-@Component
 /**
  * Gestiona el acceso exitoso, actualiza el último ingreso y establece los datos
  * de sesión necesarios para la navegación según el rol.
  */
+@Component
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final UsuarioRepository usuarioRepository;
 
@@ -31,8 +31,6 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         this.usuarioRepository = usuarioRepository;
     }
 
-    @Override
-    @Transactional
     /**
      * Procesa una autenticación exitosa y redirige al usuario a la página inicial
      * correspondiente a su rol.
@@ -42,6 +40,8 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
      * @param authentication Datos de autenticación asociados al usuario.
      * @throws IOException Si ocurre un error al emitir la redirección HTTP.
      */
+    @Override
+    @Transactional
     public void onAuthenticationSuccess(HttpServletRequest request,
                                         HttpServletResponse response,
                                         Authentication authentication) throws IOException {

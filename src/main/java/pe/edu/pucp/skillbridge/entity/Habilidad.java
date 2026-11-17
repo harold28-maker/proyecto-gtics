@@ -3,11 +3,11 @@ package pe.edu.pucp.skillbridge.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
-@Entity
-@Table(name = "habilidades")
 /**
  * Representa una habilidad disponible en el catálogo del sistema.
  */
+@Entity
+@Table(name = "habilidades")
 public class Habilidad {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

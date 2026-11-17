@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-@Entity
-@Table(name = "etiquetas")
 /**
  * Representa una etiqueta identificable por su nombre.
  */
+@Entity
+@Table(name = "etiquetas")
 public class Etiqueta {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

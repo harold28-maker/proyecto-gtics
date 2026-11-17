@@ -8,22 +8,21 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 
-@Controller
 /**
  * Controlador web encargado de mostrar la página principal y el inicio de sesión.
  * Expone las rutas públicas raíz y de autenticación.
  */
+@Controller
 public class HomeController {
-    @GetMapping("/")
     /**
      * Resuelve la solicitud GET realizada a la ruta {@code /}.
      *
      * @return Nombre de la vista principal que se debe renderizar.
      */
+    @GetMapping("/")
     public String index() {
         return "index";
     }
-    @GetMapping("/login")
     /**
      * Resuelve la solicitud GET realizada a la ruta {@code /login}.
      * Redirige a una sesión autenticada según su rol o prepara los atributos
@@ -35,6 +34,7 @@ public class HomeController {
      * @param model Modelo utilizado para proporcionar datos a la vista de login.
      * @return Nombre de la vista de login o una redirección según el rol autenticado.
      */
+    @GetMapping("/login")
     public String login(@RequestParam(required = false) String error,
                         @RequestParam(required = false) String logout,
                         Authentication authentication,

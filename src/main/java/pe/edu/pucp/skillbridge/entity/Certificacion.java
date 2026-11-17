@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "certificaciones")
 /**
  * Representa una certificación obtenida por un colaborador.
  */
+@Entity
+@Table(name = "certificaciones")
 public class Certificacion {
     /**
      * Estados posibles de una certificación.
@@ -48,12 +48,12 @@ public class Certificacion {
     @NotNull(message = "{validation.certificacion.estado.required}")
     private EstadoCertificacion estado = EstadoCertificacion.VIGENTE;
 
-    @AssertTrue(message = "{validation.certificacion.periodo}")
     /**
      * Comprueba que la fecha de expiración no sea anterior a la fecha de emisión.
      *
      * @return {@code true} si alguna fecha no está definida o el período es válido
      */
+    @AssertTrue(message = "{validation.certificacion.periodo}")
     public boolean isPeriodoValido() {
         return fechaEmision == null || fechaExpiracion == null || !fechaExpiracion.isBefore(fechaEmision);
     }

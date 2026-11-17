@@ -76,13 +76,6 @@ public class AdminController {
        INICIO ADMINISTRADOR
        ========================================================= */
 
-    @RequestMapping(
-            value = {"/inicio", "/dashboard"},
-            method = {
-                    RequestMethod.GET,
-                    RequestMethod.POST
-            }
-    )
     /**
      * Muestra el panel administrativo con indicadores generales y los registros
      * recientes de usuarios y auditorías.
@@ -91,6 +84,13 @@ public class AdminController {
      * @param model modelo al que se agregan los datos mostrados en el panel
      * @return la vista del panel o una redirección al inicio de sesión
      */
+    @RequestMapping(
+            value = {"/inicio", "/dashboard"},
+            method = {
+                    RequestMethod.GET,
+                    RequestMethod.POST
+            }
+    )
     public String inicio(
             HttpSession session,
             Model model
@@ -167,7 +167,6 @@ public class AdminController {
        USUARIOS
        ========================================================= */
 
-    @GetMapping("/usuarios")
     /**
      * Obtiene la relación de usuarios y permite filtrarla por nombre, correo o rol.
      *
@@ -176,6 +175,7 @@ public class AdminController {
      * @param model modelo al que se agrega la lista y los indicadores de usuarios
      * @return la vista de gestión de usuarios o una redirección al inicio de sesión
      */
+    @GetMapping("/usuarios")
     public String usuarios(
             @RequestParam(
                     value = "q",
@@ -314,7 +314,6 @@ public class AdminController {
        NUEVO USUARIO
        ========================================================= */
 
-    @GetMapping("/usuarios/nuevo")
     /**
      * Prepara el formulario para registrar un usuario nuevo con estado activo.
      *
@@ -322,6 +321,7 @@ public class AdminController {
      * @param model modelo al que se agrega el usuario nuevo y los roles disponibles
      * @return la vista del formulario o una redirección al inicio de sesión
      */
+    @GetMapping("/usuarios/nuevo")
     public String nuevoUsuario(
             HttpSession session,
             Model model
@@ -367,7 +367,6 @@ public class AdminController {
        EDITAR USUARIO
        ========================================================= */
 
-    @GetMapping("/usuarios/editar/{id}")
     /**
      * Carga los datos de un usuario existente para su modificación.
      *
@@ -376,6 +375,7 @@ public class AdminController {
      * @param model modelo al que se agregan el usuario encontrado y los roles disponibles
      * @return la vista del formulario o una redirección a la lista de usuarios
      */
+    @GetMapping("/usuarios/editar/{id}")
     public String editarUsuario(
             @PathVariable("id") String idTexto,
             HttpSession session,
@@ -431,7 +431,6 @@ public class AdminController {
        GUARDAR USUARIO
        ========================================================= */
 
-    @PostMapping("/usuarios/guardar")
     /**
      * Valida y registra un usuario nuevo o actualiza los datos de un usuario existente.
      *
@@ -448,6 +447,7 @@ public class AdminController {
      * @param model modelo al que se agregan datos de validación o de la lista de usuarios
      * @return la vista del formulario cuando ocurre un error o la vista de usuarios al finalizar
      */
+    @PostMapping("/usuarios/guardar")
     public String guardarUsuario(
 
             @RequestParam(
@@ -1125,7 +1125,6 @@ public class AdminController {
     // Baja lógica:
     // evita borrar físicamente registros relacionados.
 
-    @PostMapping("/usuarios/{id}/estado")
     /**
      * Cambia entre los estados activo e inactivo el usuario identificado en la ruta
      * y registra la modificación.
@@ -1135,6 +1134,7 @@ public class AdminController {
      * @param model modelo al que se agrega la lista actualizada de usuarios
      * @return la vista de usuarios o una redirección según la validación realizada
      */
+    @PostMapping("/usuarios/{id}/estado")
     public String cambiarEstadoUsuario(
             @PathVariable("id") String idTexto,
             HttpSession session,
@@ -1211,7 +1211,6 @@ public class AdminController {
        ROLES Y PERMISOS
        ========================================================= */
 
-    @GetMapping("/roles")
     /**
      * Muestra los roles registrados y los permisos disponibles en la administración.
      *
@@ -1219,6 +1218,7 @@ public class AdminController {
      * @param model modelo al que se agregan los roles, permisos y totales asociados
      * @return la vista de roles y permisos o una redirección al inicio de sesión
      */
+    @GetMapping("/roles")
     public String roles(
             HttpSession session,
             Model model
@@ -1271,7 +1271,6 @@ public class AdminController {
        HABILIDADES
        ========================================================= */
 
-    @GetMapping("/habilidades")
     /**
      * Obtiene el catálogo de habilidades y permite filtrarlo por nombre.
      *
@@ -1280,6 +1279,7 @@ public class AdminController {
      * @param model modelo al que se agrega la lista de habilidades
      * @return la vista del catálogo o una redirección al inicio de sesión
      */
+    @GetMapping("/habilidades")
     public String habilidades(
             @RequestParam(
                     value = "q",
@@ -1386,7 +1386,6 @@ public class AdminController {
        NUEVA HABILIDAD
        ========================================================= */
 
-    @GetMapping("/habilidades/nueva")
     /**
      * Prepara el formulario para registrar una habilidad nueva con estado activo.
      *
@@ -1394,6 +1393,7 @@ public class AdminController {
      * @param model modelo al que se agrega la habilidad nueva
      * @return la vista del formulario o una redirección al inicio de sesión
      */
+    @GetMapping("/habilidades/nueva")
     public String nuevaHabilidad(
             HttpSession session,
             Model model
@@ -1433,7 +1433,6 @@ public class AdminController {
        EDITAR HABILIDAD
        ========================================================= */
 
-    @GetMapping("/habilidades/editar/{id}")
     /**
      * Carga los datos de una habilidad existente para modificarla.
      *
@@ -1442,6 +1441,7 @@ public class AdminController {
      * @param model modelo al que se agrega la habilidad encontrada
      * @return la vista del formulario o una redirección al catálogo
      */
+    @GetMapping("/habilidades/editar/{id}")
     public String editarHabilidad(
             @PathVariable("id") String idTexto,
             HttpSession session,
@@ -1491,7 +1491,6 @@ public class AdminController {
        GUARDAR HABILIDAD
        ========================================================= */
 
-    @PostMapping("/habilidades/guardar")
     /**
      * Valida y guarda una habilidad nueva o actualiza una existente en el catálogo.
      *
@@ -1501,6 +1500,7 @@ public class AdminController {
      * @param model modelo al que se agregan los errores o la lista actualizada
      * @return la vista del formulario ante un error o la vista del catálogo al guardar
      */
+    @PostMapping("/habilidades/guardar")
     public String guardarHabilidad(
             @Valid @ModelAttribute("habilidad") Habilidad habilidad,
             BindingResult bindingResult,
@@ -1574,7 +1574,6 @@ public class AdminController {
        CAMBIAR ESTADO HABILIDAD
        ========================================================= */
 
-    @PostMapping("/habilidades/{id}/estado")
     /**
      * Invierte el estado de una habilidad y actualiza el catálogo mostrado.
      *
@@ -1583,6 +1582,7 @@ public class AdminController {
      * @param model modelo al que se agrega la lista actualizada de habilidades
      * @return la vista del catálogo o una redirección según la validación realizada
      */
+    @PostMapping("/habilidades/{id}/estado")
     public String cambiarEstadoHabilidad(
             @PathVariable("id") String idTexto,
             HttpSession session,

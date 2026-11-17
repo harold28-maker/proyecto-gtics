@@ -6,11 +6,11 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "asignaciones")
 /**
  * Representa la asignación de un colaborador a un proyecto y sus datos de dedicación.
  */
+@Entity
+@Table(name = "asignaciones")
 public class Asignacion {
     /**
      * Estados posibles de una asignación dentro de un proyecto.
@@ -54,12 +54,12 @@ public class Asignacion {
     @NotNull(message = "{validation.asignacion.estado.required}")
     private EstadoAsignacion estado = EstadoAsignacion.PLANIFICADA;
 
-    @AssertTrue(message = "{validation.asignacion.periodo}")
     /**
      * Comprueba que la fecha final no sea anterior a la fecha inicial.
      *
      * @return {@code true} si alguna fecha no está definida o el período es válido
      */
+    @AssertTrue(message = "{validation.asignacion.periodo}")
     public boolean isPeriodoValido() {
         return fechaInicio == null || fechaFin == null || !fechaFin.isBefore(fechaInicio);
     }

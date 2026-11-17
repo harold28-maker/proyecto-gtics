@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "mensajes_chat")
 /**
  * Representa un mensaje enviado por un usuario dentro del chat de un proyecto.
  */
+@Entity
+@Table(name = "mensajes_chat")
 public class MensajeChat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

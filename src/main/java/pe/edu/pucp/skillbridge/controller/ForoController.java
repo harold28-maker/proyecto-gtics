@@ -14,12 +14,12 @@ import pe.edu.pucp.skillbridge.repository.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Controller
-@RequestMapping("/foros")
 /**
  * Controlador web del foro de conocimiento.
  * Gestiona publicaciones y respuestas bajo la ruta base {@code /foros}.
  */
+@Controller
+@RequestMapping("/foros")
 public class ForoController {
 
     public static final List<String> CATEGORIAS_FORO = List.of(
@@ -78,7 +78,6 @@ public class ForoController {
                 .orElseGet(() -> usuarioRepository.findAll().stream().findFirst().orElse(null));
     }
 
-    @GetMapping("/{id}")
     /**
      * Atiende GET a la ruta {@code /foros/{id}} y carga el detalle de una publicación.
      *
@@ -87,6 +86,7 @@ public class ForoController {
      * @param model Modelo utilizado para proporcionar datos a la vista.
      * @return Nombre de la vista de detalle del foro.
      */
+    @GetMapping("/{id}")
     public String detalle(@PathVariable("id") Integer id,
                           @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
                           Model model) {
@@ -112,7 +112,6 @@ public class ForoController {
         model.addAttribute("rolVista", "PM".equals(vista) ? "PM" : "COL");
     }
 
-    @GetMapping("/nuevo")
     /**
      * Atiende GET a la ruta {@code /foros/nuevo} y prepara un nuevo formulario.
      *
@@ -120,6 +119,7 @@ public class ForoController {
      * @param model Modelo utilizado para proporcionar datos al formulario.
      * @return Nombre de la vista del formulario del foro.
      */
+    @GetMapping("/nuevo")
     public String nuevo(@RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
                         Model model) {
         Foro foro = new Foro();
@@ -129,7 +129,6 @@ public class ForoController {
         return "foro/form";
     }
 
-    @GetMapping("/{id}/editar")
     /**
      * Atiende GET a la ruta {@code /foros/{id}/editar} y prepara la edición.
      *
@@ -138,6 +137,7 @@ public class ForoController {
      * @param model Modelo utilizado para proporcionar datos al formulario.
      * @return Nombre de la vista del formulario del foro.
      */
+    @GetMapping("/{id}/editar")
     public String editar(@PathVariable Integer id,
                          @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
                          Model model) {
@@ -161,7 +161,6 @@ public class ForoController {
         model.addAttribute("rolVista", "PM".equals(vista) ? "PM" : "COL");
     }
 
-    @PostMapping("/guardar")
     /**
      * Atiende POST a la ruta {@code /foros/guardar} y crea o actualiza una publicación.
      *
@@ -172,6 +171,7 @@ public class ForoController {
      * @param model Modelo utilizado para la vista de resultado o error.
      * @return Vista del formulario ante errores o del detalle tras guardar.
      */
+    @PostMapping("/guardar")
     public String guardar(@Valid @ModelAttribute("foro") Foro foro,
                           BindingResult bindingResult,
                           @RequestParam(value = "idProyecto", required = false) Integer idProyecto,
@@ -201,7 +201,6 @@ public class ForoController {
         return "foro/detalle";
     }
 
-    @PostMapping("/{id}/responder")
     /**
      * Atiende POST a la ruta {@code /foros/{id}/responder} y publica una respuesta.
      *
@@ -211,6 +210,7 @@ public class ForoController {
      * @param model Modelo utilizado para presentar el detalle actualizado.
      * @return Nombre de la vista de detalle del foro.
      */
+    @PostMapping("/{id}/responder")
     public String responder(@PathVariable("id") Integer id,
                             @RequestParam("contenido") String contenido,
                             @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
@@ -228,7 +228,6 @@ public class ForoController {
         return "foro/detalle";
     }
 
-    @PostMapping("/{idForo}/solucion/{idRespuesta}")
     /**
      * Atiende POST a {@code /foros/{idForo}/solucion/{idRespuesta}} y marca una
      * respuesta como solución, dejando resuelta la publicación.
@@ -239,6 +238,7 @@ public class ForoController {
      * @param model Modelo utilizado para proporcionar los datos actualizados.
      * @return Nombre de la vista de detalle del foro.
      */
+    @PostMapping("/{idForo}/solucion/{idRespuesta}")
     public String marcarSolucion(@PathVariable Integer idForo,
                                  @PathVariable Integer idRespuesta,
                                  @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
@@ -256,7 +256,6 @@ public class ForoController {
         return "foro/detalle";
     }
 
-    @PostMapping("/{id}/estado")
     /**
      * Atiende POST a la ruta {@code /foros/{id}/estado} y cambia el estado publicado.
      *
@@ -266,6 +265,7 @@ public class ForoController {
      * @param model Modelo utilizado para proporcionar los datos actualizados.
      * @return Nombre de la vista de detalle del foro.
      */
+    @PostMapping("/{id}/estado")
     public String cambiarEstado(@PathVariable Integer id,
                                 @RequestParam("estado") String estado,
                                 @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
@@ -278,7 +278,6 @@ public class ForoController {
         return "foro/detalle";
     }
 
-    @PostMapping("/{idForo}/respuestas/{idRespuesta}/eliminar")
     /**
      * Atiende POST a {@code /foros/{idForo}/respuestas/{idRespuesta}/eliminar}
      * y elimina una respuesta.
@@ -289,6 +288,7 @@ public class ForoController {
      * @param model Modelo utilizado para proporcionar los datos actualizados.
      * @return Nombre de la vista de detalle del foro.
      */
+    @PostMapping("/{idForo}/respuestas/{idRespuesta}/eliminar")
     public String eliminarRespuesta(@PathVariable Integer idForo,
                                     @PathVariable Integer idRespuesta,
                                     @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
@@ -299,7 +299,6 @@ public class ForoController {
         return "foro/detalle";
     }
 
-    @PostMapping("/{id}/eliminar")
     /**
      * Atiende POST a la ruta {@code /foros/{id}/eliminar} y elimina una publicación.
      *
@@ -308,6 +307,7 @@ public class ForoController {
      * @param model Modelo utilizado para proporcionar el listado actualizado.
      * @return Nombre de la vista de listado del foro.
      */
+    @PostMapping("/{id}/eliminar")
     public String eliminarForo(@PathVariable Integer id,
                                @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
                                Model model) {

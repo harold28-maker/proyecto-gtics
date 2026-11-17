@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "auditoria")
 /**
  * Representa un registro de auditoría de una acción realizada en el sistema.
  */
+@Entity
+@Table(name = "auditoria")
 public class Auditoria {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
