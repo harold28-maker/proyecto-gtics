@@ -9,14 +9,34 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import pe.edu.pucp.skillbridge.controller.LoginSuccessHandler;
 
+/**
+ * Configura la seguridad web de SkillBridge, incluyendo el cifrado de contraseñas,
+ * las reglas de acceso por ruta, el inicio de sesión por formulario y el cierre
+ * de sesión.
+ */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+    /**
+     * Crea el codificador utilizado para almacenar y verificar contraseñas mediante
+     * el algoritmo BCrypt.
+     *
+     * @return instancia de PasswordEncoder basada en BCrypt
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    /**
+     * Configura el acceso a rutas web, el inicio de sesión por formulario, la
+     * redirección de éxito y el cierre de sesión de la aplicación.
+     *
+     * @param http configuración de seguridad HTTP proporcionada por Spring
+     * @param successHandler manejador ejecutado cuando la autenticación finaliza correctamente
+     * @return cadena de filtros configurada para las rutas de la aplicación
+     * @throws Exception si Spring Security no puede construir la cadena de filtros
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            LoginSuccessHandler successHandler) throws Exception {

@@ -37,6 +37,14 @@ public class ConsultaDniService {
     private final String token;
     private final String apiUrl;
 
+    /**
+     * Construye el servicio con el cliente REST configurado y las credenciales
+     * necesarias para consultar el proveedor externo de DNI.
+     *
+     * @param builder constructor utilizado para crear la instancia de RestTemplate
+     * @param token token de autorización leído desde la configuración o variable de entorno
+     * @param apiUrl URL del servicio externo utilizada para realizar las consultas
+     */
     public ConsultaDniService(
             RestTemplateBuilder builder,
             @Value("${skillbridge.dni.token:${VERIFICAID_TOKEN:}}") String token,
@@ -49,6 +57,16 @@ public class ConsultaDniService {
         this.apiUrl = apiUrl;
     }
 
+    /**
+     * Valida el formato de un DNI y solicita al proveedor externo los datos
+     * personales asociados.
+     *
+     * @param dni número de DNI que debe contener exactamente ocho dígitos
+     * @return respuesta con el DNI y los nombres recibidos del proveedor
+     * @throws ResponseStatusException si el DNI es inválido, falta el token,
+     *         el proveedor rechaza o no permite alcanzar la consulta, o la
+     *         respuesta no contiene los datos esperados
+     */
     public DniConsultaResponse consultar(String dni) {
         if (dni == null || !dni.matches("[0-9]{8}")) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
@@ -115,6 +133,15 @@ public class ConsultaDniService {
         return new DniConsultaResponse(dniRecibido, nombres, paterno, materno);
     }
 
+    /**
+     * Consulta los datos de DNI enviados y verifica si coinciden con los nombres
+     * y apellidos proporcionados, aplicando comparaciones normalizadas.
+     *
+     * @param request datos ingresados por el usuario para realizar la validación
+     * @return respuesta que indica si los datos normalizados coinciden
+     * @throws ResponseStatusException si la consulta realizada por el DNI falla
+     *         o el proveedor no devuelve una respuesta válida
+     */
     public DniValidacionResponse validar(DniValidacionRequest request) {
         DniConsultaResponse resultado = consultar(request.dni());
         boolean coincide = normalizar(request.nombres()).equals(normalizar(resultado.nombres()))
@@ -125,11 +152,26 @@ public class ConsultaDniService {
                          : "Los datos ingresados no coinciden con la consulta");
     }
 
+    /**
+     * Obtiene un valor textual de los datos devueltos por el proveedor y elimina
+     * los espacios iniciales y finales.
+     *
+     * @param data mapa que contiene los datos del DNI
+     * @param key nombre de la propiedad que se desea leer
+     * @return texto asociado a la propiedad o una cadena vacía si no existe
+     */
     private static String leer(Map<?, ?> data, String key) {
         Object value = data.get(key);
         return value == null ? "" : value.toString().trim();
     }
 
+    /**
+     * Normaliza un texto quitando tildes, unificando espacios y convirtiéndolo
+     * a mayúsculas con una configuración independiente de la región.
+     *
+     * @param texto texto que se desea normalizar
+     * @return texto sin tildes, con espacios unificados y en mayúsculas
+     */
     private static String normalizar(String texto) {
         String sinTildes = Normalizer.normalize(texto.trim(), Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "");

@@ -16,6 +16,15 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class ApiDniSecurityConfig {
 
+    /**
+     * Configura una cadena de seguridad independiente para las rutas de consulta
+     * de identidad, con sesiones desactivadas, autenticación HTTP Basic y acceso
+     * limitado a los roles administrador y resource manager.
+     *
+     * @param http configuración de seguridad HTTP proporcionada por Spring
+     * @return cadena de filtros configurada para las rutas de identidad
+     * @throws Exception si Spring Security no puede construir la cadena de filtros
+     */
     @Bean
     @Order(1)
     public SecurityFilterChain apiDniSecurityFilterChain(HttpSecurity http) throws Exception {
