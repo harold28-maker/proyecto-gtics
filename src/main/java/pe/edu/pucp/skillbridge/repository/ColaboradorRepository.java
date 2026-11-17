@@ -10,9 +10,23 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Repositorio de acceso a datos para los colaboradores y sus habilidades.
+ */
 public interface ColaboradorRepository extends JpaRepository<Colaborador, Integer> {
+    /**
+     * Busca el colaborador asociado a un usuario específico.
+     *
+     * @param idUsuario identificador del usuario asociado al colaborador
+     * @return colaborador encontrado o una ausencia si no existe una relación para el usuario
+     */
     Optional<Colaborador> findByUsuarioIdUsuario(Integer idUsuario);
 
+    /**
+     * Consulta la carga asignada y la disponibilidad restante de cada colaborador.
+     *
+     * @return filas con los datos de identificación, carga y disponibilidad de los colaboradores
+     */
     @Query(value = """
             SELECT c.id_colaborador,
                    CONCAT(u.nombres, ' ', u.apellidos) AS colaborador,
@@ -32,6 +46,12 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, Intege
             """, nativeQuery = true)
     List<Object[]> obtenerCargaColaboradores();
 
+    /**
+     * Obtiene las habilidades registradas para un colaborador.
+     *
+     * @param idColaborador identificador del colaborador cuyas habilidades se consultan
+     * @return filas con el identificador, nombre, categoría, nivel y experiencia de cada habilidad
+     */
     @Query(value = """
             SELECT h.id_habilidad, h.nombre, h.categoria, ch.nivel, ch.anios_experiencia
             FROM colaborador_habilidad ch
@@ -41,6 +61,15 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, Intege
             """, nativeQuery = true)
     List<Object[]> obtenerHabilidades(Integer idColaborador);
 
+    /**
+     * Registra o actualiza la habilidad y la experiencia asignadas a un colaborador.
+     *
+     * @param idColaborador identificador del colaborador
+     * @param idHabilidad identificador de la habilidad
+     * @param nivel nivel actual de dominio de la habilidad
+     * @param aniosExperiencia años de experiencia asociados a la habilidad
+     * @return número de filas insertadas o actualizadas
+     */
     @Modifying
     @Transactional
     @Query(value = """
@@ -50,6 +79,13 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, Intege
             """, nativeQuery = true)
     int guardarHabilidad(Integer idColaborador, Integer idHabilidad, String nivel, BigDecimal aniosExperiencia);
 
+    /**
+     * Elimina la relación entre un colaborador y una habilidad.
+     *
+     * @param idColaborador identificador del colaborador
+     * @param idHabilidad identificador de la habilidad que se eliminará
+     * @return número de filas eliminadas
+     */
     @Modifying
     @Transactional
     @Query(value = """
@@ -58,6 +94,12 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, Intege
             """, nativeQuery = true)
     int eliminarHabilidad(Integer idColaborador, Integer idHabilidad);
 
+    /**
+     * Busca colaboradores por coincidencias en nombre, cargo o habilidad.
+     *
+     * @param texto texto parcial que se compara con nombre, cargo y nombre de habilidad
+     * @return lista de colaboradores que cumplen al menos una coincidencia
+     */
     @Query(value = """
             SELECT DISTINCT c.*
             FROM colaboradores c
