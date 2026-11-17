@@ -22,6 +22,10 @@ import java.util.Optional;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
+/**
+ * Controlador encargado de gestionar las páginas y operaciones administrativas
+ * relacionadas con usuarios, roles y permisos.
+ */
 @Controller
 @RequestMapping("/admin")
 public class AdminController {
@@ -39,6 +43,17 @@ public class AdminController {
             new BCryptPasswordEncoder();
 
 
+    /**
+     * Construye el controlador con los repositorios utilizados para consultar
+     * y modificar los datos administrados.
+     *
+     * @param usuarioRepository repositorio de usuarios
+     * @param rolRepository repositorio de roles
+     * @param permisoRepository repositorio de permisos
+     * @param colaboradorRepository repositorio de colaboradores
+     * @param habilidadRepository repositorio de habilidades
+     * @param auditoriaRepository repositorio de registros de auditoría
+     */
     public AdminController(
             UsuarioRepository usuarioRepository,
             RolRepository rolRepository,
@@ -68,6 +83,14 @@ public class AdminController {
                     RequestMethod.POST
             }
     )
+    /**
+     * Muestra el panel administrativo con indicadores generales y los registros
+     * recientes de usuarios y auditorías.
+     *
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agregan los datos mostrados en el panel
+     * @return la vista del panel o una redirección al inicio de sesión
+     */
     public String inicio(
             HttpSession session,
             Model model
@@ -145,6 +168,14 @@ public class AdminController {
        ========================================================= */
 
     @GetMapping("/usuarios")
+    /**
+     * Obtiene la relación de usuarios y permite filtrarla por nombre, correo o rol.
+     *
+     * @param q texto opcional utilizado para filtrar los usuarios
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agrega la lista y los indicadores de usuarios
+     * @return la vista de gestión de usuarios o una redirección al inicio de sesión
+     */
     public String usuarios(
             @RequestParam(
                     value = "q",
@@ -210,6 +241,14 @@ public class AdminController {
     }
 
 
+    /**
+     * Agrega a la vista los usuarios y los totales de cuentas activas, inactivas
+     * y bloqueadas según la lista proporcionada.
+     *
+     * @param model modelo al que se agregan los datos de la vista
+     * @param lista usuarios que se mostrarán
+     * @param q texto utilizado actualmente como filtro
+     */
     private void cargarUsuarios(
             Model model,
             List<Usuario> lista,
@@ -276,6 +315,13 @@ public class AdminController {
        ========================================================= */
 
     @GetMapping("/usuarios/nuevo")
+    /**
+     * Prepara el formulario para registrar un usuario nuevo con estado activo.
+     *
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agrega el usuario nuevo y los roles disponibles
+     * @return la vista del formulario o una redirección al inicio de sesión
+     */
     public String nuevoUsuario(
             HttpSession session,
             Model model
@@ -322,6 +368,14 @@ public class AdminController {
        ========================================================= */
 
     @GetMapping("/usuarios/editar/{id}")
+    /**
+     * Carga los datos de un usuario existente para su modificación.
+     *
+     * @param idTexto identificador textual del usuario recibido en la ruta
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agregan el usuario encontrado y los roles disponibles
+     * @return la vista del formulario o una redirección a la lista de usuarios
+     */
     public String editarUsuario(
             @PathVariable("id") String idTexto,
             HttpSession session,
@@ -378,6 +432,22 @@ public class AdminController {
        ========================================================= */
 
     @PostMapping("/usuarios/guardar")
+    /**
+     * Valida y registra un usuario nuevo o actualiza los datos de un usuario existente.
+     *
+     * @param idUsuarioTexto identificador textual del usuario a editar, si corresponde
+     * @param nombres nombres ingresados en el formulario
+     * @param apellidos apellidos ingresados en el formulario
+     * @param correo correo electrónico ingresado en el formulario
+     * @param telefono número telefónico ingresado en el formulario
+     * @param idRolTexto identificador textual del rol seleccionado
+     * @param estadoTexto estado textual seleccionado para el usuario
+     * @param password contraseña nueva ingresada en el formulario
+     * @param confirmarPassword confirmación de la contraseña ingresada
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agregan datos de validación o de la lista de usuarios
+     * @return la vista del formulario cuando ocurre un error o la vista de usuarios al finalizar
+     */
     public String guardarUsuario(
 
             @RequestParam(
@@ -936,6 +1006,19 @@ public class AdminController {
     }
 
 
+    /**
+     * Construye un objeto de usuario con los datos ingresados en el formulario
+     * para conservarlos mientras se muestra un mensaje de validación.
+     *
+     * @param idUsuario identificador del usuario al editar
+     * @param nombres nombres ingresados
+     * @param apellidos apellidos ingresados
+     * @param correo correo electrónico ingresado
+     * @param telefono número telefónico ingresado
+     * @param rol rol seleccionado
+     * @param estado estado seleccionado
+     * @return usuario construido con los datos del formulario
+     */
     private Usuario construirUsuarioFormulario(
             Integer idUsuario,
             String nombres,
@@ -989,6 +1072,15 @@ public class AdminController {
     }
 
 
+    /**
+     * Restablece la vista del formulario de usuario con los datos conservados
+     * y el mensaje de error indicado.
+     *
+     * @param model modelo al que se agregan el título, usuario, roles y error
+     * @param usuario datos que se muestran nuevamente en el formulario
+     * @param error descripción del problema detectado
+     * @return la vista del formulario de usuario
+     */
     private String volverFormularioUsuario(
             Model model,
             Usuario usuario,
@@ -1034,6 +1126,15 @@ public class AdminController {
     // evita borrar físicamente registros relacionados.
 
     @PostMapping("/usuarios/{id}/estado")
+    /**
+     * Cambia entre los estados activo e inactivo el usuario identificado en la ruta
+     * y registra la modificación.
+     *
+     * @param idTexto identificador textual del usuario recibido en la ruta
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agrega la lista actualizada de usuarios
+     * @return la vista de usuarios o una redirección según la validación realizada
+     */
     public String cambiarEstadoUsuario(
             @PathVariable("id") String idTexto,
             HttpSession session,
@@ -1111,6 +1212,13 @@ public class AdminController {
        ========================================================= */
 
     @GetMapping("/roles")
+    /**
+     * Muestra los roles registrados y los permisos disponibles en la administración.
+     *
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agregan los roles, permisos y totales asociados
+     * @return la vista de roles y permisos o una redirección al inicio de sesión
+     */
     public String roles(
             HttpSession session,
             Model model
@@ -1164,6 +1272,14 @@ public class AdminController {
        ========================================================= */
 
     @GetMapping("/habilidades")
+    /**
+     * Obtiene el catálogo de habilidades y permite filtrarlo por nombre.
+     *
+     * @param q texto opcional utilizado para buscar habilidades
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agrega la lista de habilidades
+     * @return la vista del catálogo o una redirección al inicio de sesión
+     */
     public String habilidades(
             @RequestParam(
                     value = "q",
@@ -1204,7 +1320,13 @@ public class AdminController {
         return "admin/habilidades";
     }
 
-
+    /**
+     * Agrega al modelo el catálogo de habilidades y sus indicadores de estado y categorías.
+     *
+     * @param model modelo al que se agregan los datos de la vista
+     * @param habilidades habilidades que se muestran
+     * @param q texto utilizado actualmente como filtro
+     */
     private void cargarHabilidades(
             Model model,
             List<Habilidad> habilidades,
@@ -1265,6 +1387,13 @@ public class AdminController {
        ========================================================= */
 
     @GetMapping("/habilidades/nueva")
+    /**
+     * Prepara el formulario para registrar una habilidad nueva con estado activo.
+     *
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agrega la habilidad nueva
+     * @return la vista del formulario o una redirección al inicio de sesión
+     */
     public String nuevaHabilidad(
             HttpSession session,
             Model model
@@ -1305,6 +1434,14 @@ public class AdminController {
        ========================================================= */
 
     @GetMapping("/habilidades/editar/{id}")
+    /**
+     * Carga los datos de una habilidad existente para modificarla.
+     *
+     * @param idTexto identificador textual de la habilidad recibido en la ruta
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agrega la habilidad encontrada
+     * @return la vista del formulario o una redirección al catálogo
+     */
     public String editarHabilidad(
             @PathVariable("id") String idTexto,
             HttpSession session,
@@ -1355,6 +1492,15 @@ public class AdminController {
        ========================================================= */
 
     @PostMapping("/habilidades/guardar")
+    /**
+     * Valida y guarda una habilidad nueva o actualiza una existente en el catálogo.
+     *
+     * @param habilidad habilidad recibida y validada desde el formulario
+     * @param bindingResult resultados de las validaciones realizadas sobre la habilidad
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agregan los errores o la lista actualizada
+     * @return la vista del formulario ante un error o la vista del catálogo al guardar
+     */
     public String guardarHabilidad(
             @Valid @ModelAttribute("habilidad") Habilidad habilidad,
             BindingResult bindingResult,
@@ -1429,6 +1575,14 @@ public class AdminController {
        ========================================================= */
 
     @PostMapping("/habilidades/{id}/estado")
+    /**
+     * Invierte el estado de una habilidad y actualiza el catálogo mostrado.
+     *
+     * @param idTexto identificador textual de la habilidad recibido en la ruta
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agrega la lista actualizada de habilidades
+     * @return la vista del catálogo o una redirección según la validación realizada
+     */
     public String cambiarEstadoHabilidad(
             @PathVariable("id") String idTexto,
             HttpSession session,
@@ -1495,6 +1649,13 @@ public class AdminController {
        CATEGORÍAS
        ========================================================= */
 
+    /**
+     * Agrupa las habilidades existentes por categoría y muestra los totales asociados.
+     *
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agregan las categorías y sus cantidades
+     * @return la vista de categorías o una redirección al inicio de sesión
+     */
     @GetMapping("/categorias")
     public String categorias(
             HttpSession session,
@@ -1570,6 +1731,15 @@ public class AdminController {
        AUDITORÍA
        ========================================================= */
 
+    /**
+     * Consulta los registros de auditoría recientes y permite filtrarlos por texto o módulo.
+     *
+     * @param q texto opcional utilizado para buscar en los datos de auditoría
+     * @param modulo módulo opcional por el que se filtran los registros
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agrega la lista y los filtros actuales
+     * @return la vista de auditoría o una redirección al inicio de sesión
+     */
     @GetMapping("/auditoria")
     public String auditoria(
 
@@ -1750,6 +1920,13 @@ public class AdminController {
        MONITOREO
        ========================================================= */
 
+    /**
+     * Muestra indicadores generales y la actividad reciente del sistema.
+     *
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agregan los conteos y eventos recientes
+     * @return la vista de monitoreo o una redirección al inicio de sesión
+     */
     @GetMapping("/monitoreo")
     public String monitoreo(
             HttpSession session,
@@ -1812,6 +1989,12 @@ public class AdminController {
        VALIDAR SESIÓN ADMINISTRADOR
        ========================================================= */
 
+    /**
+     * Comprueba que la sesión corresponda a un usuario activo con rol administrador.
+     *
+     * @param session sesión HTTP que contiene el identificador del usuario
+     * @return {@code true} si la sesión pertenece a un administrador activo; {@code false} en caso contrario
+     */
     private boolean esAdmin(
             HttpSession session
     ) {
@@ -1884,6 +2067,12 @@ public class AdminController {
      * durante las búsquedas.
      */
 
+    /**
+     * Elimina acentos y caracteres diacríticos del texto y lo convierte a minúsculas sin espacios externos.
+     *
+     * @param texto texto que se desea normalizar
+     * @return el texto normalizado o una cadena vacía si el valor recibido es nulo
+     */
     private String normalizar(
             String texto
     ) {
@@ -1915,6 +2104,13 @@ public class AdminController {
        REGISTRAR AUDITORÍA
        ========================================================= */
 
+    /**
+     * Crea y guarda un registro de auditoría asociado al primer administrador encontrado.
+     *
+     * @param accion acción realizada que se registrará
+     * @param modulo módulo desde el que se realizó la acción
+     * @param detalle descripción adicional del evento registrado
+     */
     private void registrarAuditoria(
             String accion,
             String modulo,
@@ -1963,6 +2159,14 @@ public class AdminController {
        REPORTES ADMINISTRADOR
        ========================================================= */
 
+    /**
+     * Prepara los datos consolidados para la pantalla de reportes administrativos.
+     *
+     * @param reporte nombre opcional del reporte seleccionado
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param model modelo al que se agregan usuarios, habilidades, auditorías y agrupaciones
+     * @return la vista de reportes o una redirección al inicio de sesión
+     */
     @GetMapping("/reportes")
     public String reportes(
             @RequestParam(value = "reporte", required = false) String reporte,
@@ -2017,6 +2221,13 @@ public class AdminController {
     }
 
 
+    /**
+     * Genera y devuelve un archivo CSV con los datos del tipo de reporte solicitado.
+     *
+     * @param tipo tipo de reporte que se exportará
+     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @return una respuesta con el CSV generado o un mensaje de error de acceso o tipo
+     */
     @GetMapping(value = "/reportes/exportar", produces = "text/csv")
     public ResponseEntity<String> exportarReporte(
             @RequestParam("tipo") String tipo,
@@ -2077,6 +2288,13 @@ public class AdminController {
     }
 
 
+    /**
+     * Convierte un valor a texto CSV y aplica el escape necesario para conservar
+     * comillas y evitar fórmulas en el archivo exportado.
+     *
+     * @param valor valor que se incluirá en una celda del CSV
+     * @return el valor convertido y protegido para su uso como celda CSV
+     */
     private String csv(Object valor) {
         String texto = valor == null ? "" : String.valueOf(valor);
         if (!texto.isEmpty() && "=+-@".indexOf(texto.charAt(0)) >= 0) {

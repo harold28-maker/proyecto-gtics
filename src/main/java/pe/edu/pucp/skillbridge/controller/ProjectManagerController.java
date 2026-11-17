@@ -20,6 +20,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Controlador MVC que administra el portafolio de proyectos, asignaciones,
+ * recomendaciones, foros, disponibilidad e informes de un Project Manager.
+ */
 @Controller
 @RequestMapping("/pm")
 public class ProjectManagerController {
@@ -33,6 +37,18 @@ public class ProjectManagerController {
     private final HabilidadRepository habilidadRepository;
     private final RespuestaForoRepository respuestaForoRepository;
 
+    /**
+     * Crea el controlador e inicializa los repositorios usados por sus operaciones.
+     *
+     * @param usuarioRepository repositorio de usuarios
+     * @param proyectoRepository repositorio de proyectos
+     * @param asignacionRepository repositorio de asignaciones
+     * @param colaboradorRepository repositorio de colaboradores
+     * @param recomendacionIARepository repositorio de recomendaciones de IA
+     * @param foroRepository repositorio de foros
+     * @param habilidadRepository repositorio de habilidades
+     * @param respuestaForoRepository repositorio de respuestas de foro
+     */
     public ProjectManagerController(UsuarioRepository usuarioRepository,
                                     ProyectoRepository proyectoRepository,
                                     AsignacionRepository asignacionRepository,
@@ -51,6 +67,11 @@ public class ProjectManagerController {
         this.respuestaForoRepository = respuestaForoRepository;
     }
 
+    /**
+     * Obtiene el Project Manager asociado a la sesión o un usuario de demostración disponible.
+     *
+     * @return usuario con rol Project Manager o el primer usuario disponible
+     */
     private Usuario pmDemo() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attrs != null) {
@@ -68,8 +89,19 @@ public class ProjectManagerController {
                 .orElseGet(() -> usuarioRepository.findAll().stream().findFirst().orElse(null));
     }
 
+    /**
+     * Convierte un valor numérico a entero o devuelve cero cuando es nulo.
+     *
+     * @param value valor obtenido de una consulta
+     * @return valor convertido a entero
+     */
     private int intValue(Object value) { return value == null ? 0 : ((Number) value).intValue(); }
 
+    /**
+     * Obtiene los datos de carga de los colaboradores para las vistas del controlador.
+     *
+     * @return lista de cargas de colaboradores
+     */
     private List<CargaColaboradorDTO> cargas() {
         List<CargaColaboradorDTO> resultado = new ArrayList<>();
         for (Object[] fila : colaboradorRepository.obtenerCargaColaboradores()) {
@@ -83,6 +115,12 @@ public class ProjectManagerController {
         return resultado;
     }
 
+    /**
+     * Recupera las habilidades requeridas por un proyecto.
+     *
+     * @param idProyecto identificador del proyecto
+     * @return lista de requisitos de habilidad del proyecto
+     */
     private List<HabilidadProyectoDTO> habilidadesProyecto(Integer idProyecto) {
         List<HabilidadProyectoDTO> lista = new ArrayList<>();
         for (Object[] fila : proyectoRepository.obtenerHabilidadesRequeridas(idProyecto)) {
@@ -95,6 +133,12 @@ public class ProjectManagerController {
         return lista;
     }
 
+    /**
+     * Presenta el dashboard de proyectos, asignaciones y colaboradores del manager.
+     *
+     * @param model modelo utilizado para cargar los datos del dashboard
+     * @return nombre de la plantilla de inicio
+     */
     @RequestMapping(value = {"/inicio", "/dashboard"}, method = {RequestMethod.GET, RequestMethod.POST})
     public String inicio(Model model) {
         Usuario pm = pmDemo();
@@ -114,6 +158,13 @@ public class ProjectManagerController {
         return "pm/inicio";
     }
 
+    /**
+     * Lista los proyectos del Project Manager aplicando una búsqueda opcional por nombre.
+     *
+     * @param q texto opcional usado como filtro
+     * @param model modelo utilizado para cargar los proyectos
+     * @return nombre de la plantilla de proyectos
+     */
     @GetMapping("/proyectos")
     public String proyectos(@RequestParam(value = "q", required = false) String q, Model model) {
         Usuario pm = pmDemo();
@@ -127,6 +178,13 @@ public class ProjectManagerController {
         return "pm/proyectos";
     }
 
+    /**
+     * Agrega al modelo la lista de proyectos y sus indicadores por estado.
+     *
+     * @param model modelo utilizado para cargar los atributos
+     * @param proyectos proyectos que se mostrarán
+     * @param q texto de búsqueda aplicado
+     */
     private void cargarProyectos(Model model, List<Proyecto> proyectos, String q) {
         model.addAttribute("titulo", "Portafolio de proyectos");
         model.addAttribute("proyectos", proyectos);
@@ -136,6 +194,12 @@ public class ProjectManagerController {
         model.addAttribute("completados", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.COMPLETED).count());
     }
 
+    /**
+     * Prepara el formulario con valores iniciales para crear un proyecto.
+     *
+     * @param model modelo utilizado para cargar el proyecto nuevo
+     * @return nombre de la plantilla del formulario
+     */
     @GetMapping("/proyectos/nuevo")
     public String nuevoProyecto(Model model) {
         Proyecto proyecto = new Proyecto();
@@ -147,6 +211,14 @@ public class ProjectManagerController {
         return "pm/proyecto-form";
     }
 
+    /**
+     * Carga un proyecto existente en el formulario de edición.
+     *
+     * @param id identificador del proyecto
+     * @param model modelo utilizado para cargar el proyecto
+     * @return nombre de la plantilla del formulario
+     * @throws java.util.NoSuchElementException si el proyecto no existe
+     */
     @GetMapping("/proyectos/editar/{id}")
     public String editarProyecto(@PathVariable("id") Integer id, Model model) {
         model.addAttribute("titulo", "Editar proyecto");
@@ -154,6 +226,14 @@ public class ProjectManagerController {
         return "pm/proyecto-form";
     }
 
+    /**
+     * Valida y guarda un proyecto asignándolo al Project Manager de la sesión.
+     *
+     * @param proyecto proyecto enviado por el formulario
+     * @param bindingResult resultado de validación del proyecto
+     * @param model modelo utilizado para cargar el resultado
+     * @return plantilla de proyectos o del formulario si existen errores
+     */
     @PostMapping("/proyectos/guardar")
     public String guardarProyecto(@Valid @ModelAttribute("proyecto") Proyecto proyecto,
                                   BindingResult bindingResult,
@@ -172,6 +252,14 @@ public class ProjectManagerController {
     }
 
     // Baja lógica del proyecto: conserva historial y relaciones.
+    /**
+     * Marca un proyecto como cancelado sin eliminar su historial ni sus relaciones.
+     *
+     * @param id identificador del proyecto
+     * @param model modelo utilizado para cargar la lista actualizada
+     * @return nombre de la plantilla de proyectos
+     * @throws java.util.NoSuchElementException si el proyecto no existe
+     */
     @PostMapping("/proyectos/{id}/cancelar")
     public String cancelarProyecto(@PathVariable Integer id, Model model) {
         Proyecto proyecto = proyectoRepository.findById(id).orElseThrow();
@@ -183,6 +271,14 @@ public class ProjectManagerController {
         return "pm/proyectos";
     }
 
+    /**
+     * Presenta las habilidades requeridas por un proyecto y el catálogo disponible.
+     *
+     * @param id identificador del proyecto
+     * @param model modelo utilizado para cargar el proyecto y las habilidades
+     * @return nombre de la plantilla de habilidades del proyecto
+     * @throws java.util.NoSuchElementException si el proyecto no existe
+     */
     @GetMapping("/proyectos/{id}/habilidades")
     public String habilidadesRequeridas(@PathVariable Integer id, Model model) {
         Proyecto proyecto = proyectoRepository.findById(id).orElseThrow();
@@ -193,6 +289,16 @@ public class ProjectManagerController {
         return "pm/proyecto-habilidades";
     }
 
+    /**
+     * Guarda o actualiza un requerimiento de habilidad para un proyecto.
+     *
+     * @param id identificador del proyecto
+     * @param idHabilidad identificador de la habilidad
+     * @param nivel nivel requerido
+     * @param vacantes cantidad de vacantes
+     * @param model modelo utilizado para cargar la vista actualizada
+     * @return plantilla de habilidades requeridas
+     */
     @PostMapping("/proyectos/{id}/habilidades/guardar")
     public String guardarHabilidadProyecto(@PathVariable Integer id,
                                             @RequestParam("idHabilidad") Integer idHabilidad,
@@ -204,6 +310,14 @@ public class ProjectManagerController {
         return habilidadesRequeridas(id, model);
     }
 
+    /**
+     * Elimina un requerimiento de habilidad asociado a un proyecto.
+     *
+     * @param id identificador del proyecto
+     * @param idHabilidad identificador de la habilidad a retirar
+     * @param model modelo utilizado para cargar la vista actualizada
+     * @return plantilla de habilidades requeridas
+     */
     @PostMapping("/proyectos/{id}/habilidades/{idHabilidad}/eliminar")
     public String eliminarHabilidadProyecto(@PathVariable Integer id,
                                              @PathVariable Integer idHabilidad,
@@ -213,6 +327,12 @@ public class ProjectManagerController {
         return habilidadesRequeridas(id, model);
     }
 
+    /**
+     * Presenta las asignaciones de los proyectos administrados por el Project Manager.
+     *
+     * @param model modelo utilizado para cargar las asignaciones
+     * @return nombre de la plantilla de asignaciones
+     */
     @GetMapping("/asignaciones")
     public String asignaciones(Model model) {
         Usuario pm = pmDemo();
@@ -222,6 +342,12 @@ public class ProjectManagerController {
         return "pm/asignaciones";
     }
 
+    /**
+     * Agrega al modelo la lista de asignaciones y sus conteos por estado.
+     *
+     * @param model modelo utilizado para cargar los atributos
+     * @param lista asignaciones que se mostrarán
+     */
     private void cargarAsignaciones(Model model, List<Asignacion> lista) {
         model.addAttribute("titulo", "Asignaciones del equipo");
         model.addAttribute("asignaciones", lista);
@@ -230,18 +356,39 @@ public class ProjectManagerController {
         model.addAttribute("finalizadas", lista.stream().filter(a -> a.getEstado() == Asignacion.EstadoAsignacion.FINALIZADA).count());
     }
 
+    /**
+     * Prepara el formulario vacío para crear una asignación.
+     *
+     * @param model modelo utilizado para cargar los datos del formulario
+     * @return nombre de la plantilla del formulario
+     */
     @GetMapping("/asignaciones/nueva")
     public String nuevaAsignacion(Model model) {
         prepararFormularioAsignacion(new Asignacion(), "Nueva asignación", model);
         return "pm/asignacion-form";
     }
 
+    /**
+     * Carga una asignación existente en el formulario de edición.
+     *
+     * @param id identificador de la asignación
+     * @param model modelo utilizado para cargar la asignación
+     * @return nombre de la plantilla del formulario
+     * @throws java.util.NoSuchElementException si la asignación no existe
+     */
     @GetMapping("/asignaciones/editar/{id}")
     public String editarAsignacion(@PathVariable Integer id, Model model) {
         prepararFormularioAsignacion(asignacionRepository.findById(id).orElseThrow(), "Editar asignación", model);
         return "pm/asignacion-form";
     }
 
+    /**
+     * Carga una asignación y las opciones disponibles en el formulario.
+     *
+     * @param asignacion asignación que se editará o creará
+     * @param titulo título que se mostrará en el formulario
+     * @param model modelo utilizado para cargar los datos del formulario
+     */
     private void prepararFormularioAsignacion(Asignacion asignacion, String titulo, Model model) {
         Usuario pm = pmDemo();
         model.addAttribute("titulo", titulo);
@@ -251,6 +398,17 @@ public class ProjectManagerController {
         model.addAttribute("colaboradores", colaboradorRepository.findAll());
     }
 
+    /**
+     * Valida y guarda una asignación asociada a un proyecto y colaborador.
+     *
+     * @param asignacion asignación enviada por el formulario
+     * @param bindingResult resultado de validación de la asignación
+     * @param idProyecto identificador del proyecto seleccionado
+     * @param idColaborador identificador del colaborador seleccionado
+     * @param model modelo utilizado para cargar el resultado
+     * @return plantilla de asignaciones o del formulario si existen errores
+     * @throws java.util.NoSuchElementException si el proyecto o colaborador no existe
+     */
     @PostMapping("/asignaciones/guardar")
     public String guardarAsignacion(@Valid @ModelAttribute("asignacion") Asignacion asignacion,
                                     BindingResult bindingResult,
@@ -272,6 +430,16 @@ public class ProjectManagerController {
         return "pm/asignaciones";
     }
 
+    /**
+     * Actualiza el estado de una asignación existente.
+     *
+     * @param id identificador de la asignación
+     * @param estado nuevo estado textual
+     * @param model modelo utilizado para cargar la lista actualizada
+     * @return nombre de la plantilla de asignaciones
+     * @throws java.util.NoSuchElementException si la asignación no existe
+     * @throws IllegalArgumentException si el estado no corresponde a un valor válido
+     */
     @PostMapping("/asignaciones/{id}/estado")
     public String cambiarEstadoAsignacion(@PathVariable Integer id,
                                            @RequestParam("estado") String estado,
@@ -285,6 +453,14 @@ public class ProjectManagerController {
         return "pm/asignaciones";
     }
 
+    /**
+     * Lista colaboradores aplicando filtros opcionales por texto y seniority.
+     *
+     * @param q texto de búsqueda opcional
+     * @param nivel seniority seleccionado opcionalmente
+     * @param model modelo utilizado para cargar la lista y los filtros
+     * @return nombre de la plantilla de colaboradores
+     */
     @GetMapping("/colaboradores")
     public String colaboradores(@RequestParam(value = "q", required = false) String q,
                                 @RequestParam(value = "nivel", required = false) String nivel,
@@ -302,6 +478,12 @@ public class ProjectManagerController {
         return "pm/colaboradores";
     }
 
+    /**
+     * Presenta la disponibilidad y ocupación de los colaboradores.
+     *
+     * @param model modelo utilizado para cargar los datos de disponibilidad
+     * @return nombre de la plantilla de disponibilidad
+     */
     @GetMapping("/disponibilidad")
     public String disponibilidad(Model model) {
         List<CargaColaboradorDTO> lista = cargas();
@@ -312,6 +494,13 @@ public class ProjectManagerController {
         return "pm/disponibilidad";
     }
 
+    /**
+     * Presenta las recomendaciones de talento y permite filtrarlas por proyecto.
+     *
+     * @param idProyecto identificador opcional del proyecto
+     * @param model modelo utilizado para cargar recomendaciones y proyectos
+     * @return nombre de la plantilla de recomendaciones
+     */
     @GetMapping("/recomendaciones")
     public String recomendaciones(@RequestParam(value = "proyecto", required = false) Integer idProyecto,
                                   Model model) {
@@ -328,6 +517,15 @@ public class ProjectManagerController {
         return "pm/recomendaciones";
     }
 
+    /**
+     * Lista los foros aplicando filtros opcionales de texto, categoría y estado.
+     *
+     * @param q texto de búsqueda opcional
+     * @param categoria categoría seleccionada opcionalmente
+     * @param estado estado seleccionado opcionalmente
+     * @param model modelo utilizado para cargar los resultados y filtros
+     * @return nombre de la plantilla de foros
+     */
     @GetMapping("/foros")
     public String foros(@RequestParam(value = "q", required = false) String q,
                         @RequestParam(value = "categoria", required = false) String categoria,
@@ -338,6 +536,14 @@ public class ProjectManagerController {
         return "pm/foros";
     }
 
+    /**
+     * Filtra los foros por texto, categoría y estado.
+     *
+     * @param q texto de búsqueda opcional
+     * @param categoria categoría requerida opcionalmente
+     * @param estado estado requerido opcionalmente
+     * @return lista de foros que cumplen los filtros
+     */
     private List<Foro> filtrarForos(String q, String categoria, String estado) {
         return foroRepository.findAllByOrderByFechaCreacionDesc().stream().filter(f -> {
             boolean coincideTexto = q == null || q.isBlank()
@@ -351,6 +557,15 @@ public class ProjectManagerController {
         }).toList();
     }
 
+    /**
+     * Agrega al modelo los foros filtrados, opciones de filtro e indicadores.
+     *
+     * @param model modelo utilizado para cargar los atributos
+     * @param foros foros que se mostrarán
+     * @param q texto de búsqueda aplicado
+     * @param categoria categoría aplicada
+     * @param estado estado aplicado
+     */
     private void cargarForos(Model model, List<Foro> foros, String q, String categoria, String estado) {
         model.addAttribute("titulo", "Foro del proyecto");
         model.addAttribute("foros", foros);
@@ -365,6 +580,13 @@ public class ProjectManagerController {
                 Foro::getIdForo, f -> respuestaForoRepository.countByForoIdForo(f.getIdForo()))));
     }
 
+    /**
+     * Presenta los proyectos, asignaciones y cargas consolidados en reportes.
+     *
+     * @param reporte nombre opcional del reporte seleccionado
+     * @param model modelo utilizado para cargar los datos del reporte
+     * @return nombre de la plantilla de reportes
+     */
     @GetMapping("/reportes")
     public String reportes(@RequestParam(value = "reporte", required = false) String reporte,
                            Model model) {
@@ -383,6 +605,12 @@ public class ProjectManagerController {
         return "pm/reportes";
     }
 
+    /**
+     * Presenta el historial de proyectos administrados por el Project Manager.
+     *
+     * @param model modelo utilizado para cargar los proyectos e indicadores
+     * @return nombre de la plantilla de historial
+     */
     @GetMapping("/historial")
     public String historial(Model model) {
         Usuario pm = pmDemo();
@@ -393,6 +621,12 @@ public class ProjectManagerController {
         return "pm/historial";
     }
 
+    /**
+     * Exporta como CSV un reporte de proyectos, asignaciones, carga o historial.
+     *
+     * @param tipo tipo de reporte solicitado
+     * @return respuesta CSV, prohibición de acceso o error si el tipo no es válido
+     */
     @GetMapping(value = "/reportes/exportar", produces = "text/csv")
     public ResponseEntity<String> exportarReporte(@RequestParam("tipo") String tipo) {
         Usuario pm = pmDemo();
@@ -472,6 +706,12 @@ public class ProjectManagerController {
     }
 
 
+    /**
+     * Convierte un valor a texto CSV seguro y evita fórmulas al inicio del campo.
+     *
+     * @param valor valor que se incluirá en una celda CSV
+     * @return texto del valor delimitado y escapado para CSV
+     */
     private String csv(Object valor) {
         String texto = valor == null ? "" : String.valueOf(valor);
         if (!texto.isEmpty() && "=+-@".indexOf(texto.charAt(0)) >= 0) {

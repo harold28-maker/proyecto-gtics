@@ -7,15 +7,30 @@ import pe.edu.pucp.skillbridge.entity.Usuario;
 import pe.edu.pucp.skillbridge.repository.UsuarioRepository;
 
 @ControllerAdvice
+/**
+ * Aporta a todas las vistas los datos del usuario y del rol asociados a la sesión.
+ */
 public class GlobalModelAttributes {
 
     private final UsuarioRepository usuarioRepository;
 
+    /**
+     * Construye el componente de atributos globales con el repositorio de usuarios.
+     *
+     * @param usuarioRepository Repositorio utilizado para recuperar al usuario de sesión.
+     */
     public GlobalModelAttributes(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
     }
 
     @ModelAttribute("usuarioSesion")
+    /**
+     * Obtiene el usuario identificado por el atributo {@code usuarioSesionId}
+     * almacenado en la sesión HTTP.
+     *
+     * @param session Sesión HTTP que contiene el identificador del usuario.
+     * @return Usuario encontrado o {@code null} si no existe identificador o usuario.
+     */
     public Usuario usuarioSesion(HttpSession session) {
         Object id = session.getAttribute("usuarioSesionId");
         if (id == null) return null;
@@ -23,6 +38,12 @@ public class GlobalModelAttributes {
     }
 
     @ModelAttribute("rolSesion")
+    /**
+     * Obtiene el rol de vista almacenado en la sesión HTTP.
+     *
+     * @param session Sesión HTTP que contiene el rol mostrado en las vistas.
+     * @return Rol de la sesión, o {@code COL} cuando no existe un rol asociado.
+     */
     public String rolSesion(HttpSession session) {
         Object rol = session.getAttribute("rolVista");
         return rol == null ? "COL" : rol.toString();

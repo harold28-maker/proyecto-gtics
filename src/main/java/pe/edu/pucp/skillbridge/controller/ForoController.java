@@ -16,6 +16,10 @@ import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/foros")
+/**
+ * Controlador web del foro de conocimiento.
+ * Gestiona publicaciones y respuestas bajo la ruta base {@code /foros}.
+ */
 public class ForoController {
 
     public static final List<String> CATEGORIAS_FORO = List.of(
@@ -35,6 +39,14 @@ public class ForoController {
     private final ProyectoRepository proyectoRepository;
     private final UsuarioRepository usuarioRepository;
 
+    /**
+     * Construye el controlador con los repositorios empleados por sus operaciones.
+     *
+     * @param foroRepository Repositorio de publicaciones del foro.
+     * @param respuestaForoRepository Repositorio de respuestas del foro.
+     * @param proyectoRepository Repositorio de proyectos.
+     * @param usuarioRepository Repositorio de usuarios.
+     */
     public ForoController(ForoRepository foroRepository,
                           RespuestaForoRepository respuestaForoRepository,
                           ProyectoRepository proyectoRepository,
@@ -45,6 +57,12 @@ public class ForoController {
         this.usuarioRepository = usuarioRepository;
     }
 
+    /**
+     * Obtiene el usuario que actuará como autor según la sesión o el rol de vista.
+     *
+     * @param vista Vista solicitada, utilizada para seleccionar un rol demostrativo.
+     * @return Usuario de sesión, primer usuario del rol asociado o primer usuario disponible.
+     */
     private Usuario autorDemo(String vista) {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attrs != null) {
@@ -61,6 +79,14 @@ public class ForoController {
     }
 
     @GetMapping("/{id}")
+    /**
+     * Atiende GET a la ruta {@code /foros/{id}} y carga el detalle de una publicación.
+     *
+     * @param id Identificador de la publicación.
+     * @param vista Rol de vista empleado para ajustar el contenido.
+     * @param model Modelo utilizado para proporcionar datos a la vista.
+     * @return Nombre de la vista de detalle del foro.
+     */
     public String detalle(@PathVariable("id") Integer id,
                           @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
                           Model model) {
@@ -68,6 +94,13 @@ public class ForoController {
         return "foro/detalle";
     }
 
+    /**
+     * Carga una publicación y sus respuestas en el modelo de detalle.
+     *
+     * @param id Identificador de la publicación.
+     * @param vista Rol de vista empleado para ajustar los atributos.
+     * @param model Modelo utilizado para agregar los datos de detalle.
+     */
     private void cargarDetalle(Integer id, String vista, Model model) {
         Foro foro = foroRepository.findById(id).orElseThrow();
         List<RespuestaForo> respuestas = respuestaForoRepository.findByForoIdForoOrderByFechaCreacionAsc(id);
@@ -80,6 +113,13 @@ public class ForoController {
     }
 
     @GetMapping("/nuevo")
+    /**
+     * Atiende GET a la ruta {@code /foros/nuevo} y prepara un nuevo formulario.
+     *
+     * @param vista Rol de vista empleado para ajustar el formulario.
+     * @param model Modelo utilizado para proporcionar datos al formulario.
+     * @return Nombre de la vista del formulario del foro.
+     */
     public String nuevo(@RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
                         Model model) {
         Foro foro = new Foro();
@@ -90,6 +130,14 @@ public class ForoController {
     }
 
     @GetMapping("/{id}/editar")
+    /**
+     * Atiende GET a la ruta {@code /foros/{id}/editar} y prepara la edición.
+     *
+     * @param id Identificador de la publicación que se editará.
+     * @param vista Rol de vista empleado para ajustar el formulario.
+     * @param model Modelo utilizado para proporcionar datos al formulario.
+     * @return Nombre de la vista del formulario del foro.
+     */
     public String editar(@PathVariable Integer id,
                          @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
                          Model model) {
@@ -97,6 +145,14 @@ public class ForoController {
         return "foro/form";
     }
 
+    /**
+     * Agrega al modelo los datos comunes del formulario de foro.
+     *
+     * @param foro Publicación que se crea o edita.
+     * @param vista Rol de vista empleado para ajustar los atributos.
+     * @param titulo Título mostrado en el formulario.
+     * @param model Modelo utilizado para agregar la publicación y sus opciones.
+     */
     private void prepararFormulario(Foro foro, String vista, String titulo, Model model) {
         model.addAttribute("titulo", titulo);
         model.addAttribute("foro", foro);
@@ -106,6 +162,16 @@ public class ForoController {
     }
 
     @PostMapping("/guardar")
+    /**
+     * Atiende POST a la ruta {@code /foros/guardar} y crea o actualiza una publicación.
+     *
+     * @param foro Publicación validada enlazada al formulario.
+     * @param bindingResult Resultado de la validación y enlace del formulario.
+     * @param idProyecto Identificador opcional del proyecto asociado.
+     * @param vista Rol de vista empleado al guardar y presentar la publicación.
+     * @param model Modelo utilizado para la vista de resultado o error.
+     * @return Vista del formulario ante errores o del detalle tras guardar.
+     */
     public String guardar(@Valid @ModelAttribute("foro") Foro foro,
                           BindingResult bindingResult,
                           @RequestParam(value = "idProyecto", required = false) Integer idProyecto,
@@ -136,6 +202,15 @@ public class ForoController {
     }
 
     @PostMapping("/{id}/responder")
+    /**
+     * Atiende POST a la ruta {@code /foros/{id}/responder} y publica una respuesta.
+     *
+     * @param id Identificador de la publicación respondida.
+     * @param contenido Texto de la respuesta.
+     * @param vista Rol de vista empleado al publicar y mostrar el detalle.
+     * @param model Modelo utilizado para presentar el detalle actualizado.
+     * @return Nombre de la vista de detalle del foro.
+     */
     public String responder(@PathVariable("id") Integer id,
                             @RequestParam("contenido") String contenido,
                             @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
@@ -154,6 +229,16 @@ public class ForoController {
     }
 
     @PostMapping("/{idForo}/solucion/{idRespuesta}")
+    /**
+     * Atiende POST a {@code /foros/{idForo}/solucion/{idRespuesta}} y marca una
+     * respuesta como solución, dejando resuelta la publicación.
+     *
+     * @param idForo Identificador de la publicación.
+     * @param idRespuesta Identificador de la respuesta marcada como solución.
+     * @param vista Rol de vista empleado al presentar el detalle.
+     * @param model Modelo utilizado para proporcionar los datos actualizados.
+     * @return Nombre de la vista de detalle del foro.
+     */
     public String marcarSolucion(@PathVariable Integer idForo,
                                  @PathVariable Integer idRespuesta,
                                  @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
@@ -172,6 +257,15 @@ public class ForoController {
     }
 
     @PostMapping("/{id}/estado")
+    /**
+     * Atiende POST a la ruta {@code /foros/{id}/estado} y cambia el estado publicado.
+     *
+     * @param id Identificador de la publicación.
+     * @param estado Nombre del estado nuevo de la publicación.
+     * @param vista Rol de vista empleado al presentar el detalle.
+     * @param model Modelo utilizado para proporcionar los datos actualizados.
+     * @return Nombre de la vista de detalle del foro.
+     */
     public String cambiarEstado(@PathVariable Integer id,
                                 @RequestParam("estado") String estado,
                                 @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
@@ -185,6 +279,16 @@ public class ForoController {
     }
 
     @PostMapping("/{idForo}/respuestas/{idRespuesta}/eliminar")
+    /**
+     * Atiende POST a {@code /foros/{idForo}/respuestas/{idRespuesta}/eliminar}
+     * y elimina una respuesta.
+     *
+     * @param idForo Identificador de la publicación a la que pertenece la respuesta.
+     * @param idRespuesta Identificador de la respuesta eliminada.
+     * @param vista Rol de vista empleado al presentar el detalle.
+     * @param model Modelo utilizado para proporcionar los datos actualizados.
+     * @return Nombre de la vista de detalle del foro.
+     */
     public String eliminarRespuesta(@PathVariable Integer idForo,
                                     @PathVariable Integer idRespuesta,
                                     @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
@@ -196,6 +300,14 @@ public class ForoController {
     }
 
     @PostMapping("/{id}/eliminar")
+    /**
+     * Atiende POST a la ruta {@code /foros/{id}/eliminar} y elimina una publicación.
+     *
+     * @param id Identificador de la publicación eliminada.
+     * @param vista Rol de vista utilizado para seleccionar el listado correspondiente.
+     * @param model Modelo utilizado para proporcionar el listado actualizado.
+     * @return Nombre de la vista de listado del foro.
+     */
     public String eliminarForo(@PathVariable Integer id,
                                @RequestParam(value = "vista", required = false, defaultValue = "COL") String vista,
                                Model model) {
@@ -203,6 +315,14 @@ public class ForoController {
         return cargarListado(vista, model, "Publicación eliminada del Foro de conocimiento.");
     }
 
+    /**
+     * Carga el listado de publicaciones y agrega el resultado a la vista correspondiente.
+     *
+     * @param vista Rol de vista que determina el listado de proyecto o conocimiento.
+     * @param model Modelo utilizado para agregar publicaciones y datos de paginación.
+     * @param mensaje Mensaje de éxito mostrado en la vista.
+     * @return Nombre de la vista de listado para proyectos o colaboradores.
+     */
     private String cargarListado(String vista, Model model, String mensaje) {
         List<Foro> todos = foroRepository.findAllByOrderByFechaCreacionDesc();
         boolean esPM = "PM".equals(vista);

@@ -15,15 +15,33 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Component
+/**
+ * Gestiona el acceso exitoso, actualiza el último ingreso y establece los datos
+ * de sesión necesarios para la navegación según el rol.
+ */
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final UsuarioRepository usuarioRepository;
 
+    /**
+     * Construye el manejador de autenticación exitosa con el repositorio de usuarios.
+     *
+     * @param usuarioRepository Repositorio utilizado para actualizar y recuperar al usuario autenticado.
+     */
     public LoginSuccessHandler(UsuarioRepository usuarioRepository) {
         this.usuarioRepository = usuarioRepository;
     }
 
     @Override
     @Transactional
+    /**
+     * Procesa una autenticación exitosa y redirige al usuario a la página inicial
+     * correspondiente a su rol.
+     *
+     * @param request Solicitud HTTP que originó la autenticación.
+     * @param response Respuesta HTTP utilizada para guardar la sesión y redirigir.
+     * @param authentication Datos de autenticación asociados al usuario.
+     * @throws IOException Si ocurre un error al emitir la redirección HTTP.
+     */
     public void onAuthenticationSuccess(HttpServletRequest request,
                                         HttpServletResponse response,
                                         Authentication authentication) throws IOException {
@@ -37,6 +55,13 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         response.sendRedirect(inicioSegunRol(authentication));
     }
 
+    /**
+     * Determina la ruta inicial pública asociada a la autoridad de la autenticación.
+     *
+     * @param authentication Datos de autenticación cuyos permisos se evalúan.
+     * @return Ruta inicial del administrador, gerente de proyectos, gerente de recursos
+     *         o colaborador según corresponda.
+     */
     public static String inicioSegunRol(Authentication authentication) {
         for (GrantedAuthority authority : authentication.getAuthorities()) {
             return switch (authority.getAuthority()) {
@@ -49,6 +74,13 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         return "/colaborador/inicio";
     }
 
+    /**
+     * Determina el valor de rol mostrado en las vistas a partir de la autenticación.
+     *
+     * @param authentication Datos de autenticación cuyos permisos se evalúan.
+     * @return Código de rol de vista correspondiente: {@code ADMIN}, {@code PM},
+     *         {@code RM} o {@code COL}.
+     */
     private static String rolVista(Authentication authentication) {
         for (GrantedAuthority authority : authentication.getAuthorities()) {
             return switch (authority.getAuthority()) {

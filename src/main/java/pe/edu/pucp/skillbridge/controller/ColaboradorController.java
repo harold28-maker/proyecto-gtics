@@ -33,6 +33,9 @@ import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/colaborador")
+/**
+ * Controlador web que gestiona las vistas y operaciones del perfil del colaborador.
+ */
 public class ColaboradorController {
 
     private final UsuarioRepository usuarioRepository;
@@ -50,6 +53,19 @@ public class ColaboradorController {
 
     private static final long MAX_CREDENCIAL_BYTES = 5L * 1024L * 1024L;
 
+    /**
+     * Crea el controlador e inicializa los repositorios utilizados por sus operaciones.
+     *
+     * @param usuarioRepository repositorio de usuarios
+     * @param colaboradorRepository repositorio de colaboradores
+     * @param habilidadRepository repositorio de habilidades
+     * @param certificacionRepository repositorio de certificaciones
+     * @param asignacionRepository repositorio de asignaciones
+     * @param foroRepository repositorio de foros
+     * @param notificacionRepository repositorio de notificaciones
+     * @param mensajeChatRepository repositorio de mensajes de chat
+     * @param respuestaForoRepository repositorio de respuestas de foro
+     */
     public ColaboradorController(UsuarioRepository usuarioRepository,
                                  ColaboradorRepository colaboradorRepository,
                                  HabilidadRepository habilidadRepository,
@@ -70,6 +86,11 @@ public class ColaboradorController {
         this.respuestaForoRepository = respuestaForoRepository;
     }
 
+    /**
+     * Obtiene el colaborador asociado a la sesión, o selecciona un colaborador disponible.
+     *
+     * @return colaborador encontrado o {@code null} si no existe ninguno
+     */
     private Colaborador colaboradorDemo() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attrs != null) {
@@ -88,6 +109,12 @@ public class ColaboradorController {
         return colaboradorRepository.findAll().stream().findFirst().orElse(null);
     }
 
+    /**
+     * Consulta y convierte las habilidades registradas para un colaborador.
+     *
+     * @param idColaborador identificador del colaborador
+     * @return lista de habilidades del colaborador
+     */
     private List<HabilidadColaboradorDTO> habilidades(Integer idColaborador) {
         List<HabilidadColaboradorDTO> lista = new ArrayList<>();
         for (Object[] fila : colaboradorRepository.obtenerHabilidades(idColaborador)) {
@@ -102,10 +129,24 @@ public class ColaboradorController {
         return lista;
     }
 
+    /**
+     * Comprueba que un texto contenga únicamente letras y espacios con máximo veinte caracteres.
+     *
+     * @param valor texto a validar
+     * @return {@code true} si el texto cumple el formato; {@code false} en caso contrario
+     */
     private boolean soloLetrasHasta20(String valor) {
         return valor != null && valor.matches("^[\\p{L} ]{1,20}$");
     }
 
+    /**
+     * Valida los datos personales que se pueden editar en el perfil.
+     *
+     * @param nombres nombres del usuario
+     * @param apellidos apellidos del usuario
+     * @param telefono teléfono del usuario
+     * @return mensaje de error o {@code null} si los datos son válidos
+     */
     private String validarDatosUsuario(String nombres, String apellidos, String telefono) {
         if (!soloLetrasHasta20(nombres)) return "Los nombres solo pueden contener letras y espacios, con un máximo de 20 caracteres.";
         if (!soloLetrasHasta20(apellidos)) return "Los apellidos solo pueden contener letras y espacios, con un máximo de 20 caracteres.";
@@ -114,6 +155,12 @@ public class ColaboradorController {
     }
 
     @RequestMapping(value = "/inicio", method = {RequestMethod.GET, RequestMethod.POST})
+    /**
+     * Prepara el resumen del espacio de trabajo del colaborador.
+     *
+     * @param model modelo utilizado para enviar datos a la vista
+     * @return nombre de la vista de inicio
+     */
     public String inicio(Model model) {
         Colaborador c = colaboradorDemo();
         model.addAttribute("titulo", "Mi espacio de trabajo");
@@ -139,6 +186,12 @@ public class ColaboradorController {
     }
 
     @GetMapping("/perfil")
+    /**
+     * Carga el perfil profesional y sus certificaciones y habilidades.
+     *
+     * @param model modelo utilizado para enviar datos a la vista
+     * @return nombre de la vista de perfil
+     */
     public String perfil(Model model) {
         Colaborador c = colaboradorDemo();
         model.addAttribute("titulo", "Mi perfil profesional");
@@ -150,6 +203,12 @@ public class ColaboradorController {
     }
 
     @GetMapping("/perfil/editar")
+    /**
+     * Prepara el formulario para editar el perfil profesional.
+     *
+     * @param model modelo utilizado para enviar datos a la vista
+     * @return nombre de la vista del formulario de perfil
+     */
     public String editarPerfil(Model model) {
         model.addAttribute("titulo", "Editar perfil profesional");
         model.addAttribute("colaborador", colaboradorDemo());
@@ -157,6 +216,17 @@ public class ColaboradorController {
     }
 
     @PostMapping("/perfil/guardar")
+    /**
+     * Valida y guarda los datos personales y profesionales editados del colaborador.
+     *
+     * @param colaborador datos profesionales enviados en el formulario
+     * @param bindingResult resultado de las validaciones del formulario
+     * @param nombres nombres editados del usuario
+     * @param apellidos apellidos editados del usuario
+     * @param telefono teléfono editado del usuario
+     * @param model modelo utilizado para comunicar el resultado
+     * @return vista del formulario ante un error o vista del perfil tras guardar
+     */
     public String guardarPerfil(@Valid @ModelAttribute("colaborador") Colaborador colaborador,
                                 BindingResult bindingResult,
                                 @RequestParam("nombres") String nombres,
@@ -199,6 +269,12 @@ public class ColaboradorController {
     }
 
     @GetMapping("/certificaciones")
+    /**
+     * Lista las certificaciones del colaborador en orden de emisión descendente.
+     *
+     * @param model modelo utilizado para enviar la información a la vista
+     * @return nombre de la vista de certificaciones
+     */
     public String certificaciones(Model model) {
         Colaborador c = colaboradorDemo();
         List<Certificacion> lista = c == null ? List.of()
@@ -207,6 +283,12 @@ public class ColaboradorController {
         return "colaborador/certificaciones";
     }
 
+    /**
+     * Agrega al modelo el título, la lista y el número de certificaciones vigentes.
+     *
+     * @param model modelo que recibirá los atributos
+     * @param lista certificaciones que se mostrarán
+     */
     private void cargarCertificaciones(Model model, List<Certificacion> lista) {
         model.addAttribute("titulo", "Certificaciones y credenciales");
         model.addAttribute("certificaciones", lista);
@@ -216,6 +298,12 @@ public class ColaboradorController {
     }
 
     @GetMapping("/certificaciones/nueva")
+    /**
+     * Crea una certificación vacía con estado vigente para el formulario de alta.
+     *
+     * @param model modelo utilizado para enviar la información a la vista
+     * @return nombre de la vista del formulario de certificación
+     */
     public String nuevaCertificacion(Model model) {
         Certificacion certificacion = new Certificacion();
         certificacion.setEstado(Certificacion.EstadoCertificacion.VIGENTE);
@@ -225,6 +313,13 @@ public class ColaboradorController {
     }
 
     @GetMapping("/certificaciones/editar/{id}")
+    /**
+     * Muestra una certificación en el formulario solo si pertenece al colaborador actual.
+     *
+     * @param id identificador de la certificación
+     * @param model modelo utilizado para enviar datos a la vista
+     * @return vista del formulario o lista de certificaciones ante una edición no válida
+     */
     public String editarCertificacion(@PathVariable Integer id, Model model) {
         Colaborador c = colaboradorDemo();
         Certificacion certificacion = certificacionRepository.findById(id).orElse(null);
@@ -243,6 +338,15 @@ public class ColaboradorController {
     }
 
     @PostMapping("/certificaciones/guardar")
+    /**
+     * Valida, guarda o actualiza una certificación y su archivo de credencial opcional.
+     *
+     * @param certificacion datos de la certificación enviados en el formulario
+     * @param bindingResult resultado de las validaciones del formulario
+     * @param archivoCredencial archivo opcional de la credencial
+     * @param model modelo utilizado para comunicar el resultado
+     * @return vista del formulario o de la lista de certificaciones
+     */
     public String guardarCertificacion(@Valid @ModelAttribute("certificacion") Certificacion certificacion,
                                        BindingResult bindingResult,
                                        @RequestParam(value = "archivoCredencial", required = false) MultipartFile archivoCredencial,
@@ -340,6 +444,12 @@ public class ColaboradorController {
     }
 
     @GetMapping("/certificaciones/archivo/{nombreArchivo:.+}")
+    /**
+     * Entrega una credencial local si el nombre pertenece al colaborador actual.
+     *
+     * @param nombreArchivo nombre del archivo almacenado
+     * @return recurso de la credencial o respuesta 404 cuando no puede mostrarse
+     */
     public ResponseEntity<Resource> verArchivoCredencial(@PathVariable String nombreArchivo) {
         Colaborador c = colaboradorDemo();
 
@@ -389,6 +499,13 @@ public class ColaboradorController {
     }
 
     @PostMapping("/certificaciones/{id}/eliminar")
+    /**
+     * Elimina una certificación del colaborador y su archivo local asociado.
+     *
+     * @param id identificador de la certificación
+     * @param model modelo utilizado para mostrar el resultado
+     * @return vista de certificaciones
+     */
     public String eliminarCertificacion(@PathVariable Integer id, Model model) {
         Colaborador c = colaboradorDemo();
         Certificacion certificacion = certificacionRepository.findById(id).orElse(null);
@@ -415,12 +532,25 @@ public class ColaboradorController {
         return "colaborador/certificaciones";
     }
 
+    /**
+     * Comprueba si una certificación está asociada al colaborador indicado.
+     *
+     * @param certificacion certificación que se debe verificar
+     * @param colaborador colaborador propietario esperado
+     * @return {@code true} si la certificación pertenece al colaborador; {@code false} en caso contrario
+     */
     private boolean certificacionPerteneceA(Certificacion certificacion, Colaborador colaborador) {
         return certificacion.getColaborador() != null
                 && certificacion.getColaborador().getIdColaborador() != null
                 && certificacion.getColaborador().getIdColaborador().equals(colaborador.getIdColaborador());
     }
 
+    /**
+     * Valida el tamaño, extensión, tipo MIME y firma de un archivo de credencial.
+     *
+     * @param archivo archivo recibido en el formulario
+     * @return mensaje de error o {@code null} si el archivo es válido
+     */
     private String validarArchivoCredencial(MultipartFile archivo) {
         if (archivo == null || archivo.isEmpty()) {
             return null;
@@ -463,6 +593,14 @@ public class ColaboradorController {
         return null;
     }
 
+    /**
+     * Verifica que la cabecera del archivo coincida con el formato declarado.
+     *
+     * @param archivo archivo cuya cabecera se inspeccionará
+     * @param ext extensión declarada del archivo
+     * @return {@code true} si la firma corresponde al formato; {@code false} en caso contrario
+     * @throws IOException si no puede abrirse el flujo de lectura del archivo
+     */
     private boolean firmaArchivoValida(MultipartFile archivo, String ext) throws IOException {
         byte[] cabecera = new byte[8];
 
@@ -500,6 +638,13 @@ public class ColaboradorController {
         }
     }
 
+    /**
+     * Guarda un archivo de credencial con un nombre aleatorio dentro del directorio configurado.
+     *
+     * @param archivo archivo que se copiará
+     * @return URL local mediante la cual podrá consultarse la credencial
+     * @throws IOException si no puede crearse el directorio o copiarse el archivo
+     */
     private String guardarArchivoCredencial(MultipartFile archivo) throws IOException {
         String ext = extension(archivo.getOriginalFilename());
         String nombreSeguro = UUID.randomUUID() + "." + ext;
@@ -520,10 +665,21 @@ public class ColaboradorController {
         return "/colaborador/certificaciones/archivo/" + nombreSeguro;
     }
 
+    /**
+     * Resuelve el directorio absoluto donde se almacenan las credenciales.
+     *
+     * @return ruta normalizada del directorio de credenciales
+     */
     private Path directorioCredenciales() {
         return Path.of(uploadDir, "credenciales").toAbsolutePath().normalize();
     }
 
+    /**
+     * Obtiene la extensión de un nombre de archivo en minúsculas.
+     *
+     * @param nombreArchivo nombre cuyo sufijo se analizará
+     * @return extensión sin el punto o cadena vacía si no existe
+     */
     private String extension(String nombreArchivo) {
         if (nombreArchivo == null) {
             return "";
@@ -537,10 +693,21 @@ public class ColaboradorController {
         return nombreArchivo.substring(punto + 1).toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * Determina si una URL representa un archivo de credencial almacenado localmente.
+     *
+     * @param url URL que se inspeccionará
+     * @return {@code true} si corresponde al directorio local de credenciales
+     */
     private boolean esArchivoLocal(String url) {
         return url != null && url.startsWith("/colaborador/certificaciones/archivo/");
     }
 
+    /**
+     * Elimina el archivo local asociado a una URL válida de credencial.
+     *
+     * @param url URL del archivo que se desea eliminar
+     */
     private void eliminarArchivoLocal(String url) {
         if (!esArchivoLocal(url)) {
             return;
@@ -565,11 +732,24 @@ public class ColaboradorController {
     }
 
     @GetMapping("/habilidades")
+    /**
+     * Muestra el mapa de habilidades del colaborador y, opcionalmente, una habilidad seleccionada para editar.
+     *
+     * @param idEditar identificador de la habilidad que se editará, o {@code null}
+     * @param model modelo utilizado para enviar los datos a la vista
+     * @return nombre de la vista de habilidades
+     */
     public String habilidades(@RequestParam(value = "editar", required = false) Integer idEditar, Model model) {
         cargarHabilidades(model, idEditar);
         return "colaborador/habilidades";
     }
 
+    /**
+     * Carga en el modelo las habilidades actuales y disponibles del colaborador.
+     *
+     * @param model modelo que recibirá los atributos
+     * @param idEditar identificador de la habilidad seleccionada para editar
+     */
     private void cargarHabilidades(Model model, Integer idEditar) {
         Colaborador c = colaboradorDemo();
         model.addAttribute("titulo", "Mapa de habilidades");
@@ -583,6 +763,13 @@ public class ColaboradorController {
                 .filter(h -> h.getIdHabilidad().equals(idEditar)).findFirst().orElse(null));
     }
 
+    /**
+     * Valida que los años de experiencia y el nivel indicados sean aceptados.
+     *
+     * @param nivel nivel de dominio seleccionado
+     * @param aniosExperiencia años de experiencia indicados
+     * @return mensaje de error o {@code null} si ambos valores son válidos
+     */
     private String validarExperienciaYNivel(String nivel, BigDecimal aniosExperiencia) {
         if (aniosExperiencia == null || aniosExperiencia.compareTo(BigDecimal.ZERO) < 0 || aniosExperiencia.compareTo(new BigDecimal("50")) > 0) {
             return "Los años de experiencia deben estar entre 0 y 50.";
@@ -594,6 +781,15 @@ public class ColaboradorController {
     }
 
     @PostMapping("/habilidades/guardar")
+    /**
+     * Valida y registra una nueva habilidad en el perfil del colaborador.
+     *
+     * @param idHabilidad identificador de la habilidad seleccionada
+     * @param nivel nivel de dominio seleccionado
+     * @param aniosExperiencia años de experiencia asociados a la habilidad
+     * @param model modelo utilizado para comunicar el resultado
+     * @return nombre de la vista de habilidades
+     */
     public String guardarHabilidad(@RequestParam("idHabilidad") Integer idHabilidad,
                                    @RequestParam("nivel") String nivel,
                                    @RequestParam("aniosExperiencia") BigDecimal aniosExperiencia,
@@ -622,6 +818,15 @@ public class ColaboradorController {
     }
 
     @PostMapping("/habilidades/actualizar")
+    /**
+     * Valida y actualiza el nivel y los años de experiencia de una habilidad asociada.
+     *
+     * @param idHabilidad identificador de la habilidad que se actualizará
+     * @param nivel nivel de dominio seleccionado
+     * @param aniosExperiencia años de experiencia asociados a la habilidad
+     * @param model modelo utilizado para comunicar el resultado
+     * @return nombre de la vista de habilidades
+     */
     public String actualizarHabilidad(@RequestParam("idHabilidad") Integer idHabilidad,
                                       @RequestParam("nivel") String nivel,
                                       @RequestParam("aniosExperiencia") BigDecimal aniosExperiencia,
@@ -646,6 +851,13 @@ public class ColaboradorController {
     }
 
     @PostMapping("/habilidades/{idHabilidad}/eliminar")
+    /**
+     * Retira una habilidad del perfil del colaborador actual.
+     *
+     * @param idHabilidad identificador de la habilidad que se retirará
+     * @param model modelo utilizado para mostrar el resultado
+     * @return nombre de la vista de habilidades
+     */
     public String eliminarHabilidad(@PathVariable Integer idHabilidad, Model model) {
         Colaborador c = colaboradorDemo();
         if (c != null) colaboradorRepository.eliminarHabilidad(c.getIdColaborador(), idHabilidad);
@@ -655,6 +867,12 @@ public class ColaboradorController {
     }
 
     @GetMapping("/proyectos")
+    /**
+     * Lista las asignaciones del colaborador como representación de sus proyectos.
+     *
+     * @param model modelo utilizado para enviar las asignaciones a la vista
+     * @return nombre de la vista de proyectos
+     */
     public String proyectos(Model model) {
         Colaborador c = colaboradorDemo();
         model.addAttribute("titulo", "Mis proyectos");
@@ -664,6 +882,14 @@ public class ColaboradorController {
     }
 
     @GetMapping("/asignaciones")
+    /**
+     * Filtra y muestra las asignaciones del colaborador por texto y estado.
+     *
+     * @param q texto de búsqueda aplicado al proyecto o rol
+     * @param estado estado de asignación que se utilizará como filtro
+     * @param model modelo utilizado para enviar los resultados a la vista
+     * @return nombre de la vista de asignaciones
+     */
     public String asignaciones(@RequestParam(value = "q", required = false) String q,
                                @RequestParam(value = "estado", required = false, defaultValue = "TODOS") String estado,
                                Model model) {
@@ -686,6 +912,16 @@ public class ColaboradorController {
     }
 
     @GetMapping("/foros")
+    /**
+     * Filtra, pagina y muestra los foros de conocimiento disponibles.
+     *
+     * @param q texto de búsqueda aplicado al título o contenido
+     * @param categoria categoría de foro que se utilizará como filtro
+     * @param estado estado de foro que se utilizará como filtro
+     * @param page número de página solicitado
+     * @param model modelo utilizado para enviar los resultados y estadísticas
+     * @return nombre de la vista de foros
+     */
     public String foros(@RequestParam(value = "q", required = false) String q,
                         @RequestParam(value = "categoria", required = false) String categoria,
                         @RequestParam(value = "estado", required = false) String estado,
@@ -727,6 +963,13 @@ public class ColaboradorController {
     }
 
     @GetMapping("/notificaciones")
+    /**
+     * Lista las notificaciones del usuario asociado al colaborador actual.
+     *
+     * @param page número de página solicitado
+     * @param model modelo utilizado para enviar la información a la vista
+     * @return nombre de la vista de notificaciones
+     */
     public String notificaciones(@RequestParam(value = "page", defaultValue = "1") int page, Model model) {
         Colaborador c = colaboradorDemo();
         List<Notificacion> lista = c == null ? List.of()
@@ -735,6 +978,13 @@ public class ColaboradorController {
         return "colaborador/notificaciones";
     }
 
+    /**
+     * Calcula la página de notificaciones y los totales de mensajes leídos y no leídos.
+     *
+     * @param model modelo que recibirá los atributos
+     * @param lista notificaciones disponibles
+     * @param page número de página solicitado
+     */
     private void cargarNotificaciones(Model model, List<Notificacion> lista, int page) {
         int porPagina = 5;
         int totalPaginas = Math.max(1, (int) Math.ceil(lista.size() / (double) porPagina));
@@ -754,6 +1004,14 @@ public class ColaboradorController {
     }
 
     @PostMapping("/notificaciones/{id}/leer")
+    /**
+     * Marca una notificación como leída y recarga el listado de notificaciones.
+     *
+     * @param id identificador de la notificación
+     * @param page número de página que se mostrará después de actualizar
+     * @param model modelo utilizado para enviar el resultado
+     * @return nombre de la vista de notificaciones
+     */
     public String marcarLeida(@PathVariable Integer id,
                               @RequestParam(value = "page", defaultValue = "1") int page,
                               Model model) {
@@ -768,6 +1026,12 @@ public class ColaboradorController {
     }
 
     @PostMapping("/notificaciones/leer-todas")
+    /**
+     * Marca como leídas todas las notificaciones del colaborador actual.
+     *
+     * @param model modelo utilizado para recargar el listado
+     * @return nombre de la vista de notificaciones
+     */
     public String marcarTodasLeidas(Model model) {
         Colaborador c = colaboradorDemo();
         List<Notificacion> lista = c == null ? List.of()
@@ -778,6 +1042,12 @@ public class ColaboradorController {
         return "colaborador/notificaciones";
     }
 
+    /**
+     * Obtiene los proyectos únicos con asignaciones vigentes del colaborador para el chat.
+     *
+     * @param colaborador colaborador cuya lista de asignaciones se consultará
+     * @return asignaciones correspondientes a proyectos permitidos para el chat
+     */
     private List<Asignacion> asignacionesChat(Colaborador colaborador) {
         if (colaborador == null) return List.of();
         return asignacionRepository
@@ -796,6 +1066,13 @@ public class ColaboradorController {
                 ));
     }
 
+    /**
+     * Selecciona el proyecto permitido para el chat según el identificador indicado.
+     *
+     * @param asignaciones asignaciones cuyos proyectos están disponibles
+     * @param idProyecto identificador del proyecto solicitado
+     * @return proyecto permitido o {@code null} si no corresponde a las asignaciones
+     */
     private Proyecto proyectoChatPermitido(List<Asignacion> asignaciones, Integer idProyecto) {
         if (asignaciones.isEmpty()) return null;
         if (idProyecto == null) return asignaciones.get(0).getProyecto();
@@ -806,6 +1083,13 @@ public class ColaboradorController {
                 .orElse(null);
     }
 
+    /**
+     * Carga en el modelo los proyectos disponibles y los mensajes del proyecto seleccionado.
+     *
+     * @param model modelo que recibirá los datos del chat
+     * @param colaborador colaborador actual
+     * @param idProyecto identificador del proyecto que se mostrará
+     */
     private void cargarChat(Model model, Colaborador colaborador, Integer idProyecto) {
         List<Asignacion> asignaciones = asignacionesChat(colaborador);
         Proyecto proyectoSeleccionado = proyectoChatPermitido(asignaciones, idProyecto);
@@ -820,6 +1104,13 @@ public class ColaboradorController {
     }
 
     @GetMapping("/chat")
+    /**
+     * Muestra la conversación del proyecto seleccionado en el chat del colaborador.
+     *
+     * @param idProyecto identificador del proyecto solicitado
+     * @param model modelo utilizado para enviar los datos a la vista
+     * @return nombre de la vista de chat
+     */
     public String chat(@RequestParam(value = "idProyecto", required = false) Integer idProyecto,
                        Model model) {
         cargarChat(model, colaboradorDemo(), idProyecto);
@@ -827,6 +1118,14 @@ public class ColaboradorController {
     }
 
     @PostMapping("/chat/enviar")
+    /**
+     * Valida y envía un mensaje al proyecto permitido del colaborador.
+     *
+     * @param idProyecto identificador del proyecto destinatario
+     * @param contenido texto del mensaje
+     * @param model modelo utilizado para mostrar el resultado
+     * @return nombre de la vista de chat
+     */
     public String enviarMensaje(@RequestParam("idProyecto") Integer idProyecto,
                                 @RequestParam("contenido") String contenido,
                                 Model model) {

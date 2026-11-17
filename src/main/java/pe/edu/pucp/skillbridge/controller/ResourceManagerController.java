@@ -22,6 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Controlador MVC que administra recursos, asignaciones, disponibilidad,
+ * talento, historial y reportes.
+ */
 @Controller
 @RequestMapping("/resource")
 public class ResourceManagerController {
@@ -31,6 +35,14 @@ public class ResourceManagerController {
     private final AsignacionRepository asignacionRepository;
     private final ProyectoRepository proyectoRepository;
 
+    /**
+     * Crea el controlador e inicializa los repositorios necesarios para las operaciones de recursos.
+     *
+     * @param colaboradorRepository repositorio de colaboradores
+     * @param recomendacionIARepository repositorio de recomendaciones de IA
+     * @param asignacionRepository repositorio de asignaciones
+     * @param proyectoRepository repositorio de proyectos
+     */
     public ResourceManagerController(ColaboradorRepository colaboradorRepository,
                                      RecomendacionIARepository recomendacionIARepository,
                                      AsignacionRepository asignacionRepository,
@@ -41,10 +53,21 @@ public class ResourceManagerController {
         this.proyectoRepository = proyectoRepository;
     }
 
+    /**
+     * Convierte un valor numérico a entero o devuelve cero cuando el valor es nulo.
+     *
+     * @param value valor obtenido de una consulta
+     * @return valor convertido a entero
+     */
     private Integer intValue(Object value) {
         return value == null ? 0 : ((Number) value).intValue();
     }
 
+    /**
+     * Obtiene los datos de carga de todos los colaboradores.
+     *
+     * @return lista de cargas de colaboradores
+     */
     private List<CargaColaboradorDTO> cargarDatos() {
         List<CargaColaboradorDTO> resultado = new ArrayList<>();
         for (Object[] fila : colaboradorRepository.obtenerCargaColaboradores()) {
@@ -61,6 +84,12 @@ public class ResourceManagerController {
         return resultado;
     }
 
+    /**
+     * Presenta el resumen principal del dashboard de gestión de recursos.
+     *
+     * @param model modelo utilizado para cargar los datos de la vista
+     * @return nombre de la plantilla del dashboard
+     */
     @RequestMapping(value = {"/inicio", "/dashboard"}, method = {RequestMethod.GET, RequestMethod.POST})
     public String inicio(Model model) {
         List<CargaColaboradorDTO> cargas = cargarDatos();
@@ -74,6 +103,14 @@ public class ResourceManagerController {
         return "resource/inicio";
     }
 
+    /**
+     * Lista los colaboradores aplicando filtros opcionales por texto y seniority.
+     *
+     * @param q texto de búsqueda opcional
+     * @param nivel seniority seleccionado opcionalmente
+     * @param model modelo utilizado para cargar los datos de la vista
+     * @return nombre de la plantilla de colaboradores
+     */
     @GetMapping("/colaboradores")
     public String colaboradores(@RequestParam(value = "q", required = false) String q,
                                 @RequestParam(value = "nivel", required = false) String nivel,
@@ -93,6 +130,12 @@ public class ResourceManagerController {
         return "resource/colaboradores";
     }
 
+    /**
+     * Presenta todas las asignaciones y sus indicadores por estado.
+     *
+     * @param model modelo utilizado para cargar los datos de la vista
+     * @return nombre de la plantilla de asignaciones
+     */
     @GetMapping("/asignaciones")
     public String asignaciones(Model model) {
         List<Asignacion> lista = asignacionRepository.findAll();
@@ -100,6 +143,12 @@ public class ResourceManagerController {
         return "resource/asignaciones";
     }
 
+    /**
+     * Agrega al modelo la lista de asignaciones y sus conteos por estado.
+     *
+     * @param model modelo utilizado para cargar los atributos
+     * @param lista asignaciones que se mostrarán
+     */
     private void cargarAsignaciones(Model model, List<Asignacion> lista) {
         model.addAttribute("titulo", "Asignaciones");
         model.addAttribute("asignaciones", lista);
@@ -108,18 +157,39 @@ public class ResourceManagerController {
         model.addAttribute("finalizadas", lista.stream().filter(a -> a.getEstado() == Asignacion.EstadoAsignacion.FINALIZADA).count());
     }
 
+    /**
+     * Prepara el formulario vacío para crear una asignación.
+     *
+     * @param model modelo utilizado para cargar los datos del formulario
+     * @return nombre de la plantilla del formulario
+     */
     @GetMapping("/asignaciones/nueva")
     public String nuevaAsignacion(Model model) {
         prepararFormularioAsignacion(new Asignacion(), "Nueva asignación", model);
         return "resource/asignacion-form";
     }
 
+    /**
+     * Carga una asignación existente en el formulario de edición.
+     *
+     * @param id identificador de la asignación
+     * @param model modelo utilizado para cargar la asignación
+     * @return nombre de la plantilla del formulario
+     * @throws java.util.NoSuchElementException si la asignación no existe
+     */
     @GetMapping("/asignaciones/editar/{id}")
     public String editarAsignacion(@PathVariable Integer id, Model model) {
         prepararFormularioAsignacion(asignacionRepository.findById(id).orElseThrow(), "Editar asignación", model);
         return "resource/asignacion-form";
     }
 
+    /**
+     * Carga una asignación y las listas necesarias en el formulario.
+     *
+     * @param asignacion asignación que se editará o creará
+     * @param titulo título que se mostrará en el formulario
+     * @param model modelo utilizado para cargar los datos del formulario
+     */
     private void prepararFormularioAsignacion(Asignacion asignacion, String titulo, Model model) {
         model.addAttribute("titulo", titulo);
         model.addAttribute("asignacion", asignacion);
@@ -127,6 +197,17 @@ public class ResourceManagerController {
         model.addAttribute("colaboradores", colaboradorRepository.findAll());
     }
 
+    /**
+     * Valida y guarda una asignación asociada a un proyecto y colaborador.
+     *
+     * @param asignacion asignación enviada por el formulario
+     * @param bindingResult resultado de validación de la asignación
+     * @param idProyecto identificador del proyecto seleccionado
+     * @param idColaborador identificador del colaborador seleccionado
+     * @param model modelo utilizado para cargar el resultado
+     * @return plantilla de asignaciones o del formulario si existen errores
+     * @throws java.util.NoSuchElementException si el proyecto o colaborador no existe
+     */
     @PostMapping("/asignaciones/guardar")
     public String guardarAsignacion(@Valid @ModelAttribute("asignacion") Asignacion asignacion,
                                     BindingResult bindingResult,
@@ -147,6 +228,16 @@ public class ResourceManagerController {
         return "resource/asignaciones";
     }
 
+    /**
+     * Actualiza el estado de una asignación existente.
+     *
+     * @param id identificador de la asignación
+     * @param estado nuevo estado textual
+     * @param model modelo utilizado para cargar la lista actualizada
+     * @return nombre de la plantilla de asignaciones
+     * @throws java.util.NoSuchElementException si la asignación no existe
+     * @throws IllegalArgumentException si el estado no corresponde a un valor válido
+     */
     @PostMapping("/asignaciones/{id}/estado")
     public String cambiarEstadoAsignacion(@PathVariable Integer id,
                                           @RequestParam("estado") String estado,
@@ -159,6 +250,12 @@ public class ResourceManagerController {
         return "resource/asignaciones";
     }
 
+    /**
+     * Presenta el estado de disponibilidad de los colaboradores.
+     *
+     * @param model modelo utilizado para cargar los datos de disponibilidad
+     * @return nombre de la plantilla de disponibilidad
+     */
     @GetMapping("/disponibilidad")
     public String disponibilidad(Model model) {
         List<CargaColaboradorDTO> lista = cargarDatos();
@@ -170,6 +267,12 @@ public class ResourceManagerController {
         return "resource/disponibilidad";
     }
 
+    /**
+     * Presenta la carga de trabajo de los colaboradores y su promedio.
+     *
+     * @param model modelo utilizado para cargar los datos de carga
+     * @return nombre de la plantilla de carga
+     */
     @GetMapping("/carga")
     public String carga(Model model) {
         List<CargaColaboradorDTO> lista = cargarDatos();
@@ -179,6 +282,13 @@ public class ResourceManagerController {
         return "resource/carga";
     }
 
+    /**
+     * Presenta las recomendaciones de talento y permite filtrarlas por proyecto.
+     *
+     * @param idProyecto identificador opcional del proyecto
+     * @param model modelo utilizado para cargar recomendaciones y proyectos
+     * @return nombre de la plantilla de talento
+     */
     @GetMapping("/talent")
     public String talent(@RequestParam(value = "proyecto", required = false) Integer idProyecto,
                          Model model) {
@@ -195,6 +305,12 @@ public class ResourceManagerController {
         return "resource/talent";
     }
 
+    /**
+     * Presenta el historial de proyectos completados o cancelados.
+     *
+     * @param model modelo utilizado para cargar los proyectos e indicadores
+     * @return nombre de la plantilla de historial
+     */
     @GetMapping("/historial")
     public String historial(Model model) {
         List<Proyecto> proyectos = proyectoRepository.findAll();
@@ -205,6 +321,13 @@ public class ResourceManagerController {
         return "resource/historial";
     }
 
+    /**
+     * Presenta los datos consolidados disponibles para los reportes de recursos.
+     *
+     * @param reporte nombre opcional del reporte seleccionado
+     * @param model modelo utilizado para cargar cargas, asignaciones y proyectos
+     * @return nombre de la plantilla de reportes
+     */
     @GetMapping("/reportes")
     public String reportes(@RequestParam(value = "reporte", required = false) String reporte,
                            Model model) {
@@ -234,6 +357,12 @@ public class ResourceManagerController {
     }
 
 
+    /**
+     * Exporta como CSV el tipo de reporte solicitado por el usuario.
+     *
+     * @param tipo tipo de reporte: capacidad, asignaciones, talento o proyectos
+     * @return respuesta CSV con el archivo generado o un error si el tipo no es válido
+     */
     @GetMapping(value = "/reportes/exportar", produces = "text/csv")
     public ResponseEntity<String> exportarReporte(@RequestParam("tipo") String tipo) {
         StringBuilder csv = new StringBuilder("\uFEFF");
@@ -300,6 +429,12 @@ public class ResourceManagerController {
     }
 
 
+    /**
+     * Convierte un valor a texto CSV seguro y evita fórmulas al inicio del campo.
+     *
+     * @param valor valor que se incluirá en una celda CSV
+     * @return texto del valor delimitado y escapado para CSV
+     */
     private String csv(Object valor) {
         String texto = valor == null ? "" : String.valueOf(valor);
         if (!texto.isEmpty() && "=+-@".indexOf(texto.charAt(0)) >= 0) {
