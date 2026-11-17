@@ -1,0 +1,212 @@
+{
+  "info": {
+    "name": "SkillBridge | DNI - REST y Postman (PPT GTICS)",
+    "_postman_id": "3bc74bc7-b347-41e4-a874-b4a2ad49bede",
+    "description": "Pruebas de la API nueva de SkillBridge. HTTP Basic con credenciales de tu cuenta de SkillBridge. La API del proveedor se consulta desde Spring Boot y requiere VERIFICAID_TOKEN en el servidor. No usar DNI real ajeno.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      {
+        "key": "username",
+        "value": "{{correo_skillbridge}}",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "{{clave_skillbridge}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "correo_skillbridge",
+      "value": ""
+    },
+    {
+      "key": "clave_skillbridge",
+      "value": ""
+    },
+    {
+      "key": "dni_prueba",
+      "value": "00000000"
+    },
+    {
+      "key": "nombres_prueba",
+      "value": "NOMBRES EJEMPLO"
+    },
+    {
+      "key": "paterno_prueba",
+      "value": "PATERNO"
+    },
+    {
+      "key": "materno_prueba",
+      "value": "MATERNO"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Estado API (200 si autenticado)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/identidad/estado",
+        "description": "La API existe y exige rol ADMINISTRADOR o RESOURCE_MANAGER."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Estado 200\", function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Consultar DNI (necesita token sandbox)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/identidad/consultar",
+        "description": "POST JSON a SkillBridge. Spring consulta POST multipart/form-data con Bearer a VerificaID. Sin VERIFICAID_TOKEN: 503. Con token y DNI disponible: 200. DNI de ejemplo no garantiza respuesta.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dni\": \"{{dni_prueba}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "3 - Comparar DNI y nombres (necesita token)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/identidad/validar",
+        "description": "Compara nombres/apellidos declarados contra JSON consultado. No prueba identidad fisica ni guarda datos.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dni\": \"{{dni_prueba}}\",\n  \"nombres\": \"{{nombres_prueba}}\",\n  \"apellidoPaterno\": \"{{paterno_prueba}}\",\n  \"apellidoMaterno\": \"{{materno_prueba}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "4 - DNI invalido (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/identidad/consultar",
+        "description": "La validacion @Pattern rechaza los DNI no formados por 8 digitos sin consultar al proveedor.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dni\": \"123\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Estado 400\", function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Sin autenticar (401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/identidad/estado",
+        "description": "Endpoint protegido con Spring Security HTTP Basic.",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Estado 401\", function () { pm.response.to.have.status(401); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 - Sin token configurado (503)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/identidad/consultar",
+        "description": "Ejecutar solo si la variable VERIFICAID_TOKEN esta sin configurar. Debe responder 503.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dni\": \"{{dni_prueba}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Estado 503\", function () { pm.response.to.have.status(503); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
