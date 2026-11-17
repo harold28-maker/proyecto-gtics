@@ -1,6 +1,13 @@
 package pe.edu.pucp.skillbridge.dto;
 
-/** DTO: recibimos JSON del proveedor y devolvemos solo campos necesarios. */
+/**
+ * Representa los datos personales necesarios obtenidos de la consulta del DNI.
+ *
+ * @param dni número de DNI consultado
+ * @param nombres nombres asociados al DNI
+ * @param apellidoPaterno apellido paterno asociado al DNI
+ * @param apellidoMaterno apellido materno asociado al DNI
+ */
 public record DniConsultaResponse(
     String dni,
     String nombres,
