@@ -5,5 +5,10 @@ tmp/
 *.iml
 .DS_Store
 
+# Variables locales y secretos (configurarlas en el proveedor cloud)
+.env
+.env.*
+!.env.example
+
 # Archivos subidos en tiempo de ejecución
 uploads/
