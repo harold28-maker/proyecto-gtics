@@ -1,0 +1,48 @@
+.reporte-encabezado {
+    flex-wrap: wrap;
+}
+
+.reporte-nota {
+    margin: 0 0 var(--space-sm);
+}
+
+.dedicacion-grafico table {
+    min-inline-size: max-content;
+}
+
+.dedicacion-grafico th {
+    white-space: normal;
+}
+
+.dedicacion-grafico th:first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    inline-size: 14rem;
+    min-inline-size: 10rem;
+    box-shadow: 1px 0 var(--color-rule);
+}
+
+.dedicacion-grafico tbody th {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-weight: 600;
+}
+
+.dedicacion-grafico th:not(:first-child),
+.dedicacion-grafico td {
+    inline-size: 11rem;
+    min-inline-size: 9rem;
+}
+
+.dedicacion-valor {
+    display: grid;
+    grid-template-columns: minmax(3rem, 1fr) auto;
+    align-items: center;
+    gap: var(--space-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+#vista-previa {
+    scroll-margin-top: 4.5rem;
+}

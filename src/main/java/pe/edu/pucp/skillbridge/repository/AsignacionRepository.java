@@ -1,5 +1,6 @@
 package pe.edu.pucp.skillbridge.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import pe.edu.pucp.skillbridge.entity.Asignacion;
 import java.util.List;
@@ -31,4 +32,7 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Integer>
      * @return lista de asignaciones pertenecientes a proyectos administrados por el gestor
      */
     List<Asignacion> findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(Integer idUsuario);
+
+    @EntityGraph(attributePaths = {"proyecto", "colaborador.usuario"})
+    List<Asignacion> findByEstadoIn(List<Asignacion.EstadoAsignacion> estados);
 }

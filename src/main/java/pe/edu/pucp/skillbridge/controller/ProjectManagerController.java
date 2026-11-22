@@ -147,7 +147,7 @@ public class ProjectManagerController {
         List<Asignacion> asignaciones = pm == null ? List.of()
                 : asignacionRepository.findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(pm.getIdUsuario());
 
-        model.addAttribute("titulo", "Dashboard - Project Manager");
+        model.addAttribute("titulo", "Inicio");
         model.addAttribute("pm", pm);
         model.addAttribute("proyectosActivos", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.ACTIVE).count());
         model.addAttribute("proyectosPlanning", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.PLANNING).count());

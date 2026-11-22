@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,13 +15,15 @@ import org.springframework.web.bind.annotation.*;
 
 import pe.edu.pucp.skillbridge.entity.*;
 import pe.edu.pucp.skillbridge.repository.*;
+import pe.edu.pucp.skillbridge.service.ReporteAdministrativoService;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.nio.charset.StandardCharsets;
-import java.util.stream.Collectors;
 
 /**
  * Controlador encargado de gestionar las páginas y operaciones administrativas
@@ -37,6 +40,7 @@ public class AdminController {
     private final ColaboradorRepository colaboradorRepository;
     private final HabilidadRepository habilidadRepository;
     private final AuditoriaRepository auditoriaRepository;
+    private final ReporteAdministrativoService reporteAdministrativoService;
 
     // BCrypt se usa únicamente para almacenar contraseñas de forma hasheada.
     private final BCryptPasswordEncoder passwordEncoder =
@@ -53,6 +57,7 @@ public class AdminController {
      * @param colaboradorRepository repositorio de colaboradores
      * @param habilidadRepository repositorio de habilidades
      * @param auditoriaRepository repositorio de registros de auditoría
+     * @param reporteAdministrativoService servicio de reportes y exportación a Excel
      */
     public AdminController(
             UsuarioRepository usuarioRepository,
@@ -60,7 +65,8 @@ public class AdminController {
             PermisoRepository permisoRepository,
             ColaboradorRepository colaboradorRepository,
             HabilidadRepository habilidadRepository,
-            AuditoriaRepository auditoriaRepository
+            AuditoriaRepository auditoriaRepository,
+            ReporteAdministrativoService reporteAdministrativoService
     ) {
 
         this.usuarioRepository = usuarioRepository;
@@ -69,6 +75,7 @@ public class AdminController {
         this.colaboradorRepository = colaboradorRepository;
         this.habilidadRepository = habilidadRepository;
         this.auditoriaRepository = auditoriaRepository;
+        this.reporteAdministrativoService = reporteAdministrativoService;
     }
 
 
@@ -107,7 +114,7 @@ public class AdminController {
 
         model.addAttribute(
                 "titulo",
-                "Dashboard administrativo"
+                "Inicio"
         );
 
 
@@ -2164,7 +2171,7 @@ public class AdminController {
      *
      * @param reporte nombre opcional del reporte seleccionado
      * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan usuarios, habilidades, auditorías y agrupaciones
+     * @param model modelo al que se agregan los indicadores, el gráfico y la vista previa
      * @return la vista de reportes o una redirección al inicio de sesión
      */
     @GetMapping("/reportes")
@@ -2180,31 +2187,17 @@ public class AdminController {
 
         List<Usuario> usuarios = usuarioRepository.findAll();
         List<Habilidad> habilidades = habilidadRepository.findAll();
-        List<Auditoria> auditorias = auditoriaRepository.findTop50ByOrderByFechaDesc();
 
-        Map<String, Long> usuariosPorRol = usuarios.stream()
-                .filter(u -> u.getRol() != null && u.getRol().getNombre() != null)
-                .collect(Collectors.groupingBy(
-                        u -> u.getRol().getNombre(),
-                        LinkedHashMap::new,
-                        Collectors.counting()
-                ));
-
-        Map<String, Long> habilidadesPorCategoria = habilidades.stream()
-                .filter(h -> h.getCategoria() != null && !h.getCategoria().isBlank())
-                .collect(Collectors.groupingBy(
-                        Habilidad::getCategoria,
-                        LinkedHashMap::new,
-                        Collectors.counting()
-                ));
-
+        var graficoDedicacion = reporteAdministrativoService.consultarDedicacion();
         model.addAttribute("titulo", "Reportes del sistema");
-        model.addAttribute("reporteSeleccionado", reporte);
-        model.addAttribute("usuarios", usuarios);
-        model.addAttribute("habilidades", habilidades);
-        model.addAttribute("auditorias", auditorias);
-        model.addAttribute("usuariosPorRol", usuariosPorRol);
-        model.addAttribute("habilidadesPorCategoria", habilidadesPorCategoria);
+        model.addAttribute("graficoDedicacion", graficoDedicacion);
+        model.addAttribute("vistaPrevia", switch (reporte == null ? "" : reporte) {
+            case "dedicacion" -> reporteAdministrativoService.tablaDedicacion(graficoDedicacion);
+            case "usuarios" -> reporteAdministrativoService.tablaUsuarios(usuarios);
+            case "habilidades" -> reporteAdministrativoService.tablaHabilidades(habilidades);
+            case "auditoria" -> reporteAdministrativoService.tablaAuditoria(auditoriaRepository.findTop50ByOrderByFechaDesc());
+            default -> null;
+        });
 
         model.addAttribute("totalUsuarios", usuarios.size());
         model.addAttribute("usuariosActivos", usuarios.stream()
@@ -2220,6 +2213,32 @@ public class AdminController {
         return "admin/reportes";
     }
 
+
+    @GetMapping("/reportes/excel")
+    public ResponseEntity<byte[]> descargarExcel(@RequestParam("tipo") String tipo, HttpSession session)
+            throws IOException {
+        if (!esAdmin(session)) {
+            return ResponseEntity.status(403).build();
+        }
+
+        String clave = tipo.toLowerCase(Locale.ROOT);
+        var tabla = switch (clave) {
+            case "dedicacion" -> reporteAdministrativoService.tablaDedicacion(reporteAdministrativoService.consultarDedicacion());
+            case "usuarios" -> reporteAdministrativoService.tablaUsuarios(usuarioRepository.findAll());
+            case "habilidades" -> reporteAdministrativoService.tablaHabilidades(habilidadRepository.findAll());
+            case "auditoria" -> reporteAdministrativoService.tablaAuditoria(auditoriaRepository.findTop50ByOrderByFechaDesc());
+            default -> null;
+        };
+        if (tabla == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"reporte_" + clave + ".xlsx\"")
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(reporteAdministrativoService.generarExcel(tabla));
+    }
 
     /**
      * Genera y devuelve un archivo CSV con los datos del tipo de reporte solicitado.

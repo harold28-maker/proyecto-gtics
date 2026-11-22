@@ -4,6 +4,12 @@
 
 <body>
 
+<img th:fragment="brandLogo(width)"
+     class="brand-logo"
+     th:src="@{/css/img/SkillBridge_AI_Logo.png}"
+     th:attr="width=${width},height=${width / 5}"
+     alt="SkillBridge AI">
+
 
 <!-- =========================================================
      MENÚ LATERAL
@@ -22,7 +28,7 @@
 
 
     <!-- =====================================================
-         NOMBRE DEL SISTEMA
+         LOGO DEL SISTEMA
          ===================================================== -->
 
     <a class="sidebar-simple-brand"
@@ -35,14 +41,7 @@
             : @{/colaborador/inicio}))">
 
 
-        <span class="sidebar-simple-logo">
-            SB
-        </span>
-
-
-        <span class="sidebar-simple-name">
-            SkillBridge AI
-        </span>
+        <th:block th:replace="~{fragments/layout :: brandLogo(220)}"></th:block>
 
 
     </a>
@@ -68,19 +67,11 @@
 
 
     <!-- =====================================================
-         TÍTULO
-         ===================================================== -->
-
-    <div class="sidebar-simple-title">
-        Menú
-    </div>
-
-
-    <!-- =====================================================
          OPCIONES
          ===================================================== -->
 
     <nav class="sidebar-simple-nav"
+         aria-label="Menú principal"
          th:switch="${rol}">
 
 
@@ -367,6 +358,11 @@
                 return;
             }
 
+            // El fondo del diálogo debe quedar por encima del encabezado y del menú lateral.
+            if (modal.parentElement !== document.body) {
+                document.body.appendChild(modal);
+            }
+
             modal.classList.add("show");
 
             modal.setAttribute(
@@ -492,112 +488,35 @@
         );
 
     </script>
-
+    <script th:src="@{/js/sesion-privada.js}" th:attr="data-login-url=@{/login}"></script>
 
 </aside>
 
 
 
 <!-- =========================================================
-     TOPBAR
-     NO LO MODIFICAMOS
+     ENCABEZADO
      ========================================================= -->
 
 <header th:fragment="topbar(titulo)"
         class="topbar"
-        th:classappend="${rolSesion == 'ADMIN'}
-            ? ' topbar-admin'
-            : (${rolSesion == 'PM'}
-            ? ' topbar-pm'
-            : (${rolSesion == 'RM'}
-            ? ' topbar-rm'
-            : ' topbar-col'))">
+        th:with="seccion=${rolSesion == 'ADMIN' ? 'Administración' : (rolSesion == 'PM' ? 'Gestión de proyectos' : (rolSesion == 'RM' ? 'Gestión de recursos' : 'Colaboración'))},
+                 inicio=${rolSesion == 'ADMIN' ? '/admin/inicio' : (rolSesion == 'PM' ? '/pm/inicio' : (rolSesion == 'RM' ? '/resource/inicio' : '/colaborador/inicio'))},
+                 nombreRol=${rolSesion == 'ADMIN' ? 'Administrador' : (rolSesion == 'PM' ? 'Project Manager' : (rolSesion == 'RM' ? 'Resource Manager' : 'Colaborador'))}">
 
+    <nav class="topbar-path" aria-label="Ubicación actual">
+        <a th:href="@{${inicio}}" th:text="${seccion}">Administración</a>
+        <span aria-hidden="true">/</span>
+        <h1 aria-current="page" th:text="${titulo}">Inicio</h1>
+    </nav>
 
-    <div>
-
-        <p class="eyebrow">
-            SkillBridge AI · Workspace
-        </p>
-
-        <h1 th:text="${titulo}">
-            Título
-        </h1>
-
+    <div class="topbar-account">
+        <span class="topbar-status">
+            <span class="pulse-dot" th:if="${usuarioSesion != null}" aria-hidden="true"></span>
+            <span th:text="${usuarioSesion != null ? 'Sesión activa' : 'Sesión de demostración'}">Sesión activa</span>
+        </span>
+        <span class="topbar-role" th:text="${nombreRol}">Administrador</span>
     </div>
-
-
-    <div class="topbar-tools">
-
-
-        <div class="top-context">
-
-            <span class="pulse-dot">
-            </span>
-
-            <span>
-                Sesión activa
-            </span>
-
-        </div>
-
-
-        <div class="topbar-user"
-             th:if="${usuarioSesion != null}">
-
-
-            <span class="avatar"
-                  th:text="${usuarioSesion.iniciales}">
-
-                MG
-
-            </span>
-
-
-            <div>
-
-                <strong th:text="${usuarioSesion.nombreCompleto}">
-                    María González
-                </strong>
-
-                <small th:text="${usuarioSesion.rolVisual}">
-                    Colaborador
-                </small>
-
-            </div>
-
-
-        </div>
-
-
-        <div class="topbar-user"
-             th:unless="${usuarioSesion != null}">
-
-
-            <span class="avatar">
-                SB
-            </span>
-
-
-            <div>
-
-                <strong>
-                    SkillBridge AI
-                </strong>
-
-                <small>
-                    Sesión de demostración
-                </small>
-
-            </div>
-
-
-        </div>
-
-
-    </div>
-
-
 </header>
 
 

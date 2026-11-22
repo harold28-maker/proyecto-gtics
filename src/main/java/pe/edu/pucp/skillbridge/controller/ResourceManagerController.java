@@ -93,7 +93,7 @@ public class ResourceManagerController {
     @RequestMapping(value = {"/inicio", "/dashboard"}, method = {RequestMethod.GET, RequestMethod.POST})
     public String inicio(Model model) {
         List<CargaColaboradorDTO> cargas = cargarDatos();
-        model.addAttribute("titulo", "Dashboard - Resource Manager");
+        model.addAttribute("titulo", "Inicio");
         model.addAttribute("totalColaboradores", cargas.size());
         model.addAttribute("disponibles", cargas.stream().filter(c -> c.getDisponibilidad() >= 50).count());
         model.addAttribute("sobrecargados", cargas.stream().filter(c -> c.getCarga() > c.getDisponibilidadBase()).count());

@@ -163,7 +163,7 @@ public class ColaboradorController {
     @RequestMapping(value = "/inicio", method = {RequestMethod.GET, RequestMethod.POST})
     public String inicio(Model model) {
         Colaborador c = colaboradorDemo();
-        model.addAttribute("titulo", "Mi espacio de trabajo");
+        model.addAttribute("titulo", "Inicio");
         model.addAttribute("colaborador", c);
         if (c != null) {
             List<Asignacion> asignaciones = asignacionRepository.findByColaboradorIdColaboradorOrderByFechaInicioDesc(c.getIdColaborador());

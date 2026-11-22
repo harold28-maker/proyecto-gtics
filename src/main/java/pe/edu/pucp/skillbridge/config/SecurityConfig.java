@@ -2,11 +2,14 @@ package pe.edu.pucp.skillbridge.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
 import pe.edu.pucp.skillbridge.controller.LoginSuccessHandler;
 
 /**
@@ -42,7 +45,7 @@ public class SecurityConfig {
                                            LoginSuccessHandler successHandler) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login", "/css/**", "/js/**",
+                        .requestMatchers("/", "/login", "/sesion/portada", "/css/**", "/js/**",
                                 "/images/**", "/assets/**", "/favicon.ico").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/pm/**").hasRole("PROJECT_MANAGER")
@@ -63,6 +66,9 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout=true")
+                        .defaultLogoutSuccessHandlerFor(
+                                new HttpStatusReturningLogoutSuccessHandler(HttpStatus.NO_CONTENT),
+                                new RequestHeaderRequestMatcher("X-Requested-With", "XMLHttpRequest"))
                         .deleteCookies("JSESSIONID", "SESSION")
                         .invalidateHttpSession(true)
                         .clearAuthentication(true)
