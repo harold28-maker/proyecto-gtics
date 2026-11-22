@@ -75,4 +75,21 @@ public class Rol {
      * @param estado estado que se asignará
      */
     public void setEstado(Boolean estado) { this.estado = estado; }
+
+    /**
+     * Devuelve la etiqueta que se muestra para este rol en la aplicación.
+     */
+    @Transient
+    public String getNombreVisual() {
+        if (nombre == null) {
+            return "Usuario";
+        }
+        return switch (nombre) {
+            case "ADMINISTRADOR" -> "Administrador";
+            case "PROJECT_MANAGER" -> "Project Manager";
+            case "RESOURCE_MANAGER" -> "Resource Manager";
+            case "COLABORADOR" -> "Colaborador";
+            default -> nombre;
+        };
+    }
 }

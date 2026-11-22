@@ -8,39 +8,10 @@
 </head>
 <body>
 <main class="login-shell-simple">
-    <section class="login-side" aria-labelledby="login-intro">
-        <div class="login-side-brand">
-            <th:block th:replace="~{fragments/layout :: brandLogo(352)}"></th:block>
-        </div>
-
-        <div class="login-side-content">
-            <h2 id="login-intro">Talento, proyectos y conocimiento.</h2>
-            <p>Organiza equipos y asignaciones en un solo lugar.</p>
-
-            <dl class="login-topic-list">
-                <div>
-                    <dt>Talento</dt>
-                    <dd>Habilidades y disponibilidad</dd>
-                </div>
-                <div>
-                    <dt>Proyectos</dt>
-                    <dd>Equipos y asignaciones</dd>
-                </div>
-                <div>
-                    <dt>Conocimiento</dt>
-                    <dd>Foros y experiencia</dd>
-                </div>
-            </dl>
-        </div>
-
-        <small class="login-side-footer">Plataforma interna</small>
-    </section>
+    <th:block th:replace="~{fragments/acceso :: marca}"></th:block>
 
     <section class="login-access-side" aria-labelledby="login-title">
-        <a class="login-back-link" th:href="@{/}">
-            <span aria-hidden="true">←</span>
-            Volver al inicio
-        </a>
+        <th:block th:replace="~{fragments/acceso :: volverInicio}"></th:block>
 
         <div class="login-box-simple">
             <header class="login-box-header">
@@ -54,6 +25,9 @@
             </div>
             <div class="login-alert-simple login-alert-success" role="status" th:if="${logoutExitoso}">
                 Sesión cerrada correctamente.
+            </div>
+            <div class="login-alert-simple login-alert-success" role="status" th:if="${contrasenaActualizada}">
+                Contraseña actualizada correctamente.
             </div>
 
             <form th:if="${sesionActiva}" id="cerrar-sesion-login" th:action="@{/logout}" method="post">
@@ -75,6 +49,7 @@
                     <label for="password">Contraseña</label>
                     <input id="password" name="password" type="password"
                            minlength="8" maxlength="30" required autocomplete="off">
+                    <a class="login-link-simple" th:href="@{/recuperar-contrasena}">¿Olvidaste tu contraseña?</a>
                 </div>
 
                 <button class="btn btn-primary login-button-simple" type="submit">Ingresar</button>

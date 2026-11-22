@@ -3,21 +3,31 @@ package pe.edu.pucp.skillbridge.controller;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.core.io.Resource;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import pe.edu.pucp.skillbridge.entity.*;
 import pe.edu.pucp.skillbridge.repository.*;
+import pe.edu.pucp.skillbridge.service.CorreoCuentaService;
+import pe.edu.pucp.skillbridge.service.FotoPerfilService;
 import pe.edu.pucp.skillbridge.service.ReporteAdministrativoService;
+import pe.edu.pucp.skillbridge.util.PoliticaContrasena;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -36,15 +46,17 @@ public class AdminController {
 
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
-    private final PermisoRepository permisoRepository;
     private final ColaboradorRepository colaboradorRepository;
     private final HabilidadRepository habilidadRepository;
     private final AuditoriaRepository auditoriaRepository;
     private final ReporteAdministrativoService reporteAdministrativoService;
 
-    // BCrypt se usa únicamente para almacenar contraseñas de forma hasheada.
-    private final BCryptPasswordEncoder passwordEncoder =
-            new BCryptPasswordEncoder();
+    private final CorreoCuentaService correoCuentaService;
+    private final FotoPerfilService fotoPerfilService;
+    private final PasswordEncoder passwordEncoder;
+    private final TransactionTemplate transacciones;
+
+    private record CuentaGuardada(Usuario usuario, String fotoAnterior) {}
 
 
     /**
@@ -53,29 +65,38 @@ public class AdminController {
      *
      * @param usuarioRepository repositorio de usuarios
      * @param rolRepository repositorio de roles
-     * @param permisoRepository repositorio de permisos
      * @param colaboradorRepository repositorio de colaboradores
      * @param habilidadRepository repositorio de habilidades
      * @param auditoriaRepository repositorio de registros de auditoría
      * @param reporteAdministrativoService servicio de reportes y exportación a Excel
+     * @param correoCuentaService servicio de envío del correo de bienvenida
+     * @param fotoPerfilService servicio de fotos de usuario
+     * @param passwordEncoder codificador de contraseñas utilizado por la aplicación
+     * @param transacciones ejecutor de las transacciones de guardado
      */
     public AdminController(
             UsuarioRepository usuarioRepository,
             RolRepository rolRepository,
-            PermisoRepository permisoRepository,
             ColaboradorRepository colaboradorRepository,
             HabilidadRepository habilidadRepository,
             AuditoriaRepository auditoriaRepository,
-            ReporteAdministrativoService reporteAdministrativoService
+            ReporteAdministrativoService reporteAdministrativoService,
+            CorreoCuentaService correoCuentaService,
+            FotoPerfilService fotoPerfilService,
+            PasswordEncoder passwordEncoder,
+            TransactionTemplate transacciones
     ) {
 
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
-        this.permisoRepository = permisoRepository;
         this.colaboradorRepository = colaboradorRepository;
         this.habilidadRepository = habilidadRepository;
         this.auditoriaRepository = auditoriaRepository;
         this.reporteAdministrativoService = reporteAdministrativoService;
+        this.correoCuentaService = correoCuentaService;
+        this.fotoPerfilService = fotoPerfilService;
+        this.passwordEncoder = passwordEncoder;
+        this.transacciones = transacciones;
     }
 
 
@@ -161,6 +182,9 @@ public class AdminController {
         model.addAttribute(
                 "ultimosUsuarios",
                 usuarios.stream()
+                        .sorted(Comparator
+                                .comparing(Usuario::getFechaRegistro, Comparator.nullsLast(Comparator.reverseOrder()))
+                                .thenComparing(Usuario::getIdUsuario, Comparator.reverseOrder()))
                         .limit(5)
                         .toList()
         );
@@ -175,145 +199,45 @@ public class AdminController {
        ========================================================= */
 
     /**
-     * Obtiene la relación de usuarios y permite filtrarla por nombre, correo o rol.
-     *
-     * @param q texto opcional utilizado para filtrar los usuarios
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la lista y los indicadores de usuarios
-     * @return la vista de gestión de usuarios o una redirección al inicio de sesión
+     * Muestra los usuarios y los indicadores de los resultados de búsqueda.
      */
     @GetMapping("/usuarios")
     public String usuarios(
-            @RequestParam(
-                    value = "q",
-                    required = false
-            )
-            String q,
-
+            @RequestParam(value = "q", defaultValue = "") String q,
+            @RequestParam(value = "rol", required = false) Integer rol,
+            @RequestParam(value = "estado", required = false) Usuario.EstadoUsuario estado,
             HttpSession session,
             Model model
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
+        String texto = normalizar(q);
+        List<Usuario> usuarios = usuarioRepository.findAll().stream()
+                .filter(u -> rol == null || (u.getRol() != null && rol.equals(u.getRol().getIdRol())))
+                .filter(u -> estado == null || u.getEstado() == estado)
+                .filter(u -> texto.isEmpty()
+                        || normalizar(u.getNombreCompleto()).contains(texto)
+                        || normalizar(u.getCorreo()).contains(texto)
+                        || normalizar(u.getRolVisual()).contains(texto)
+                        || (u.getRol() != null && normalizar(u.getRol().getNombre()).contains(texto)))
+                .toList();
 
-        List<Usuario> lista =
-                usuarioRepository.findAll();
-
-
-        if (
-                q != null
-                        &&
-                        !q.isBlank()
-        ) {
-
-            String texto =
-                    q.toLowerCase();
-
-
-            lista = lista.stream()
-                    .filter(
-                            u ->
-                                    u.getNombreCompleto()
-                                            .toLowerCase()
-                                            .contains(texto)
-
-                                            ||
-
-                                            u.getCorreo()
-                                                    .toLowerCase()
-                                                    .contains(texto)
-
-                                            ||
-
-                                            u.getRol()
-                                                    .getNombre()
-                                                    .toLowerCase()
-                                                    .contains(texto)
-                    )
-                    .toList();
-        }
-
-
-        cargarUsuarios(
-                model,
-                lista,
-                q
-        );
-
-
+        model.addAttribute("titulo", "Usuarios");
+        model.addAttribute("usuarios", usuarios);
+        model.addAttribute("rolesFiltro", rolRepository.findAll());
+        model.addAttribute("q", q);
+        model.addAttribute("rolFiltro", rol);
+        model.addAttribute("estadoFiltro", estado == null ? null : estado.name());
+        model.addAttribute("hayFiltros", !texto.isEmpty() || rol != null || estado != null);
+        model.addAttribute("activos", usuarios.stream()
+                .filter(u -> u.getEstado() == Usuario.EstadoUsuario.ACTIVO).count());
+        model.addAttribute("inactivos", usuarios.stream()
+                .filter(u -> u.getEstado() == Usuario.EstadoUsuario.INACTIVO).count());
+        model.addAttribute("bloqueados", usuarios.stream()
+                .filter(u -> u.getEstado() == Usuario.EstadoUsuario.BLOQUEADO).count());
         return "admin/usuarios";
-    }
-
-
-    /**
-     * Agrega a la vista los usuarios y los totales de cuentas activas, inactivas
-     * y bloqueadas según la lista proporcionada.
-     *
-     * @param model modelo al que se agregan los datos de la vista
-     * @param lista usuarios que se mostrarán
-     * @param q texto utilizado actualmente como filtro
-     */
-    private void cargarUsuarios(
-            Model model,
-            List<Usuario> lista,
-            String q
-    ) {
-
-        model.addAttribute(
-                "titulo",
-                "Gestión de usuarios"
-        );
-
-
-        model.addAttribute(
-                "usuarios",
-                lista
-        );
-
-
-        model.addAttribute(
-                "q",
-                q
-        );
-
-
-        model.addAttribute(
-                "activos",
-                lista.stream()
-                        .filter(
-                                u ->
-                                        u.getEstado()
-                                                == Usuario.EstadoUsuario.ACTIVO
-                        )
-                        .count()
-        );
-
-
-        model.addAttribute(
-                "inactivos",
-                lista.stream()
-                        .filter(
-                                u ->
-                                        u.getEstado()
-                                                == Usuario.EstadoUsuario.INACTIVO
-                        )
-                        .count()
-        );
-
-
-        model.addAttribute(
-                "bloqueados",
-                lista.stream()
-                        .filter(
-                                u ->
-                                        u.getEstado()
-                                                == Usuario.EstadoUsuario.BLOQUEADO
-                        )
-                        .count()
-        );
     }
 
 
@@ -434,6 +358,22 @@ public class AdminController {
     }
 
 
+    @GetMapping("/usuarios/fotos/{nombre}")
+    public ResponseEntity<Resource> fotoUsuario(@PathVariable("nombre") String nombre, HttpSession session) {
+        if (!esAdmin(session)) {
+            return ResponseEntity.status(403).build();
+        }
+        Resource foto = fotoPerfilService.buscar(nombre);
+        if (foto == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaType.IMAGE_JPEG)
+                .body(foto);
+    }
+
+
     /* =========================================================
        GUARDAR USUARIO
        ========================================================= */
@@ -450,9 +390,13 @@ public class AdminController {
      * @param estadoTexto estado textual seleccionado para el usuario
      * @param password contraseña nueva ingresada en el formulario
      * @param confirmarPassword confirmación de la contraseña ingresada
+     * @param foto imagen original seleccionada al editar
+     * @param fotoRecortada recorte enviado desde la vista previa
+     * @param quitarFoto indica si se debe retirar la foto actual
      * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan datos de validación o de la lista de usuarios
-     * @return la vista del formulario cuando ocurre un error o la vista de usuarios al finalizar
+     * @param model modelo con los datos de validación
+     * @param redirect atributos de los avisos del listado
+     * @return el formulario en caso de error o una redirección al listado
      */
     @PostMapping("/usuarios/guardar")
     public String guardarUsuario(
@@ -511,8 +455,13 @@ public class AdminController {
             )
             String confirmarPassword,
 
+            @RequestParam(value = "foto", required = false) MultipartFile foto,
+            @RequestParam(value = "fotoRecortada", required = false) MultipartFile fotoRecortada,
+            @RequestParam(value = "quitarFoto", defaultValue = "false") boolean quitarFoto,
+
             HttpSession session,
-            Model model
+            Model model,
+            RedirectAttributes redirect
     ) {
 
         /* =====================================================
@@ -689,7 +638,7 @@ public class AdminController {
         String correoLimpio =
                 correo == null
                         ? ""
-                        : correo.trim().toLowerCase();
+                        : correo.trim().toLowerCase(Locale.ROOT);
 
         String telefonoLimpio =
                 telefono == null
@@ -796,220 +745,116 @@ public class AdminController {
         }
 
 
-        /* =====================================================
-           NUEVO O EDICIÓN
-           ===================================================== */
+        boolean nuevo = idUsuario == null;
+        String clave = password == null ? "" : password;
+        String confirmacion = confirmarPassword == null ? "" : confirmarPassword;
 
-        boolean nuevo =
-                idUsuario == null;
-
-        Usuario usuario;
-
-
-        if (nuevo) {
-
-            usuario =
-                    new Usuario();
-
+        if (clave.isBlank()) {
+            if (nuevo) {
+                return volverFormularioUsuario(model, formulario, "La contraseña es obligatoria para un usuario nuevo.");
+            }
+            if (!confirmacion.isBlank()) {
+                model.addAttribute("abrirContrasena", true);
+                return volverFormularioUsuario(model, formulario, "Ingresa la nueva contraseña antes de confirmarla.");
+            }
         } else {
-
-            usuario =
-                    usuarioRepository
-                            .findById(idUsuario)
-                            .orElse(null);
-
-            if (usuario == null) {
-
-                return volverFormularioUsuario(
-                        model,
-                        formulario,
-                        "El usuario que intentas editar no existe."
-                );
+            String errorClave = PoliticaContrasena.validar(clave, confirmacion);
+            if (errorClave != null) {
+                model.addAttribute("abrirContrasena", true);
+                return volverFormularioUsuario(model, formulario, errorClave);
             }
         }
 
-
-        /* =====================================================
-           CONTRASEÑA
-           ===================================================== */
-
-        String clave =
-                password == null
-                        ? ""
-                        : password;
-
-        String confirmacion =
-                confirmarPassword == null
-                        ? ""
-                        : confirmarPassword;
-
-
-        if (
-                nuevo
-                        &&
-                        clave.isBlank()
-        ) {
-
-            return volverFormularioUsuario(
-                    model,
-                    formulario,
-                    "La contraseña es obligatoria para un usuario nuevo."
-            );
+        boolean cambiarFoto = foto != null && (!foto.isEmpty() || StringUtils.hasText(foto.getOriginalFilename()));
+        boolean tieneRecorte = fotoRecortada != null && !fotoRecortada.isEmpty();
+        if (nuevo && (cambiarFoto || quitarFoto || tieneRecorte)) {
+            return volverFormularioUsuario(model, formulario, "Puedes agregar una foto al editar la cuenta.");
+        }
+        if ((cambiarFoto && quitarFoto) || (tieneRecorte && !cambiarFoto)) {
+            return volverFormularioUsuario(model, formulario, "Selecciona una foto para cambiarla o elige quitar la actual.");
         }
 
-
-        if (
-                !nuevo
-                        &&
-                        clave.isBlank()
-                        &&
-                        !confirmacion.isBlank()
-        ) {
-
-            return volverFormularioUsuario(
-                    model,
-                    formulario,
-                    "Ingresa la nueva contraseña antes de confirmarla."
-            );
+        String claveHash = clave.isBlank() ? null : passwordEncoder.encode(clave);
+        String fotoNueva;
+        try {
+            fotoNueva = cambiarFoto ? fotoPerfilService.guardar(foto, fotoRecortada) : null;
+        } catch (IllegalArgumentException ex) {
+            return volverFormularioUsuario(model, formulario, ex.getMessage());
+        } catch (IOException ex) {
+            return volverFormularioUsuario(model, formulario, "No se pudo guardar la foto. Vuelve a intentarlo.");
         }
 
+        Integer usuarioId = idUsuario;
+        CuentaGuardada resultado = null;
+        try {
+            resultado = transacciones.execute(transaccion -> {
+                Usuario usuario = nuevo ? new Usuario() : usuarioRepository.buscarParaActualizar(usuarioId).orElse(null);
+                if (usuario == null) {
+                    return null;
+                }
+                usuario.setNombres(nombresLimpios);
+                usuario.setApellidos(apellidosLimpios);
+                usuario.setCorreo(correoLimpio);
+                usuario.setTelefono(telefonoLimpio);
+                usuario.setEstado(estado);
+                usuario.setRol(rol);
+                if (claveHash != null) {
+                    usuario.setPasswordHash(claveHash);
+                }
 
-        if (!clave.isBlank()) {
+                String fotoAnterior = usuario.getFotoUrl();
+                if (cambiarFoto || quitarFoto) {
+                    usuario.setFotoUrl(fotoNueva);
+                }
 
-            if (
-                    !clave.matches(
-                            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,30}$"
-                    )
-            ) {
+                Usuario cuenta = usuarioRepository.save(usuario);
+                if (!"ADMINISTRADOR".equals(rol.getNombre())
+                        && colaboradorRepository.findByUsuarioIdUsuario(cuenta.getIdUsuario()).isEmpty()) {
+                    Colaborador colaborador = new Colaborador();
+                    colaborador.setUsuario(cuenta);
+                    colaborador.setCargo("Por definir");
+                    colaborador.setArea("Por definir");
+                    colaborador.setDisponibilidadBase(100);
+                    colaboradorRepository.save(colaborador);
+                }
 
-                return volverFormularioUsuario(
-                        model,
-                        formulario,
-                        "La contraseña debe tener entre 8 y 30 caracteres, una mayúscula, una minúscula y un número."
-                );
+                registrarAuditoria(nuevo ? "Crear usuario" : "Actualizar usuario", "Administración",
+                        (nuevo ? "Se registró la cuenta de " : "Se actualizó la cuenta de ") + cuenta.getNombreCompleto());
+                return new CuentaGuardada(cuenta, fotoAnterior);
+            });
+        } catch (DataIntegrityViolationException ex) {
+            return volverFormularioUsuario(model, formulario, "No se pudo guardar el usuario. Verifica el correo y los datos ingresados.");
+        } finally {
+            if (resultado == null) {
+                fotoPerfilService.eliminar(fotoNueva);
             }
+        }
 
+        if (resultado == null) {
+            return volverFormularioUsuario(model, formulario, "El usuario que intentas editar no existe.");
+        }
+        if (cambiarFoto || quitarFoto) {
+            fotoPerfilService.eliminar(resultado.fotoAnterior());
+        }
+        Usuario guardado = resultado.usuario();
 
-            if (!clave.equals(confirmacion)) {
-
-                return volverFormularioUsuario(
-                        model,
-                        formulario,
-                        "Las contraseñas no coinciden."
-                );
+        String mensaje = nuevo ? "Usuario registrado correctamente." : "Usuario actualizado correctamente.";
+        if (nuevo) {
+            var envio = correoCuentaService.enviarBienvenida(
+                    guardado.getCorreo(), guardado.getNombreCompleto(), guardado.getRolVisual(), clave);
+            switch (envio) {
+                case ACEPTADO -> mensaje = "Usuario registrado y correo de bienvenida enviado al proveedor.";
+                case SIN_CONFIGURACION -> redirect.addFlashAttribute("avisoCorreo",
+                        "Falta configurar el servidor SMTP y el remitente de SkillBridge AI para enviar la bienvenida.");
+                case ERROR_AUTENTICACION -> redirect.addFlashAttribute("avisoCorreo",
+                        "El proveedor de correo rechazó la autenticación. Revisa las credenciales SMTP.");
+                case ERROR_ENVIO -> redirect.addFlashAttribute("avisoCorreo",
+                        "No se pudo enviar el correo de bienvenida. Cuando el envío esté disponible, el usuario puede solicitar un enlace desde el login.");
             }
-
-
-            usuario.setPasswordHash(
-                    passwordEncoder.encode(
-                            clave
-                    )
-            );
         }
+        redirect.addFlashAttribute("mensajeExito", mensaje);
 
-
-        /* =====================================================
-           COPIAR SOLO CAMPOS YA VALIDADOS
-           ===================================================== */
-
-        usuario.setNombres(
-                nombresLimpios
-        );
-
-        usuario.setApellidos(
-                apellidosLimpios
-        );
-
-        usuario.setCorreo(
-                correoLimpio
-        );
-
-        usuario.setTelefono(
-                telefonoLimpio
-        );
-
-        usuario.setEstado(
-                estado
-        );
-
-        usuario.setRol(
-                rol
-        );
-
-
-        /* =====================================================
-           GUARDAR
-           ===================================================== */
-
-        Usuario guardado =
-                usuarioRepository.save(
-                        usuario
-                );
-
-
-        if (
-                !"ADMINISTRADOR".equals(
-                        rol.getNombre()
-                )
-                        &&
-                        colaboradorRepository
-                                .findByUsuarioIdUsuario(
-                                        guardado.getIdUsuario()
-                                )
-                                .isEmpty()
-        ) {
-
-            Colaborador colaborador =
-                    new Colaborador();
-
-            colaborador.setUsuario(
-                    guardado
-            );
-
-            colaborador.setCargo(
-                    "Por definir"
-            );
-
-            colaborador.setArea(
-                    "Por definir"
-            );
-
-            colaborador.setDisponibilidadBase(
-                    100
-            );
-
-            colaboradorRepository.save(
-                    colaborador
-            );
-        }
-
-
-        registrarAuditoria(
-                nuevo ? "Crear usuario" : "Actualizar usuario",
-                "Administración",
-                (nuevo
-                        ? "Se registró la cuenta de "
-                        : "Se actualizó la cuenta de ")
-                        + guardado.getNombreCompleto()
-        );
-
-
-        cargarUsuarios(
-                model,
-                usuarioRepository.findAll(),
-                null
-        );
-
-
-        model.addAttribute(
-                "mensajeExito",
-                nuevo
-                        ? "Usuario registrado correctamente."
-                        : "Usuario actualizado correctamente."
-        );
-
-
-        return "admin/usuarios";
+        return "redirect:/admin/usuarios";
     }
 
 
@@ -1093,6 +938,10 @@ public class AdminController {
             Usuario usuario,
             String error
     ) {
+        if (usuario.getIdUsuario() != null) {
+            usuarioRepository.findById(usuario.getIdUsuario())
+                    .ifPresent(cuenta -> usuario.setFotoUrl(cuenta.getFotoUrl()));
+        }
 
         model.addAttribute(
                 "titulo",
@@ -1133,144 +982,62 @@ public class AdminController {
     // evita borrar físicamente registros relacionados.
 
     /**
-     * Cambia entre los estados activo e inactivo el usuario identificado en la ruta
-     * y registra la modificación.
-     *
-     * @param idTexto identificador textual del usuario recibido en la ruta
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la lista actualizada de usuarios
-     * @return la vista de usuarios o una redirección según la validación realizada
+     * Actualiza el estado elegido y vuelve al listado con los filtros activos.
      */
     @PostMapping("/usuarios/{id}/estado")
     public String cambiarEstadoUsuario(
             @PathVariable("id") String idTexto,
+            @RequestParam("activar") boolean activar,
+            @RequestParam(value = "q", defaultValue = "") String q,
+            @RequestParam(value = "rol", required = false) Integer rol,
+            @RequestParam(value = "estado", required = false) Usuario.EstadoUsuario estado,
             HttpSession session,
-            Model model
+            RedirectAttributes redirect
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
+        if (!q.isBlank()) {
+            redirect.addAttribute("q", q);
+        }
+        if (rol != null) {
+            redirect.addAttribute("rol", rol);
+        }
+        if (estado != null) {
+            redirect.addAttribute("estado", estado.name());
+        }
 
         Integer id;
-
         try {
             id = Integer.valueOf(idTexto);
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
             return "redirect:/admin/usuarios";
         }
 
+        Usuario.EstadoUsuario nuevoEstado = activar
+                ? Usuario.EstadoUsuario.ACTIVO
+                : Usuario.EstadoUsuario.INACTIVO;
+        Boolean encontrado = transacciones.execute(transaccion -> {
+            Usuario usuario = usuarioRepository.buscarParaActualizar(id).orElse(null);
+            if (usuario == null) {
+                return false;
+            }
+            if (usuario.getEstado() != nuevoEstado) {
+                usuario.setEstado(nuevoEstado);
+                registrarAuditoria(
+                        "Cambiar estado de usuario",
+                        "Administración",
+                        usuario.getNombreCompleto() + " quedó en estado " + nuevoEstado
+                );
+            }
+            return true;
+        });
 
-        Optional<Usuario> encontrado =
-                usuarioRepository.findById(id);
-
-
-        if (encontrado.isEmpty()) {
-            return "redirect:/admin/usuarios";
+        if (Boolean.TRUE.equals(encontrado)) {
+            redirect.addFlashAttribute("mensajeExito", "Estado del usuario actualizado.");
         }
-
-
-        Usuario usuario =
-                encontrado.get();
-
-
-        usuario.setEstado(
-                usuario.getEstado()
-                        == Usuario.EstadoUsuario.ACTIVO
-                        ? Usuario.EstadoUsuario.INACTIVO
-                        : Usuario.EstadoUsuario.ACTIVO
-        );
-
-
-        usuarioRepository.save(
-                usuario
-        );
-
-
-        registrarAuditoria(
-                "Cambiar estado de usuario",
-                "Administración",
-                usuario.getNombreCompleto()
-                        + " quedó en estado "
-                        + usuario.getEstado()
-        );
-
-
-        cargarUsuarios(
-                model,
-                usuarioRepository.findAll(),
-                null
-        );
-
-
-        model.addAttribute(
-                "mensajeExito",
-                "Estado del usuario actualizado."
-        );
-
-
-        return "admin/usuarios";
-    }
-
-
-    /* =========================================================
-       ROLES Y PERMISOS
-       ========================================================= */
-
-    /**
-     * Muestra los roles registrados y los permisos disponibles en la administración.
-     *
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan los roles, permisos y totales asociados
-     * @return la vista de roles y permisos o una redirección al inicio de sesión
-     */
-    @GetMapping("/roles")
-    public String roles(
-            HttpSession session,
-            Model model
-    ) {
-
-        if (!esAdmin(session)) {
-            return "redirect:/login";
-        }
-
-
-        List<Rol> roles =
-                rolRepository.findAll();
-
-
-        model.addAttribute(
-                "titulo",
-                "Roles y permisos"
-        );
-
-
-        model.addAttribute(
-                "roles",
-                roles
-        );
-
-
-        model.addAttribute(
-                "permisos",
-                permisoRepository.findAll()
-        );
-
-
-        model.addAttribute(
-                "totalPermisos",
-                permisoRepository.count()
-        );
-
-
-        model.addAttribute(
-                "totalUsuarios",
-                usuarioRepository.count()
-        );
-
-
-        return "admin/roles";
+        return "redirect:/admin/usuarios";
     }
 
 

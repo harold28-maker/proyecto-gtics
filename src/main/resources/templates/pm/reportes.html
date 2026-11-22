@@ -13,25 +13,25 @@
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
         <div class="content">
           <div class="grid-4">
-            <div class="metric">
+            <div class="metric" th:unless="${permisosBloqueados.contains('proyectos')}">
               <div class="metric-icon">▣</div>
               <div class="label">Proyectos</div>
               <div class="value" th:text="${totalProyectos}"></div>
               <div class="hint">Portafolio total</div>
             </div>
-            <div class="metric green">
+            <div class="metric green" th:unless="${permisosBloqueados.contains('proyectos')}">
               <div class="metric-icon">●</div>
               <div class="label">Activos</div>
               <div class="value" th:text="${proyectosActivos}"></div>
               <div class="hint">En curso</div>
             </div>
-            <div class="metric blue">
+            <div class="metric blue" th:unless="${permisosBloqueados.contains('proyectos') or permisosBloqueados.contains('historial')}">
               <div class="metric-icon">✓</div>
               <div class="label">Completados</div>
               <div class="value" th:text="${proyectosCompletados}"></div>
               <div class="hint">Cerrados</div>
             </div>
-            <div class="metric orange">
+            <div class="metric orange" th:unless="${permisosBloqueados.contains('asignaciones')}">
               <div class="metric-icon">☷</div>
               <div class="label">Asignaciones</div>
               <div class="value" th:text="${totalAsignaciones}"></div>
@@ -42,29 +42,29 @@
             <section class="card">
               <div class="card-title"><h2>Plantillas de reporte</h2></div>
               <div class="grid-2">
-                <div class="soft-panel">
+                <div class="soft-panel" th:unless="${permisosBloqueados.contains('proyectos')}">
                   <strong>Resumen de proyectos</strong>
                   <p class="muted">Estados, progreso y fechas.</p>
                   <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='proyectos')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='proyectos')}">Descargar CSV</a></div>
                 </div>
-                <div class="soft-panel">
+                <div class="soft-panel" th:unless="${permisosBloqueados.contains('asignaciones')}">
                   <strong>Asignaciones por proyecto</strong>
                   <p class="muted">Equipo, roles y dedicación.</p>
                   <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='asignaciones')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='asignaciones')}">Descargar CSV</a></div>
                 </div>
-                <div class="soft-panel">
+                <div class="soft-panel" th:unless="${permisosBloqueados.contains('disponibilidad')}">
                   <strong>Carga de trabajo</strong>
                   <p class="muted">Distribución de capacidad.</p>
                   <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='carga')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='carga')}">Descargar CSV</a></div>
                 </div>
-                <div class="soft-panel">
+                <div class="soft-panel" th:unless="${permisosBloqueados.contains('historial')}">
                   <strong>Historial</strong>
                   <p class="muted">Proyectos finalizados.</p>
                   <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='historial')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='historial')}">Descargar CSV</a></div>
                 </div>
               </div>
             </section>
-            <section class="card">
+            <section class="card" th:unless="${permisosBloqueados.contains('proyectos')}">
               <div class="card-title"><h2>Progreso del portafolio</h2></div>
               <div class="bar-list">
                 <div class="bar-item" th:each="p : ${proyectos}">

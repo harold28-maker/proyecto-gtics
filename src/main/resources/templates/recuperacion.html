@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title th:text="${cambiarContrasena == true ? 'Cambia tu contraseña | SkillBridge AI' : 'Recupera tu contraseña | SkillBridge AI'}">
+        Recupera tu contraseña | SkillBridge AI
+    </title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="login-shell-simple" th:with="esCambio=${cambiarContrasena == true}">
+    <th:block th:replace="~{fragments/acceso :: marca}"></th:block>
+
+    <section class="login-access-side" aria-labelledby="login-title">
+        <th:block th:replace="~{fragments/acceso :: volverInicio}"></th:block>
+
+        <div class="login-box-simple">
+            <header class="login-box-header">
+                <h1 id="login-title" th:text="${esCambio ? 'Cambia tu contraseña' : 'Recupera tu contraseña'}">
+                    Recupera tu contraseña
+                </h1>
+                <p class="login-simple-description" th:unless="${esCambio}">
+                    Ingresa tu correo institucional para recibir un enlace de recuperación.
+                </p>
+                <p class="login-simple-description" th:if="${esCambio and solicitud != null}">
+                    Elige una nueva contraseña para tu cuenta.
+                </p>
+            </header>
+
+            <div class="login-alert-simple login-alert-success" role="status" th:if="${solicitudEnviada}">
+                Si hay una cuenta activa asociada a ese correo, recibirás un enlace de recuperación.
+            </div>
+            <div class="login-alert-simple" role="alert" th:if="${errorRecuperacion}" th:text="${errorRecuperacion}"></div>
+
+            <form th:unless="${esCambio}" th:action="@{/recuperar-contrasena}" method="post">
+                <div class="login-field-simple">
+                    <label for="correo">Correo institucional</label>
+                    <input id="correo" name="correo" type="email" maxlength="150" required autocomplete="email"
+                           placeholder="nombre@skillbridge.com">
+                </div>
+                <button class="btn btn-primary login-button-simple" type="submit">Enviar enlace</button>
+                <a class="login-link-simple login-return-link" th:href="@{/login}">Volver al inicio de sesión</a>
+            </form>
+
+            <form th:if="${esCambio and solicitud != null}" th:action="@{/restablecer-contrasena}" method="post">
+                <input type="hidden" name="solicitud" th:value="${solicitud}">
+                <div class="login-field-simple">
+                    <label for="password">Nueva contraseña</label>
+                    <input id="password" name="password" type="password" minlength="8" maxlength="30" required
+                           autocomplete="new-password" aria-describedby="regla-contrasena"
+                           pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,30}">
+                    <small class="login-password-help" id="regla-contrasena">
+                        Entre 8 y 30 caracteres, con una mayúscula, una minúscula y un número.
+                    </small>
+                </div>
+                <div class="login-field-simple">
+                    <label for="confirmarPassword">Confirmar contraseña</label>
+                    <input id="confirmarPassword" name="confirmarPassword" type="password" minlength="8" maxlength="30"
+                           required autocomplete="new-password">
+                </div>
+                <button class="btn btn-primary login-button-simple" type="submit">Guardar contraseña</button>
+            </form>
+
+            <div th:if="${esCambio and solicitud == null}">
+                <p class="login-alert-simple" role="alert">Este enlace venció, ya se usó o no es válido.</p>
+                <a class="btn btn-primary login-button-simple" th:href="@{/recuperar-contrasena}">Solicitar otro enlace</a>
+                <a class="login-link-simple login-return-link" th:href="@{/login}">Volver al inicio de sesión</a>
+            </div>
+        </div>
+    </section>
+</main>
+</body>
+</html>

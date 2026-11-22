@@ -46,6 +46,7 @@
 
 
         <div class="content">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
 
 
             <!-- ==========================================
@@ -69,8 +70,8 @@
 
 
                 <div class="actions">
-                    <a class="btn btn-light" th:href="@{/admin/reportes}">Ver reportes</a>
-                    <a class="btn btn-primary" th:href="@{/admin/usuarios/nuevo}">＋ Nuevo usuario</a>
+                    <a class="btn btn-light" th:unless="${permisosBloqueados.contains('reportes')}" th:href="@{/admin/reportes}">Ver reportes</a>
+                    <a class="btn btn-primary" th:unless="${permisosBloqueados.contains('usuarios')}" th:href="@{/admin/usuarios/nuevo}">＋ Nuevo usuario</a>
                 </div>
 
             </section>
@@ -86,7 +87,7 @@
 
                 <!-- USUARIOS -->
 
-                <div class="metric">
+                <div class="metric" th:unless="${permisosBloqueados.contains('usuarios')}">
 
                     <div class="label">
                         Usuarios totales
@@ -107,7 +108,7 @@
 
                 <!-- USUARIOS ACTIVOS -->
 
-                <div class="metric green">
+                <div class="metric green" th:unless="${permisosBloqueados.contains('usuarios')}">
 
                     <div class="label">
                         Usuarios activos
@@ -149,7 +150,7 @@
 
                 <!-- HABILIDADES -->
 
-                <div class="metric orange">
+                <div class="metric orange" th:unless="${permisosBloqueados.contains('habilidades')}">
 
                     <div class="label">
                         Habilidades
@@ -175,7 +176,7 @@
                  ACTIVIDAD RECIENTE
                  ========================================== -->
 
-            <section class="card section">
+            <section class="card section" th:unless="${permisosBloqueados.contains('auditoria')}">
 
                 <div class="card-title">
 
@@ -228,7 +229,7 @@
                     <span class="badge badge-purple"
                           th:text="${
                               a.fecha != null
-                              ? a.fecha
+                              ? #temporals.format(a.fecha, 'dd/MM/yyyy · HH:mm')
                               : 'reciente'
                           }">
 
@@ -255,7 +256,7 @@
                  USUARIOS RECIENTES
                  ========================================== -->
 
-            <section class="card section">
+            <section class="card section" th:unless="${permisosBloqueados.contains('usuarios')}">
 
 
                 <div class="card-title">
@@ -339,10 +340,6 @@
                                         <strong th:text="${u.nombreCompleto}">
                                             Usuario
                                         </strong>
-
-                                        <small th:text="|ID ${u.idUsuario}|">
-                                            ID
-                                        </small>
 
                                     </div>
 

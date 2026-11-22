@@ -2,6 +2,7 @@ package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import org.hibernate.annotations.DynamicUpdate;
 import java.time.LocalDateTime;
 
 /**
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
  * personales, su rol y el estado de su cuenta.
  */
 @Entity
+@DynamicUpdate
 @Table(name = "usuarios")
 public class Usuario {
     /**
@@ -231,13 +233,6 @@ public class Usuario {
      */
     @Transient
     public String getRolVisual() {
-        if (rol == null || rol.getNombre() == null) return "Usuario";
-        return switch (rol.getNombre()) {
-            case "ADMINISTRADOR" -> "Administrador";
-            case "PROJECT_MANAGER" -> "Project Manager";
-            case "RESOURCE_MANAGER" -> "Resource Manager";
-            case "COLABORADOR" -> "Colaborador";
-            default -> rol.getNombre();
-        };
+        return rol == null ? "Usuario" : rol.getNombreVisual();
     }
 }

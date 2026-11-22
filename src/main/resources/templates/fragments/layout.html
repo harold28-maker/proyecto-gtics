@@ -87,6 +87,7 @@
 
             <a th:href="@{/admin/usuarios}">
                 Usuarios
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('usuarios')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/admin/roles}">
@@ -95,22 +96,27 @@
 
             <a th:href="@{/admin/habilidades}">
                 Habilidades
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('habilidades')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/admin/categorias}">
                 Categorías
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('categorias')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/admin/auditoria}">
                 Auditoría
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('auditoria')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/admin/monitoreo}">
                 Monitoreo
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('monitoreo')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/admin/reportes}">
                 Reportes
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('reportes')}">Sin acceso</small>
             </a>
 
         </th:block>
@@ -128,34 +134,42 @@
 
             <a th:href="@{/pm/proyectos}">
                 Proyectos
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('proyectos')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/pm/asignaciones}">
                 Asignaciones
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('asignaciones')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/pm/colaboradores}">
                 Colaboradores
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('colaboradores')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/pm/disponibilidad}">
                 Disponibilidad
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('disponibilidad')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/pm/recomendaciones}">
                 Recomendaciones
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('recomendaciones')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/pm/foros}">
                 Foro
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('foros')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/pm/reportes}">
                 Reportes
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('reportes')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/pm/historial}">
                 Historial
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('historial')}">Sin acceso</small>
             </a>
 
         </th:block>
@@ -173,30 +187,37 @@
 
             <a th:href="@{/resource/colaboradores}">
                 Colaboradores
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('colaboradores')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/resource/asignaciones}">
                 Asignaciones
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('asignaciones')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/resource/disponibilidad}">
                 Disponibilidad
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('capacidad')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/resource/carga}">
                 Carga de trabajo
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('capacidad')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/resource/talent}">
                 Asignación de talento
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('talento')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/resource/reportes}">
                 Reportes
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('reportes')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/resource/historial}">
                 Proyectos anteriores
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('historial')}">Sin acceso</small>
             </a>
 
         </th:block>
@@ -214,34 +235,47 @@
 
             <a th:href="@{/colaborador/perfil}">
                 Mi perfil
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('perfil')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/colaborador/certificaciones}">
                 Certificaciones
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('certificaciones')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/colaborador/habilidades}">
                 Mis habilidades
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('habilidades')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/colaborador/proyectos}">
                 Mis proyectos
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('proyectos')}">Sin acceso</small>
+            </a>
+
+            <a th:href="@{/colaborador/historial}">
+                Historial
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('historial')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/colaborador/asignaciones}">
                 Mis asignaciones
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('asignaciones')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/colaborador/foros}">
                 Foro
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('foros')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/colaborador/chat}">
                 Chat
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('chat')}">Sin acceso</small>
             </a>
 
             <a th:href="@{/colaborador/notificaciones}">
                 Notificaciones
+                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('notificaciones')}">Sin acceso</small>
             </a>
 
         </th:block>
@@ -520,5 +554,8 @@
 </header>
 
 
+<div th:fragment="avisoPermisos" class="aviso-permisos" role="status" th:if="${!permisosBloqueados.isEmpty()}">
+    El administrador actualizó los permisos de tu rol. Contacta a Administración si necesitas alguna función marcada «Sin acceso».
+</div>
 </body>
 </html>

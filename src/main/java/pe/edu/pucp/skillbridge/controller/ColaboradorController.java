@@ -28,6 +28,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -873,12 +874,32 @@ public class ColaboradorController {
      * @return nombre de la vista de proyectos
      */
     @GetMapping("/proyectos")
-    public String proyectos(Model model) {
-        Colaborador c = colaboradorDemo();
+    public String proyectos(@RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
         model.addAttribute("titulo", "Mis proyectos");
-        model.addAttribute("asignaciones", c == null ? List.of()
-                : asignacionRepository.findByColaboradorIdColaboradorOrderByFechaInicioDesc(c.getIdColaborador()));
+        model.addAttribute("asignaciones", participaciones().stream()
+                .filter(a -> !bloqueados.contains("historial") || !esHistorica(a)).toList());
         return "colaborador/proyectos";
+    }
+
+    @GetMapping("/historial")
+    public String historial(Model model) {
+        model.addAttribute("titulo", "Historial de proyectos");
+        model.addAttribute("esHistorial", true);
+        model.addAttribute("asignaciones", participaciones().stream().filter(this::esHistorica).toList());
+        return "colaborador/proyectos";
+    }
+
+    private List<Asignacion> participaciones() {
+        Colaborador colaborador = colaboradorDemo();
+        return colaborador == null ? List.of() : asignacionRepository
+                .findByColaboradorIdColaboradorOrderByFechaInicioDesc(colaborador.getIdColaborador());
+    }
+
+    private boolean esHistorica(Asignacion asignacion) {
+        Proyecto.EstadoProyecto estado = asignacion.getProyecto().getEstado();
+        return estado == Proyecto.EstadoProyecto.COMPLETED || estado == Proyecto.EstadoProyecto.CANCELLED
+                || asignacion.getEstado() == Asignacion.EstadoAsignacion.FINALIZADA
+                || asignacion.getEstado() == Asignacion.EstadoAsignacion.CANCELADA;
     }
 
     /**
@@ -892,11 +913,10 @@ public class ColaboradorController {
     @GetMapping("/asignaciones")
     public String asignaciones(@RequestParam(value = "q", required = false) String q,
                                @RequestParam(value = "estado", required = false, defaultValue = "TODOS") String estado,
-                               Model model) {
-        Colaborador c = colaboradorDemo();
-        List<Asignacion> lista = c == null ? List.of()
-                : asignacionRepository.findByColaboradorIdColaboradorOrderByFechaInicioDesc(c.getIdColaborador());
-        lista = lista.stream().filter(a -> {
+                               @RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
+        List<Asignacion> lista = participaciones().stream()
+                .filter(a -> !bloqueados.contains("historial") || !esHistorica(a))
+                .filter(a -> {
             boolean texto = q == null || q.isBlank()
                     || a.getProyecto().getNombre().toLowerCase().contains(q.toLowerCase())
                     || (a.getRolProyecto() != null && a.getRolProyecto().toLowerCase().contains(q.toLowerCase()));

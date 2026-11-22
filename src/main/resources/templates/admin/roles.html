@@ -1,436 +1,126 @@
 <!DOCTYPE html>
-<html lang="es"
-      xmlns:th="http://www.thymeleaf.org">
-
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1">
-
-    <title>
-        Roles y permisos | SkillBridge AI
-    </title>
-
-    <link rel="stylesheet"
-          th:href="@{/css/app.css}">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Roles y permisos | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-
 <body>
-
 <div class="app-shell">
-
-    <!-- SIDEBAR -->
-    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
-    </aside>
-
-
+    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}"></aside>
     <main class="main">
-
-        <!-- TOPBAR -->
-        <header th:replace="~{fragments/layout :: topbar(${titulo})}">
-        </header>
-
-
-        <div class="content">
-
-
-            <!-- ==========================================
-                 RESUMEN
-                 ========================================== -->
-
-            <div class="grid-3">
-
-
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content roles-configuracion">
+            <section class="page-intro">
+                <h2>Roles y permisos</h2>
+            </section>
+            <section class="grid-3" aria-label="Resumen">
                 <div class="metric">
-
-                    <div class="label">
-                        Roles
-                    </div>
-
-                    <div class="value"
-                         th:text="${#lists.size(roles)}">
-                        4
-                    </div>
-
-                    <div class="hint">
-                        Registrados
-                    </div>
-
+                    <div class="label">Roles</div>
+                    <div class="value" th:text="${#lists.size(roles)}">0</div>
+                    <div class="hint">Registrados</div>
                 </div>
-
-
                 <div class="metric green">
-
-                    <div class="label">
-                        Permisos
-                    </div>
-
-                    <div class="value"
-                         th:text="${totalPermisos}">
-                        12
-                    </div>
-
-                    <div class="hint">
-                        Registrados
-                    </div>
-
+                    <div class="label">Permisos</div>
+                    <div class="value" th:text="${totalPermisos}">0</div>
+                    <div class="hint">Habilitados en los roles</div>
                 </div>
-
-
                 <div class="metric blue">
-
-                    <div class="label">
-                        Usuarios
-                    </div>
-
-                    <div class="value"
-                         th:text="${totalUsuarios}">
-                        9
-                    </div>
-
-                    <div class="hint">
-                        Con rol asignado
-                    </div>
-
+                    <div class="label">Usuarios</div>
+                    <div class="value" th:text="${totalUsuarios}">0</div>
+                    <div class="hint">Con rol asignado</div>
                 </div>
-
-
-            </div>
-
-
-
-            <!-- ==========================================
-                 ROLES
-                 ========================================== -->
-
-            <section class="card section">
-
-                <div class="simple-section-title">
-
-                    <div>
-
-                        <h2>
-                            Roles del sistema
-                        </h2>
-
-                        <p>
-                            Selecciona un rol para revisar sus permisos.
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <div class="simple-role-grid">
-
-
-                    <button type="button"
-                            class="simple-role-card"
-                            th:each="r, estadoRol : ${roles}"
-                            th:classappend="${estadoRol.index == 0} ? ' active' : ''"
-                            th:attr="data-role-id=${r.idRol}"
-                            onclick="seleccionarRol(this)">
-
-
-                        <div class="simple-role-header">
-
-                            <strong th:text="${
-                                r.nombre == 'COLABORADOR'
-                                ? 'Colaborador'
-                                : (r.nombre == 'PROJECT_MANAGER'
-                                ? 'Project Manager'
-                                : (r.nombre == 'RESOURCE_MANAGER'
-                                ? 'Resource Manager'
-                                : (r.nombre == 'ADMINISTRADOR'
-                                ? 'Administrador'
-                                : r.nombre)))
-                            }">
-
-                                Colaborador
-
-                            </strong>
-
-
-                            <span class="badge"
-                                  th:classappend="${r.estado}
-                                  ? ' badge-success'
-                                  : ' badge-warning'"
-                                  th:text="${r.estado
-                                  ? 'Activo'
-                                  : 'Inactivo'}">
-
-                                Activo
-
-                            </span>
-
-                        </div>
-
-
-                        <p th:text="${r.descripcion}">
-                            Descripción del rol
-                        </p>
-
-
-                        <span class="simple-role-count"
-                              th:text="${#lists.size(
-                                  permisos.?[rol.idRol == __${r.idRol}__]
-                              ) + ' permisos'}">
-
-                            0 permisos
-
-                        </span>
-
-
-                    </button>
-
-
-                </div>
-
-
             </section>
 
+            <div class="roles-paneles section">
+                <section class="card roles-lista">
+                    <h3>Roles del sistema</h3>
+                    <nav aria-label="Seleccionar rol">
+                        <a class="rol-opcion" th:each="r : ${roles}"
+                           th:href="@{/admin/roles(rol=${r.rol.idRol})}"
+                           th:classappend="${r.rol.idRol == seleccionado.rol.idRol ? 'seleccionado' : ''}"
+                           th:attr="aria-current=${r.rol.idRol == seleccionado.rol.idRol ? 'true' : null}">
+                            <strong th:text="${r.rol.nombreVisual}">Colaborador</strong>
+                            <small th:text="|${r.usuarios} ${r.usuarios == 1 ? 'usuario' : 'usuarios'} · ${r.totalHabilitados()} ${r.totalHabilitados() == 1 ? 'permiso' : 'permisos'}|">
+                                Usuarios y permisos
+                            </small>
+                        </a>
+                    </nav>
+                    <p class="muted" th:if="${#lists.isEmpty(roles)}">No hay roles registrados.</p>
+                </section>
 
-
-            <!-- ==========================================
-                 PERMISOS DEL ROL
-                 ========================================== -->
-
-            <section class="card section">
-
-
-                <div class="simple-permission-panel"
-                     th:each="r, estadoRol : ${roles}"
-                     th:id="'panel-rol-' + ${r.idRol}"
-                     th:classappend="${estadoRol.index != 0}
-                     ? ' hidden'
-                     : ''">
-
-
-                    <div class="simple-section-title">
-
+                <section class="card rol-detalle" th:if="${seleccionado != null}">
+                    <div class="rol-encabezado">
                         <div>
-
-                            <h2>
-
-                                Permisos de
-
-                                <span th:text="${
-                                    r.nombre == 'COLABORADOR'
-                                    ? 'Colaborador'
-                                    : (r.nombre == 'PROJECT_MANAGER'
-                                    ? 'Project Manager'
-                                    : (r.nombre == 'RESOURCE_MANAGER'
-                                    ? 'Resource Manager'
-                                    : (r.nombre == 'ADMINISTRADOR'
-                                    ? 'Administrador'
-                                    : r.nombre)))
-                                }">
-
-                                    Colaborador
-
-                                </span>
-
-                            </h2>
-
-
-                            <p>
-                                Permisos actualmente asignados a este rol.
-                            </p>
-
+                            <div class="rol-titulo">
+                                <h3 th:text="|${editar ? 'Configurar' : 'Permisos de'} ${seleccionado.rol.nombreVisual}|">
+                                    Permisos de Colaborador
+                                </h3>
+                                <span class="badge" th:classappend="${seleccionado.rol.estado == true ? 'badge-success' : 'badge-warning'}"
+                                      th:text="${seleccionado.rol.estado == true ? 'Activo' : 'Inactivo'}">Activo</span>
+                            </div>
+                            <a class="rol-usuarios" th:href="@{/admin/usuarios(rol=${seleccionado.rol.idRol})}"
+                               th:text="|Ver ${seleccionado.usuarios} ${seleccionado.usuarios == 1 ? 'usuario' : 'usuarios'} con este rol|">
+                                Ver usuarios con este rol
+                            </a>
                         </div>
-
-
-                        <span class="badge badge-purple">
-
-                            <span th:text="${#lists.size(
-                                permisos.?[rol.idRol == __${r.idRol}__]
-                            )}">
-                                0
-                            </span>
-
-                            permisos
-
-                        </span>
-
-
+                        <a class="btn btn-primary" th:if="${!editar and !#lists.isEmpty(seleccionado.permisos)}"
+                           th:href="@{/admin/roles(rol=${seleccionado.rol.idRol},editar=true)}">Configurar rol</a>
                     </div>
 
-
-
-                    <!-- TABLA -->
-
-                    <div class="table-wrap">
-
-                        <table class="simple-permission-table">
-
-                            <thead>
-
-                            <tr>
-
-                                <th>
-                                    Permiso
-                                </th>
-
-                                <th>
-                                    Módulo
-                                </th>
-
-                                <th>
-                                    Descripción
-                                </th>
-
-                            </tr>
-
-                            </thead>
-
-
-                            <tbody>
-
-
-                            <tr th:each="p : ${permisos}"
-                                th:if="${p.rol.idRol == r.idRol}">
-
-
-                                <td>
-
-                                    <strong th:text="${p.nombre}">
-                                        Consultar perfil
-                                    </strong>
-
-                                </td>
-
-
-                                <td>
-
-                                    <span class="tag"
-                                          th:text="${p.modulo}">
-                                        Perfil
-                                    </span>
-
-                                </td>
-
-
-                                <td th:text="${p.descripcion != null
-                                    and !#strings.isEmpty(p.descripcion)
-                                    ? p.descripcion
-                                    : '-'}">
-
-                                    -
-
-                                </td>
-
-
-                            </tr>
-
-
-                            </tbody>
-
-                        </table>
-
+                    <div class="alert-success rol-aviso" role="status" th:if="${mensajeRol != null}">
+                        <span th:text="${mensajeRol}">Cambios guardados.</span>
+                        <a th:if="${verAuditoria == true and !permisosBloqueados.contains('auditoria')}"
+                           th:href="@{/admin/auditoria(modulo='Roles y permisos',q=${seleccionado.rol.nombreVisual})}">
+                            Ver en auditoría
+                        </a>
                     </div>
+                    <div class="alert-error" role="alert" th:if="${errorRol != null}" th:text="${errorRol}"></div>
 
-
-
-                    <!-- SIN PERMISOS -->
-
-                    <div class="empty"
-                         th:if="${#lists.isEmpty(
-                             permisos.?[rol.idRol == __${r.idRol}__]
-                         )}">
-
-                        Este rol no tiene permisos registrados.
-
-                    </div>
-
-
-                </div>
-
-
-            </section>
-
-
+                    <form method="post" th:action="@{/admin/roles/{id}/guardar(id=${seleccionado.rol.idRol})}">
+                        <div class="form-group rol-descripcion" th:if="${editar}">
+                            <label for="descripcionRol">Descripción del rol</label>
+                            <input id="descripcionRol" name="descripcion" type="text" maxlength="200"
+                                   th:value="${seleccionado.rol.descripcion}">
+                        </div>
+                        <div class="table-wrap" th:unless="${#lists.isEmpty(seleccionado.permisos)}">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th scope="col">Módulo</th>
+                                    <th scope="col">Permiso</th>
+                                    <th scope="col">Alcance</th>
+                                    <th class="rol-checkbox" scope="col" th:if="${editar}">Habilitado</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="p : ${seleccionado.permisos}">
+                                    <td><span class="badge" th:text="${p.modulo}">Proyectos</span></td>
+                                    <td>
+                                        <strong th:text="${p.accion}">Consultar proyectos</strong>
+                                        <span class="badge badge-warning" th:if="${!editar and !seleccionado.habilitado(p)}">Deshabilitado</span>
+                                    </td>
+                                    <td th:text="${p.alcance}"></td>
+                                    <td class="rol-checkbox" th:if="${editar}">
+                                        <input th:if="${p.configurable}" type="checkbox" name="habilitados" th:value="${p.codigo}"
+                                               th:checked="${seleccionado.habilitado(p)}" th:attr="aria-label=${p.accion}">
+                                        <span class="muted" th:unless="${p.configurable}">Fijo</span>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="empty" th:if="${#lists.isEmpty(seleccionado.permisos)}">Este rol no tiene permisos configurables.</div>
+                        <div class="usuario-form-actions" th:if="${editar}">
+                            <a class="btn btn-light" th:href="@{/admin/roles(rol=${seleccionado.rol.idRol})}">Cancelar</a>
+                            <button class="btn btn-primary" type="submit">Guardar cambios</button>
+                        </div>
+                    </form>
+                </section>
+            </div>
         </div>
-
-
     </main>
-
-
 </div>
-
-
-
-<!-- ==========================================
-     CAMBIAR ROL
-     ========================================== -->
-
-<script>
-
-    function seleccionarRol(tarjeta) {
-
-        const tarjetas =
-            document.querySelectorAll(
-                ".simple-role-card"
-            );
-
-
-        tarjetas.forEach(function (item) {
-
-            item.classList.remove(
-                "active"
-            );
-
-        });
-
-
-        tarjeta.classList.add(
-            "active"
-        );
-
-
-        const idRol =
-            tarjeta.getAttribute(
-                "data-role-id"
-            );
-
-
-        const paneles =
-            document.querySelectorAll(
-                ".simple-permission-panel"
-            );
-
-
-        paneles.forEach(function (panel) {
-
-            panel.classList.add(
-                "hidden"
-            );
-
-        });
-
-
-        const panel =
-            document.getElementById(
-                "panel-rol-" + idRol
-            );
-
-
-        if (panel) {
-
-            panel.classList.remove(
-                "hidden"
-            );
-
-        }
-
-    }
-
-</script>
-
-
 </body>
-
 </html>

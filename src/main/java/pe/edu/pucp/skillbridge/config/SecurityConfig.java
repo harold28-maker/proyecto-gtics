@@ -5,10 +5,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
 import pe.edu.pucp.skillbridge.controller.LoginSuccessHandler;
 
@@ -31,22 +34,33 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    @Bean
+    public SessionRegistry sessionRegistry() {
+        return new SessionRegistryImpl();
+    }
+
+    @Bean
+    public HttpSessionEventPublisher httpSessionEventPublisher() {
+        return new HttpSessionEventPublisher();
+    }
     /**
      * Configura el acceso a rutas web, el inicio de sesión por formulario, la
      * redirección de éxito y el cierre de sesión de la aplicación.
      *
      * @param http configuración de seguridad HTTP proporcionada por Spring
      * @param successHandler manejador ejecutado cuando la autenticación finaliza correctamente
+     * @param sessionRegistry registro de sesiones para invalidarlas al restablecer la contraseña
      * @return cadena de filtros configurada para las rutas de la aplicación
      * @throws Exception si Spring Security no puede construir la cadena de filtros
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           LoginSuccessHandler successHandler) throws Exception {
+                                           LoginSuccessHandler successHandler, SessionRegistry sessionRegistry) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/login", "/sesion/portada", "/css/**", "/js/**",
-                                "/images/**", "/assets/**", "/favicon.ico").permitAll()
+                                "/images/**", "/assets/**", "/favicon.ico",
+                                "/recuperar-contrasena", "/restablecer-contrasena").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMINISTRADOR")
                         .requestMatchers("/pm/**").hasRole("PROJECT_MANAGER")
                         .requestMatchers("/resource/**").hasRole("RESOURCE_MANAGER")
@@ -54,6 +68,10 @@ public class SecurityConfig {
                         .requestMatchers("/foros/**").hasAnyRole("COLABORADOR", "PROJECT_MANAGER")
                         .anyRequest().authenticated()
                 )
+                .sessionManagement(session -> session
+                        .maximumSessions(-1)
+                        .sessionRegistry(sessionRegistry)
+                        .expiredUrl("/login"))
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/acceder")

@@ -87,7 +87,7 @@
 
                 <!-- EVENTOS -->
 
-                <div class="metric blue">
+                <div class="metric blue" th:unless="${permisosBloqueados.contains('auditoria')}">
 
                     <div class="label">
                         Eventos auditados
@@ -224,7 +224,7 @@
                      EVENTOS RECIENTES
                      ===================================== -->
 
-                <section class="card">
+                <section class="card" th:unless="${permisosBloqueados.contains('auditoria')}">
 
 
                     <div class="card-title">

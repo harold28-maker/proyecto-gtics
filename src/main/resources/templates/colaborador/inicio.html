@@ -11,7 +11,8 @@
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
         <div class="content">
-            <section class="card hero-card" th:if="${colaborador != null}">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <section class="card hero-card" th:if="${colaborador != null and !permisosBloqueados.contains('perfil')}">
                 <div class="profile-hero">
                     <div class="profile-avatar" th:text="${#strings.substring(colaborador.usuario.nombres,0,1)}">M</div>
                     <div>
@@ -28,14 +29,14 @@
             </section>
 
             <div class="grid-4 section">
-                <div class="metric"><div class="metric-icon">☷</div><div class="label">Asignaciones activas</div><div class="value" th:text="${asignacionesActivas ?: 0}">0</div><div class="hint">Trabajo en curso</div></div>
-                <div class="metric green"><div class="metric-icon">✦</div><div class="label">Habilidades registradas</div><div class="value" th:text="${habilidades ?: 0}">0</div><div class="hint">Perfil de talento</div></div>
-                <div class="metric blue"><div class="metric-icon">◫</div><div class="label">Carga actual</div><div class="value" th:text="|${cargaActual ?: 0}%|">0%</div><div class="hint">Dedicación activa</div></div>
-                <div class="metric orange"><div class="metric-icon">◆</div><div class="label">Disponibilidad estimada</div><div class="value" th:text="|${disponibilidadReal ?: 0}%|">0%</div><div class="hint">Capacidad restante</div></div>
+                <div class="metric" th:unless="${permisosBloqueados.contains('asignaciones')}"><div class="metric-icon">☷</div><div class="label">Asignaciones activas</div><div class="value" th:text="${asignacionesActivas ?: 0}">0</div><div class="hint">Trabajo en curso</div></div>
+                <div class="metric green" th:unless="${permisosBloqueados.contains('habilidades')}"><div class="metric-icon">✦</div><div class="label">Habilidades registradas</div><div class="value" th:text="${habilidades ?: 0}">0</div><div class="hint">Perfil de talento</div></div>
+                <div class="metric blue" th:unless="${permisosBloqueados.contains('asignaciones')}"><div class="metric-icon">◫</div><div class="label">Carga actual</div><div class="value" th:text="|${cargaActual ?: 0}%|">0%</div><div class="hint">Dedicación activa</div></div>
+                <div class="metric orange" th:unless="${permisosBloqueados.contains('asignaciones')}"><div class="metric-icon">◆</div><div class="label">Disponibilidad estimada</div><div class="value" th:text="|${disponibilidadReal ?: 0}%|">0%</div><div class="hint">Capacidad restante</div></div>
             </div>
 
             <div class="collab-dashboard-grid">
-                <section class="card focus-project">
+                <section class="card focus-project" th:unless="${permisosBloqueados.contains('proyectos') or permisosBloqueados.contains('asignaciones')}">
                     <div class="card-title">
                         <div>
                             <p class="eyebrow">Foco actual</p>
@@ -71,14 +72,14 @@
                     <div class="empty" th:if="${asignacionPrincipal == null}">No tienes una asignación activa en este momento.</div>
                 </section>
 
-                <section class="card">
+                <section class="card" th:unless="${permisosBloqueados.contains('asignaciones')}">
                     <div class="card-title"><div><p class="eyebrow">Balance personal</p><h2>Mi capacidad</h2></div></div>
                     <div class="capacity-stack">
                         <div class="capacity-row"><div class="capacity-row-head"><span>Disponibilidad base</span><strong th:text="|${colaborador != null ? colaborador.disponibilidadBase : 0}%|">0%</strong></div><div class="progress"><span th:style="|width:${colaborador != null ? colaborador.disponibilidadBase : 0}%|"></span></div></div>
                         <div class="capacity-row"><div class="capacity-row-head"><span>Carga activa</span><strong th:text="|${cargaActual ?: 0}%|">0%</strong></div><div class="progress orange"><span th:style="|width:${cargaActual > 100 ? 100 : cargaActual}%|"></span></div></div>
                         <div class="capacity-row"><div class="capacity-row-head"><span>Disponibilidad estimada</span><strong th:text="|${disponibilidadReal ?: 0}%|">0%</strong></div><div class="progress green"><span th:style="|width:${disponibilidadReal}%|"></span></div></div>
                     </div>
-                    <div class="profile-readiness">
+                    <div class="profile-readiness" th:unless="${permisosBloqueados.contains('habilidades') or permisosBloqueados.contains('certificaciones')}">
                         <strong>Perfil para oportunidades</strong>
                         <p><span th:text="${habilidades ?: 0}">0</span> habilidades y <span th:text="${totalCertificaciones ?: 0}">0</span> certificaciones respaldan tu perfil profesional.</p>
                     </div>

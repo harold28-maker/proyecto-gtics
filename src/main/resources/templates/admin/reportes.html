@@ -22,13 +22,13 @@
             </section>
 
             <div class="grid-4">
-                <div class="metric"><div class="metric-icon">♙</div><div class="label">Usuarios</div><div class="value" th:text="${totalUsuarios}">0</div><div class="hint">Registrados</div></div>
-                <div class="metric green"><div class="metric-icon">✓</div><div class="label">Activos</div><div class="value" th:text="${usuariosActivos}">0</div><div class="hint">Con acceso habilitado</div></div>
-                <div class="metric orange"><div class="metric-icon">!</div><div class="label">Inactivos / bloqueados</div><div class="value" th:text="${usuariosInactivos + usuariosBloqueados}">0</div><div class="hint">Sin acceso normal</div></div>
-                <div class="metric blue"><div class="metric-icon">◇</div><div class="label">Habilidades</div><div class="value" th:text="${totalHabilidades}">0</div><div class="hint" th:text="|${habilidadesActivas} activas|">0 activas</div></div>
+                <div class="metric" th:unless="${permisosBloqueados.contains('usuarios')}"><div class="metric-icon">♙</div><div class="label">Usuarios</div><div class="value" th:text="${totalUsuarios}">0</div><div class="hint">Registrados</div></div>
+                <div class="metric green" th:unless="${permisosBloqueados.contains('usuarios')}"><div class="metric-icon">✓</div><div class="label">Activos</div><div class="value" th:text="${usuariosActivos}">0</div><div class="hint">Con acceso habilitado</div></div>
+                <div class="metric orange" th:unless="${permisosBloqueados.contains('usuarios')}"><div class="metric-icon">!</div><div class="label">Inactivos / bloqueados</div><div class="value" th:text="${usuariosInactivos + usuariosBloqueados}">0</div><div class="hint">Sin acceso normal</div></div>
+                <div class="metric blue" th:unless="${permisosBloqueados.contains('habilidades')}"><div class="metric-icon">◇</div><div class="label">Habilidades</div><div class="value" th:text="${totalHabilidades}">0</div><div class="hint" th:text="|${habilidadesActivas} activas|">0 activas</div></div>
             </div>
 
-            <section class="card section">
+            <section class="card section" th:unless="${permisosBloqueados.contains('usuarios')}">
                 <div class="card-title reporte-encabezado">
                     <h2>Dedicación por proyecto</h2>
                     <div class="actions">
@@ -71,7 +71,7 @@
             <section class="card section">
                 <div class="card-title"><h2>Reportes disponibles</h2></div>
                 <div class="grid-3">
-                    <div class="soft-panel">
+                    <div class="soft-panel" th:unless="${permisosBloqueados.contains('usuarios')}">
                         <strong>Usuarios y accesos</strong>
                         <p class="muted">Cuenta, correo, rol, estado y teléfono.</p>
                         <div class="actions">
@@ -80,7 +80,7 @@
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='usuarios')}">Descargar CSV</a>
                         </div>
                     </div>
-                    <div class="soft-panel">
+                    <div class="soft-panel" th:unless="${permisosBloqueados.contains('habilidades')}">
                         <strong>Catálogo de habilidades</strong>
                         <p class="muted">Habilidad, categoría, estado y descripción.</p>
                         <div class="actions">
@@ -89,7 +89,7 @@
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='habilidades')}">Descargar CSV</a>
                         </div>
                     </div>
-                    <div class="soft-panel">
+                    <div class="soft-panel" th:unless="${permisosBloqueados.contains('auditoria')}">
                         <strong>Auditoría reciente</strong>
                         <p class="muted">Últimos eventos administrativos registrados.</p>
                         <div class="actions">
