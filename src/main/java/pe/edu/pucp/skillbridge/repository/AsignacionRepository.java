@@ -3,6 +3,8 @@ package pe.edu.pucp.skillbridge.repository;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import pe.edu.pucp.skillbridge.entity.Asignacion;
+import pe.edu.pucp.skillbridge.entity.Proyecto;
+
 import java.util.List;
 
 /**
@@ -34,5 +36,6 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Integer>
     List<Asignacion> findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(Integer idUsuario);
 
     @EntityGraph(attributePaths = {"proyecto", "colaborador.usuario"})
-    List<Asignacion> findByEstadoIn(List<Asignacion.EstadoAsignacion> estados);
+    List<Asignacion> findByEstadoInAndProyectoEstadoIn(
+            List<Asignacion.EstadoAsignacion> estados, List<Proyecto.EstadoProyecto> estadosProyecto);
 }

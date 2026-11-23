@@ -1730,6 +1730,8 @@ public class AdminController {
     @GetMapping("/reportes")
     public String reportes(
             @RequestParam(value = "reporte", required = false) String reporte,
+            @RequestParam(value = "vista", defaultValue = "barras") String vista,
+            @RequestParam(value = "proyecto", required = false) Integer proyecto,
             HttpSession session,
             Model model
     ) {
@@ -1742,15 +1744,22 @@ public class AdminController {
         List<Habilidad> habilidades = habilidadRepository.findAll();
 
         var graficoDedicacion = reporteAdministrativoService.consultarDedicacion();
+        var visualizacion = reporteAdministrativoService.visualizarDedicacion(graficoDedicacion, proyecto);
         model.addAttribute("titulo", "Reportes del sistema");
         model.addAttribute("graficoDedicacion", graficoDedicacion);
-        model.addAttribute("vistaPrevia", switch (reporte == null ? "" : reporte) {
+        model.addAttribute("visualizacionDedicacion", visualizacion);
+        model.addAttribute("modoDedicacion", "matriz".equals(vista) ? "matriz" : "barras");
+        model.addAttribute("proyectoDedicacion", visualizacion.reparto().proyecto() == null
+                ? null : visualizacion.reparto().proyecto().id());
+        var vistaPrevia = switch (reporte == null ? "" : reporte) {
             case "dedicacion" -> reporteAdministrativoService.tablaDedicacion(graficoDedicacion);
             case "usuarios" -> reporteAdministrativoService.tablaUsuarios(usuarios);
             case "habilidades" -> reporteAdministrativoService.tablaHabilidades(habilidades);
             case "auditoria" -> reporteAdministrativoService.tablaAuditoria(auditoriaRepository.findTop50ByOrderByFechaDesc());
             default -> null;
-        });
+        };
+        model.addAttribute("vistaPrevia", vistaPrevia);
+        model.addAttribute("reporteActivo", vistaPrevia == null ? null : reporte);
 
         model.addAttribute("totalUsuarios", usuarios.size());
         model.addAttribute("usuariosActivos", usuarios.stream()
@@ -1760,8 +1769,6 @@ public class AdminController {
         model.addAttribute("usuariosBloqueados", usuarios.stream()
                 .filter(u -> u.getEstado() == Usuario.EstadoUsuario.BLOQUEADO).count());
         model.addAttribute("totalHabilidades", habilidades.size());
-        model.addAttribute("habilidadesActivas", habilidades.stream()
-                .filter(h -> Boolean.TRUE.equals(h.getEstado())).count());
 
         return "admin/reportes";
     }

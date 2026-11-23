@@ -16,55 +16,143 @@
             <section class="page-intro">
                 <div>
                     <h2>Reportes administrativos</h2>
-                    <p>Consulta la dedicación de los colaboradores y descarga los reportes del sistema.</p>
                 </div>
                 <a class="btn btn-light" th:href="@{/admin/inicio}">Volver al inicio</a>
             </section>
 
             <div class="grid-4">
-                <div class="metric" th:unless="${permisosBloqueados.contains('usuarios')}"><div class="metric-icon">♙</div><div class="label">Usuarios</div><div class="value" th:text="${totalUsuarios}">0</div><div class="hint">Registrados</div></div>
-                <div class="metric green" th:unless="${permisosBloqueados.contains('usuarios')}"><div class="metric-icon">✓</div><div class="label">Activos</div><div class="value" th:text="${usuariosActivos}">0</div><div class="hint">Con acceso habilitado</div></div>
-                <div class="metric orange" th:unless="${permisosBloqueados.contains('usuarios')}"><div class="metric-icon">!</div><div class="label">Inactivos / bloqueados</div><div class="value" th:text="${usuariosInactivos + usuariosBloqueados}">0</div><div class="hint">Sin acceso normal</div></div>
-                <div class="metric blue" th:unless="${permisosBloqueados.contains('habilidades')}"><div class="metric-icon">◇</div><div class="label">Habilidades</div><div class="value" th:text="${totalHabilidades}">0</div><div class="hint" th:text="|${habilidadesActivas} activas|">0 activas</div></div>
+                <div class="metric" th:unless="${permisosBloqueados.contains('usuarios')}"><div class="label">Usuarios</div><div class="value" th:text="${totalUsuarios}">0</div><div class="hint">Registrados</div></div>
+                <div class="metric green" th:unless="${permisosBloqueados.contains('usuarios')}"><div class="label">Activos</div><div class="value" th:text="${usuariosActivos}">0</div><div class="hint">Con acceso habilitado</div></div>
+                <div class="metric orange" th:unless="${permisosBloqueados.contains('usuarios')}"><div class="label">Inactivos / bloqueados</div><div class="value" th:text="${usuariosInactivos + usuariosBloqueados}">0</div><div class="hint">Sin acceso normal</div></div>
+                <div class="metric blue" th:unless="${permisosBloqueados.contains('habilidades')}"><div class="label">Habilidades</div><div class="value" th:text="${totalHabilidades}">0</div><div class="hint">Registradas en el catálogo</div></div>
             </div>
 
-            <section class="card section" th:unless="${permisosBloqueados.contains('usuarios')}">
+            <section class="card section" id="dedicacion-reportes" th:unless="${permisosBloqueados.contains('usuarios')}">
                 <div class="card-title reporte-encabezado">
                     <h2>Dedicación por proyecto</h2>
                     <div class="actions">
-                        <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='dedicacion')} + '#vista-previa'">Vista previa</a>
+                        <a class="btn btn-light btn-sm"
+                           th:href="@{/admin/reportes(reporte='dedicacion',vista=${modoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                         <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='dedicacion')}">Descargar Excel</a>
                     </div>
                 </div>
-                <p class="muted reporte-nota" id="dedicacion-nota">
-                    Cada barra suma la dedicación de las asignaciones activas y planificadas de un colaborador en el proyecto.
-                </p>
-                <p class="muted" th:if="${graficoDedicacion.proyectos.isEmpty()}">Aún no hay asignaciones activas ni planificadas.</p>
-                <div class="table-wrap dedicacion-grafico" tabindex="0" role="region" aria-label="Gráfico de dedicación"
-                     th:unless="${graficoDedicacion.proyectos.isEmpty()}">
-                    <table aria-describedby="dedicacion-nota">
-                        <thead>
-                        <tr>
-                            <th scope="col">Proyecto / Colaborador</th>
-                            <th scope="col" th:each="colaborador : ${graficoDedicacion.colaboradores}" th:text="${colaborador.nombre}">Colaborador</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="proyecto : ${graficoDedicacion.proyectos}">
-                            <th scope="row" th:text="${proyecto.nombre}">Proyecto</th>
-                            <td th:each="colaborador : ${graficoDedicacion.colaboradores}"
-                                th:with="porcentaje=${proyecto.porcentajes[colaborador.id]}">
-                                <span class="muted" th:if="${porcentaje == null}" aria-label="Sin asignación">—</span>
-                                <div class="dedicacion-valor" th:unless="${porcentaje == null}">
-                                    <div class="bar-track" aria-hidden="true">
-                                        <span th:style="|width:${T(java.lang.Math).min(porcentaje, 100)}%|"></span>
+
+                <div class="empty" th:if="${graficoDedicacion.proyectos.isEmpty()}">
+                    Aún no hay asignaciones activas ni planificadas en proyectos vigentes.
+                </div>
+
+                <div class="dedicacion-paneles" th:unless="${graficoDedicacion.proyectos.isEmpty()}">
+                    <div>
+                        <div class="dedicacion-encabezado">
+                            <h3>Dedicación por colaborador</h3>
+                            <nav class="modo-dedicacion" aria-label="Visualización de la dedicación">
+                                <a th:href="@{/admin/reportes(vista='barras',proyecto=${proyectoDedicacion},reporte=${reporteActivo})} + '#dedicacion-reportes'"
+                                   th:attr="aria-current=${modoDedicacion == 'barras' ? 'true' : null}">Barras</a>
+                                <a th:href="@{/admin/reportes(vista='matriz',proyecto=${proyectoDedicacion},reporte=${reporteActivo})} + '#dedicacion-reportes'"
+                                   th:attr="aria-current=${modoDedicacion == 'matriz' ? 'true' : null}">Matriz</a>
+                            </nav>
+                        </div>
+                        <p class="muted reporte-nota" id="dedicacion-nota">Asignaciones activas y planificadas · Proyectos vigentes</p>
+
+                        <figure class="dedicacion-figura" th:if="${modoDedicacion == 'barras'}">
+                            <figcaption>Dedicación asignada</figcaption>
+                            <div class="dedicacion-desplazamiento" tabindex="0" role="region" aria-label="Barras de dedicación por colaborador">
+                                <div class="dedicacion-plot"
+                                     th:style="|--colaboradores:${visualizacionDedicacion.grupos.size()};--ancho-grupo:${visualizacionDedicacion.anchoGrupo}px|">
+                                    <div class="dedicacion-eje" aria-hidden="true">
+                                        <span th:each="marca : ${visualizacionDedicacion.marcas}"
+                                              th:style="|top:${marca.posicion}%|" th:text="|${marca.valor}%|"></span>
                                     </div>
-                                    <strong th:text="|${porcentaje}%|">50%</strong>
+                                    <div class="dedicacion-cuerpo">
+                                        <div class="dedicacion-lineas" aria-hidden="true">
+                                            <span th:each="marca : ${visualizacionDedicacion.marcas}"
+                                                  th:style="|top:${marca.posicion}%|"></span>
+                                        </div>
+                                        <div class="dedicacion-grupos">
+                                            <div class="dedicacion-grupo" th:each="grupo : ${visualizacionDedicacion.grupos}">
+                                                <div class="dedicacion-columnas">
+                                                    <span class="dedicacion-columna" th:each="barra : ${grupo.barras}" role="img"
+                                                          th:style="|--serie:${barra.color};--altura:${barra.altura}%|"
+                                                          th:title="|${grupo.colaborador} · ${barra.proyecto} · ${barra.valor}%|"
+                                                          th:attr="aria-label=|${grupo.colaborador}, ${barra.proyecto}, ${barra.valor}% de dedicación|">
+                                                        <strong aria-hidden="true" th:text="|${barra.valor}%|"></strong>
+                                                    </span>
+                                                </div>
+                                                <span class="dedicacion-nombre" th:text="${grupo.colaborador}"></span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
+                            </div>
+                            <ul class="dedicacion-leyenda" aria-label="Colores de los proyectos">
+                                <li th:each="proyecto : ${graficoDedicacion.proyectos}">
+                                    <span class="dedicacion-color" th:style="|--serie:${proyecto.color}|" aria-hidden="true"></span>
+                                    <span th:text="${proyecto.nombre}"></span>
+                                </li>
+                            </ul>
+                        </figure>
+
+                        <div class="table-wrap dedicacion-grafico" tabindex="0" role="region" aria-label="Matriz de dedicación"
+                             th:if="${modoDedicacion == 'matriz'}">
+                            <table aria-describedby="dedicacion-nota">
+                                <thead>
+                                <tr>
+                                    <th scope="col">Proyecto / Colaborador</th>
+                                    <th scope="col" th:each="colaborador : ${graficoDedicacion.colaboradores}" th:text="${colaborador.nombre}"></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="proyecto : ${graficoDedicacion.proyectos}">
+                                    <th scope="row" th:text="${proyecto.nombre}"></th>
+                                    <td th:each="colaborador : ${graficoDedicacion.colaboradores}"
+                                        th:with="porcentaje=${proyecto.porcentajes[colaborador.id]}">
+                                        <span class="muted" th:if="${porcentaje == null}" aria-label="Sin asignación">—</span>
+                                        <div class="dedicacion-valor" th:unless="${porcentaje == null}">
+                                            <div class="bar-track" aria-hidden="true">
+                                                <span th:style="|width:${porcentaje * 100.0 / visualizacionDedicacion.limite}%;background:${proyecto.color}|"></span>
+                                            </div>
+                                            <strong th:text="|${porcentaje}%|"></strong>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <section class="reparto-dedicacion" th:with="reparto=${visualizacionDedicacion.reparto}">
+                        <h3>Reparto de dedicación</h3>
+                        <form class="reparto-selector" method="get" th:action="@{/admin/reportes} + '#dedicacion-reportes'">
+                            <input type="hidden" name="vista" th:value="${modoDedicacion}">
+                            <input type="hidden" name="reporte" th:value="${reporteActivo}" th:if="${reporteActivo != null}">
+                            <label for="proyecto-reparto">Proyecto</label>
+                            <select name="proyecto" id="proyecto-reparto" onchange="this.form.requestSubmit()">
+                                <option th:each="proyecto : ${graficoDedicacion.proyectos}" th:value="${proyecto.id}"
+                                        th:text="${proyecto.nombre}" th:selected="${proyecto.id == proyectoDedicacion}"></option>
+                            </select>
+                            <noscript><button class="btn btn-light btn-sm" type="submit">Ver proyecto</button></noscript>
+                        </form>
+
+                        <div class="reparto-grafico">
+                            <div class="reparto-anillo" aria-hidden="true" th:style="|background:${reparto.gradiente}|">
+                                <div>
+                                    <strong th:text="${reparto.porciones.size()}"></strong>
+                                    <small th:text="${reparto.porciones.size() == 1 ? 'colaborador' : 'colaboradores'}"></small>
+                                </div>
+                            </div>
+                            <ul class="reparto-lista" aria-label="Porción del total asignado al proyecto">
+                                <li th:each="porcion : ${reparto.porciones}">
+                                    <span class="dedicacion-color" th:style="|--serie:${porcion.color}|" aria-hidden="true"></span>
+                                    <div>
+                                        <strong th:text="${porcion.colaborador}"></strong>
+                                        <small th:text="|${porcion.dedicacion}% de dedicación|"></small>
+                                    </div>
+                                    <strong th:text="|${#numbers.formatDecimal(porcion.participacion, 1, 'NONE', 2, 'COMMA')}%|"></strong>
+                                </li>
+                            </ul>
+                        </div>
+                        <p class="muted reparto-nota">Cada porción se calcula sobre la suma de dedicaciones del proyecto.</p>
+                    </section>
                 </div>
             </section>
 
@@ -75,7 +163,7 @@
                         <strong>Usuarios y accesos</strong>
                         <p class="muted">Cuenta, correo, rol, estado y teléfono.</p>
                         <div class="actions">
-                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='usuarios')} + '#vista-previa'">Vista previa</a>
+                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='usuarios',vista=${modoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                             <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='usuarios')}">Descargar Excel</a>
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='usuarios')}">Descargar CSV</a>
                         </div>
@@ -84,7 +172,7 @@
                         <strong>Catálogo de habilidades</strong>
                         <p class="muted">Habilidad, categoría, estado y descripción.</p>
                         <div class="actions">
-                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='habilidades')} + '#vista-previa'">Vista previa</a>
+                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='habilidades',vista=${modoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                             <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='habilidades')}">Descargar Excel</a>
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='habilidades')}">Descargar CSV</a>
                         </div>
@@ -93,7 +181,7 @@
                         <strong>Auditoría reciente</strong>
                         <p class="muted">Últimos eventos administrativos registrados.</p>
                         <div class="actions">
-                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='auditoria')} + '#vista-previa'">Vista previa</a>
+                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='auditoria',vista=${modoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                             <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='auditoria')}">Descargar Excel</a>
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='auditoria')}">Descargar CSV</a>
                         </div>
@@ -104,7 +192,7 @@
             <section class="card section" id="vista-previa" th:if="${vistaPrevia != null}">
                 <div class="card-title reporte-encabezado">
                     <h2 th:text="|Vista previa · ${vistaPrevia.nombre}|">Vista previa</h2>
-                    <a class="btn btn-light btn-sm" th:href="@{/admin/reportes}">Cerrar</a>
+                    <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(vista=${modoDedicacion},proyecto=${proyectoDedicacion})}">Cerrar</a>
                 </div>
                 <p class="muted" th:if="${vistaPrevia.filas.isEmpty()}">No hay registros en este reporte.</p>
                 <div class="table-wrap" th:unless="${vistaPrevia.filas.isEmpty()}">
