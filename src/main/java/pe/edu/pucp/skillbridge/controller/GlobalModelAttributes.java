@@ -1,10 +1,13 @@
 package pe.edu.pucp.skillbridge.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import pe.edu.pucp.skillbridge.entity.Usuario;
 import pe.edu.pucp.skillbridge.repository.UsuarioRepository;
+
+import java.util.Set;
 
 /**
  * Aporta a todas las vistas los datos del usuario y del rol asociados a la sesión.
@@ -31,10 +34,16 @@ public class GlobalModelAttributes {
      * @return Usuario encontrado o {@code null} si no existe identificador o usuario.
      */
     @ModelAttribute("usuarioSesion")
-    public Usuario usuarioSesion(HttpSession session) {
+    public Usuario usuarioSesion(HttpServletRequest request, HttpSession session) {
+        if (request.getAttribute("usuarioVerificado") instanceof Usuario usuario) return usuario;
         Object id = session.getAttribute("usuarioSesionId");
         if (id == null) return null;
         return usuarioRepository.findById((Integer) id).orElse(null);
+    }
+
+    @ModelAttribute("permisosBloqueados")
+    public Set<?> permisosBloqueados(HttpServletRequest request) {
+        return request.getAttribute("permisosBloqueados") instanceof Set<?> permisos ? permisos : Set.of();
     }
 
     /**

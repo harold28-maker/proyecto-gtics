@@ -42,397 +42,137 @@
         </header>
 
 
-        <div class="content">
-
-
-            <!-- =========================================
-                 MENSAJE DE ÉXITO
-                 ========================================= -->
-
-            <div class="alert-success"
-                 th:if="${mensajeExito}"
-                 th:text="${mensajeExito}">
+        <div class="content users-management">
+            <div class="page-intro">
+                <h2>Gestión de usuarios</h2>
+                <a class="btn btn-primary" th:href="@{/admin/usuarios/nuevo}">＋ Nuevo usuario</a>
             </div>
 
+            <div class="alert-success" role="status"
+                 th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+            <div class="alert-error" role="status"
+                 th:if="${avisoCorreo}" th:text="${avisoCorreo}"></div>
 
-            <!-- =========================================
-                 INDICADORES
-                 ========================================= -->
-
-            <div class="grid-4">
-
-
-                <!-- USUARIOS -->
-
+            <section class="grid-4" aria-label="Resumen de usuarios">
                 <div class="metric">
-
-                    <div class="label">
-                        Usuarios
+                    <div class="label">Usuarios</div>
+                    <div class="value" th:text="${#lists.size(usuarios)}">0</div>
+                    <div class="hint" th:text="${hayFiltros ? 'Resultados actuales' : 'Cuentas registradas'}">
+                        Cuentas registradas
                     </div>
-
-                    <div class="value"
-                         th:text="${#lists.size(usuarios)}">
-                        0
-                    </div>
-
-                    <div class="hint">
-                        Resultados actuales
-                    </div>
-
                 </div>
-
-
-                <!-- ACTIVOS -->
-
                 <div class="metric green">
-
-                    <div class="label">
-                        Activos
-                    </div>
-
-                    <div class="value"
-                         th:text="${activos}">
-                        0
-                    </div>
-
-                    <div class="hint">
-                        Acceso habilitado
-                    </div>
-
+                    <div class="label">Activos</div>
+                    <div class="value" th:text="${activos}">0</div>
+                    <div class="hint">Acceso habilitado</div>
                 </div>
-
-
-                <!-- INACTIVOS -->
-
                 <div class="metric orange">
-
-                    <div class="label">
-                        Inactivos
-                    </div>
-
-                    <div class="value"
-                         th:text="${inactivos}">
-                        0
-                    </div>
-
-                    <div class="hint">
-                        Baja lógica
-                    </div>
-
+                    <div class="label">Inactivos</div>
+                    <div class="value" th:text="${inactivos}">0</div>
+                    <div class="hint">Acceso deshabilitado</div>
                 </div>
-
-
-                <!-- BLOQUEADOS -->
-
                 <div class="metric red">
                     <div class="label">Bloqueados</div>
                     <div class="value" th:text="${bloqueados}">0</div>
-                    <div class="hint">
-                        Requieren revisión
-                    </div>
+                    <div class="hint">Requieren revisión</div>
                 </div>
-
-
-            </div>
-
-
-            <!-- =========================================
-                 USUARIOS REGISTRADOS
-                 ========================================= -->
-
-            <section class="card section">
-
-
-                <!-- CABECERA DE LA TARJETA -->
-
-                <div class="users-card-header">
-
-                    <div>
-
-                        <h2>
-                            Usuarios registrados
-                        </h2>
-
-                        <p class="muted mb-0">
-                            Administra los usuarios registrados en el sistema.
-                        </p>
-
-                    </div>
-
-
-                    <a class="btn btn-primary"
-                       th:href="@{/admin/usuarios/nuevo}">
-
-                        ＋ Nuevo usuario
-
-                    </a>
-
-                </div>
-
-
-                <!-- =========================================
-                     BUSCADOR
-                     ========================================= -->
-
-                <form class="filters"
-                      method="get">
-
-
-                    <input class="search"
-                           type="text"
-                           name="q"
-                           th:value="${q}"
-                           placeholder="Buscar por nombre, correo o rol">
-
-
-                    <button class="btn btn-light"
-                            type="submit">
-
-                        Buscar
-
-                    </button>
-
-
-                    <a class="btn btn-light"
-                       th:href="@{/admin/usuarios}">
-
-                        Limpiar
-
-                    </a>
-
-
-                </form>
-
-
-                <!-- =========================================
-                     TABLA DE USUARIOS
-                     ========================================= -->
-
-                <div class="table-wrap">
-
-
-                    <table>
-
-
-                        <thead>
-
-                        <tr>
-
-                            <th>
-                                Usuario
-                            </th>
-
-                            <th>
-                                Rol
-                            </th>
-
-                            <th>
-                                Correo
-                            </th>
-
-                            <th>
-                                Estado
-                            </th>
-
-                            <th>
-                                Último acceso
-                            </th>
-
-                            <th>
-                                Acciones
-                            </th>
-
-                        </tr>
-
-                        </thead>
-
-
-                        <tbody>
-
-
-                        <tr th:each="u : ${usuarios}">
-
-
-                            <!-- USUARIO -->
-
-                            <td>
-
-                                <div class="table-user">
-
-
-                                    <span class="mini-avatar"
-                                          th:text="${u.iniciales}">
-
-                                        MG
-
-                                    </span>
-
-
-                                    <div>
-
-                                        <strong th:text="${u.nombreCompleto}">
-                                            María González
-                                        </strong>
-
-                                        <small th:text="${u.telefono ?: 'Sin teléfono'}">
-                                            999111001
-                                        </small>
-
-                                    </div>
-
-
-                                </div>
-
-                            </td>
-
-
-                            <!-- ROL -->
-
-                            <td>
-
-                                <span class="badge badge-purple"
-                                      th:text="${u.rolVisual}">
-
-                                    Colaborador
-
-                                </span>
-
-                            </td>
-
-
-                            <!-- CORREO -->
-
-                            <td th:text="${u.correo}">
-
-                                maria.gonzalez@skillbridge.com
-
-                            </td>
-
-
-                            <!-- ESTADO -->
-
-                            <td>
-
-                                <span class="badge"
-
-                                      th:classappend="${
-                                          u.estado.name() == 'ACTIVO'
-                                          ? ' badge-success'
-                                          :
-                                          (u.estado.name() == 'BLOQUEADO'
-                                          ? ' badge-danger'
-                                          : ' badge-warning')
-                                      }"
-
-                                      th:text="${u.estado}">
-
-                                    ACTIVO
-
-                                </span>
-
-                            </td>
-
-
-                            <!-- ÚLTIMO ACCESO -->
-
-                            <td th:text="${
-                                u.ultimoAcceso != null
-                                ? #temporals.format(
-                                    u.ultimoAcceso,
-                                    'dd/MM/yyyy HH:mm'
-                                )
-                                : 'Sin acceso'
-                            }">
-
-                                24/09/2026 07:42
-
-                            </td>
-
-
-                            <!-- ACCIONES -->
-
-                            <td>
-
-                                <div class="action-row">
-
-
-                                    <!-- EDITAR -->
-
-                                    <a class="btn btn-light btn-sm"
-
-                                       th:href="@{/admin/usuarios/editar/{id}(
-                                           id=${u.idUsuario}
-                                       )}">
-
-                                        Editar
-
-                                    </a>
-
-
-                                    <!-- ACTIVAR / DESACTIVAR -->
-
-                                    <form th:action="@{/admin/usuarios/{id}/estado(
-                                              id=${u.idUsuario}
-                                          )}"
-                                          method="post">
-
-
-                                        <button class="btn btn-sm"
-
-                                                th:classappend="${
-                                                    u.estado.name() == 'ACTIVO'
-                                                    ? ' btn-danger-soft'
-                                                    : ' btn-success-soft'
-                                                }"
-
-                                                th:text="${
-                                                    u.estado.name() == 'ACTIVO'
-                                                    ? 'Desactivar'
-                                                    : 'Activar'
-                                                }">
-
-                                            Desactivar
-
-                                        </button>
-
-
-                                    </form>
-
-
-                                </div>
-
-                            </td>
-
-
-                        </tr>
-
-
-                        </tbody>
-
-
-                    </table>
-
-
-                </div>
-
-
-                <!-- =========================================
-                     SIN RESULTADOS
-                     ========================================= -->
-
-                <div class="empty"
-                     th:if="${#lists.isEmpty(usuarios)}">
-
-                    No se encontraron usuarios.
-
-                </div>
-
-
             </section>
 
+            <section class="card section" aria-label="Usuarios registrados">
+                <form class="filters users-filters" method="get" th:action="@{/admin/usuarios}">
+                    <label class="users-search">
+                        Buscar usuarios
+                        <input class="input" type="search" name="q" th:value="${q}"
+                               placeholder="Nombre, correo o rol">
+                    </label>
+                    <label>
+                        Rol
+                        <select name="rol">
+                            <option value="">Todos los roles</option>
+                            <option th:each="rol : ${rolesFiltro}" th:value="${rol.idRol}"
+                                    th:text="${rol.nombreVisual}" th:selected="${rol.idRol == rolFiltro}">
+                                Colaborador
+                            </option>
+                        </select>
+                    </label>
+                    <label>
+                        Estado
+                        <select name="estado">
+                            <option value="">Todos los estados</option>
+                            <option value="ACTIVO" th:selected="${estadoFiltro == 'ACTIVO'}">Activo</option>
+                            <option value="INACTIVO" th:selected="${estadoFiltro == 'INACTIVO'}">Inactivo</option>
+                            <option value="BLOQUEADO" th:selected="${estadoFiltro == 'BLOQUEADO'}">Bloqueado</option>
+                        </select>
+                    </label>
+                    <button type="submit" class="btn btn-light">Buscar</button>
+                    <a class="btn btn-light" th:href="@{/admin/usuarios}">Limpiar</a>
+                </form>
 
+                <div class="table-wrap">
+                    <table aria-label="Lista de usuarios">
+                        <thead>
+                        <tr>
+                            <th scope="col">Usuario</th>
+                            <th scope="col">Rol</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Último acceso</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="u : ${usuarios}"
+                            th:with="estado=${u.estado == null ? '' : u.estado.name()}, activo=${estado == 'ACTIVO'}">
+                            <td>
+                                <div class="table-user">
+                                    <span class="mini-avatar usuario-avatar" aria-hidden="true">
+                                        <span th:text="${u.iniciales}">MG</span>
+                                        <img th:if="${u.fotoUrl != null and #strings.startsWith(u.fotoUrl, '/admin/usuarios/fotos/')}"
+                                             th:src="@{${u.fotoUrl}}" alt="" loading="lazy" onerror="this.hidden = true">
+                                    </span>
+                                    <div>
+                                        <strong th:text="${u.nombreCompleto}">María González</strong>
+                                        <small th:text="${u.correo}">maria.gonzalez@skillbridge.com</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-purple" th:text="${u.rolVisual}">Colaborador</span>
+                            </td>
+                            <td>
+                                <span class="badge users-state"
+                                      th:classappend="${activo ? 'badge-success' : estado == 'BLOQUEADO' ? 'badge-danger' : estado == 'INACTIVO' ? 'badge-warning' : ''}"
+                                      th:text="${estado.isEmpty() ? 'Sin estado' : #strings.capitalize(#strings.toLowerCase(estado))}">
+                                    Activo
+                                </span>
+                            </td>
+                            <td class="users-access" th:classappend="${u.ultimoAcceso == null ? 'muted' : ''}"
+                                th:text="${u.ultimoAcceso == null ? 'Sin acceso' : #temporals.format(u.ultimoAcceso, 'dd/MM/yyyy · HH:mm')}">
+                                Sin acceso
+                            </td>
+                            <td>
+                                <div class="action-row">
+                                    <a class="btn btn-light btn-sm"
+                                       th:href="@{/admin/usuarios/editar/{id}(id=${u.idUsuario})}">Editar</a>
+                                    <form method="post" th:action="@{/admin/usuarios/{id}/estado(id=${u.idUsuario})}"
+                                          th:attr="data-confirm=${activo ? '¿Desactivar la cuenta de ' + u.nombreCompleto + '?' : null}"
+                                          onsubmit="return !this.dataset.confirm || window.confirm(this.dataset.confirm)">
+                                        <input type="hidden" name="activar" th:value="${!activo}">
+                                        <input type="hidden" name="q" th:value="${q}" th:if="${!#strings.isEmpty(q)}">
+                                        <input type="hidden" name="rol" th:value="${rolFiltro}" th:if="${rolFiltro != null}">
+                                        <input type="hidden" name="estado" th:value="${estadoFiltro}" th:if="${estadoFiltro != null}">
+                                        <button type="submit" class="btn btn-sm"
+                                                th:classappend="${activo ? 'btn-danger-soft' : 'btn-success-soft'}"
+                                                th:text="${activo ? 'Desactivar' : 'Activar'}">Desactivar</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="empty" th:if="${#lists.isEmpty(usuarios)}">No se encontraron usuarios.</div>
+            </section>
         </div>
-
 
     </main>
 

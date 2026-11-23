@@ -1,93 +1,127 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Certificación | SkillBridge AI</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title th:text="${titulo + ' | SkillBridge AI'}">Certificación | SkillBridge AI</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/certificaciones.css}">
 </head>
 <body>
 <div class="app-shell">
     <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
-            <section class="page-intro"><div><p class="eyebrow">Credenciales profesionales</p><h2 th:text="${titulo}"></h2><p>Registra una certificación para enriquecer tu perfil y respaldar tu experiencia profesional.</p></div></section>
-            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
-            <div class="grid-3">
-                <section class="card" style="grid-column:span 2">
-                    <form th:action="@{/colaborador/certificaciones/guardar}" th:object="${certificacion}" method="post" enctype="multipart/form-data">
-                        <input type="hidden" th:field="*{idCertificacion}">
-                        <div class="form-grid">
-                            <div class="form-group full"><label>Nombre de la certificación</label><input th:field="*{nombre}" th:errorclass="is-invalid" maxlength="40" required placeholder="Ej. AWS Certified Developer - Associate"><div class="field-error" th:errors="*{nombre}"></div><div class="form-note">Máximo 40 caracteres.</div></div>
-                            <div class="form-group"><label>Entidad emisora</label><input th:field="*{entidadEmisora}" th:errorclass="is-invalid" maxlength="40" placeholder="Amazon Web Services"><div class="field-error" th:errors="*{entidadEmisora}"></div><div class="form-note">Máximo 40 caracteres.</div></div>
-                            <div class="form-group"><label>Estado</label><select th:field="*{estado}" th:errorclass="is-invalid"><option value="VIGENTE">Vigente</option><option value="VENCIDA">Vencida</option><option value="SIN_EXPIRACION">Sin expiración</option></select><div class="field-error" th:errors="*{estado}"></div></div>
-                            <div class="form-group"><label>Fecha de emisión</label><input type="date" th:field="*{fechaEmision}"></div>
-                            <div class="form-group"><label>Fecha de expiración</label><input type="date" th:field="*{fechaExpiracion}"></div>
-                            <div class="field-error form-error" th:if="${#fields.hasErrors('periodoValido')}" th:errors="*{periodoValido}"></div>
-                            <div class="form-group full">
-                                <label>URL de credencial</label>
-                                <input type="text"
-                                       id="urlCredencial"
-                                       name="urlCredencial"
-                                       maxlength="300"
-                                       placeholder="https://..."
-                                       th:value="${certificacion.urlCredencial != null and #strings.startsWith(certificacion.urlCredencial, 'http') ? certificacion.urlCredencial : ''}">
-                                <div class="field-error" th:errors="*{urlCredencial}"></div>
-                                <div class="form-note">Puedes registrar una URL de verificación o subir un archivo.</div>
-                            </div>
+        <div class="content cert-edicion">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <section class="page-intro cert-titulo-form">
+                <h1 th:text="${titulo}">Nueva certificación</h1>
+            </section>
+            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}" role="alert"></div>
 
-                            <div class="form-group full">
-                                <label for="archivoCredencial">Archivo de credencial</label>
+            <form class="card cert-form" th:action="@{/colaborador/certificaciones/guardar}" th:object="${certificacion}"
+                  method="post" enctype="multipart/form-data" novalidate>
+                <input type="hidden" th:field="*{idCertificacion}">
+                <input type="hidden" name="page" th:value="${paginaLista}">
 
-                                <div class="credential-upload-control">
-                                    <span id="archivoCredencialNombre" class="credential-upload-name">
-                                        Ningún archivo seleccionado
-                                    </span>
-
-                                    <label for="archivoCredencial" class="credential-upload-button">
-                                        Elegir archivo
-                                    </label>
-
-                                    <input type="file"
-                                           id="archivoCredencial"
-                                           name="archivoCredencial"
-                                           class="credential-upload-input"
-                                           accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg">
-                                </div>
-
-                                <div class="form-note">
-                                    Formatos permitidos: PDF, PNG, JPG o JPEG. Tamaño máximo: 5 MB.
-                                    Si eliges un archivo, tendrá prioridad sobre la URL.
-                                </div>
-
-                                <div class="form-note credential-current-file"
-                                     th:if="${certificacion.urlCredencial != null and #strings.startsWith(certificacion.urlCredencial, '/colaborador/certificaciones/archivo/')}">
-                                    Archivo actual:
-                                    <a th:href="${certificacion.urlCredencial}" target="_blank" rel="noopener">
-                                        Ver credencial cargada
-                                    </a>
-                                </div>
-                            </div>
+                <section class="cert-bloque" aria-labelledby="certDatos">
+                    <h2 id="certDatos">Datos de la certificación</h2>
+                    <p class="field-error" th:if="${#fields.hasErrors('idCertificacion')}">Elige la certificación de nuevo desde el listado.</p>
+                    <div class="form-grid cert-datos">
+                        <div class="form-group">
+                            <label for="nombre">Nombre de la certificación <span class="cert-requerido" aria-hidden="true">*</span></label>
+                            <input type="text" th:field="*{nombre}" th:errorclass="is-invalid" required
+                                   th:attr="aria-invalid=${#fields.hasErrors('nombre')},
+                                            aria-describedby=${#fields.hasErrors('nombre') ? 'nombreAyuda nombreError' : 'nombreAyuda'}">
+                            <p class="form-note" id="nombreAyuda">Hasta 40 caracteres.</p>
+                            <p class="field-error" id="nombreError" th:errors="*{nombre}"></p>
                         </div>
-                        <div class="form-actions"><a class="btn btn-light" th:href="@{/colaborador/certificaciones}">Cancelar</a><button class="btn btn-primary">Guardar certificación</button></div>
-                    </form>
+                        <div class="form-group">
+                            <label for="entidadEmisora">Entidad emisora</label>
+                            <input type="text" th:field="*{entidadEmisora}" th:errorclass="is-invalid"
+                                   th:attr="aria-invalid=${#fields.hasErrors('entidadEmisora')},
+                                            aria-describedby=${#fields.hasErrors('entidadEmisora') ? 'entidadAyuda entidadError' : 'entidadAyuda'}">
+                            <p class="form-note" id="entidadAyuda">Hasta 40 caracteres.</p>
+                            <p class="field-error" id="entidadError" th:errors="*{entidadEmisora}"></p>
+                        </div>
+                    </div>
                 </section>
-                <aside class="card hero-card"><p class="eyebrow">Perfil SkillBridge</p><h3>Haz visible tu experiencia</h3><p class="muted">Las certificaciones complementan tus habilidades y fortalecen tu perfil frente a nuevas oportunidades.</p><div class="knowledge-tip cert-tip"><strong>Consejo</strong><p>Incluye la entidad emisora y una URL o archivo de verificación cuando estén disponibles. Mantener estos datos actualizados facilita validar tu experiencia.</p></div></aside>
-            </div>
+
+                <section class="cert-bloque" aria-labelledby="certVigencia">
+                    <div class="cert-bloque-titulo">
+                        <h2 id="certVigencia">Fechas y vigencia</h2>
+                        <th:block th:if="${certificacionActual != null}">
+                            <span th:replace="~{fragments/perfil :: estadoCertificacion(${certificacionActual})}"></span>
+                        </th:block>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="fechaEmision">Fecha de emisión</label>
+                            <input type="date" th:field="*{fechaEmision}" th:errorclass="is-invalid"
+                                   th:attr="aria-invalid=${#fields.hasErrors('fechaEmision')},
+                                            aria-describedby=${#fields.hasErrors('fechaEmision') ? 'fechaEmisionError' : null}">
+                            <p class="field-error" id="fechaEmisionError" th:errors="*{fechaEmision}"></p>
+                        </div>
+                        <div class="form-group"
+                             th:with="errorFecha=${#fields.hasErrors('fechaExpiracion')}, errorPeriodo=${#fields.hasErrors('periodoValido')}">
+                            <label for="fechaExpiracion">Fecha de vencimiento</label>
+                            <input type="date" th:field="*{fechaExpiracion}"
+                                   th:classappend="${errorFecha or errorPeriodo ? 'is-invalid' : null}"
+                                   th:attr="aria-invalid=${errorFecha or errorPeriodo},
+                                            aria-describedby=${errorFecha ? 'fechaExpiracionError' : (errorPeriodo ? 'periodoError' : null)}">
+                            <p class="field-error" id="fechaExpiracionError" th:errors="*{fechaExpiracion}"></p>
+                            <p class="field-error" id="periodoError" th:errors="*{periodoValido}"></p>
+                        </div>
+                    </div>
+                    <div class="cert-sin-expiracion">
+                        <label for="sinExpiracion">
+                            <input type="checkbox" id="sinExpiracion" name="sinExpiracion" value="true"
+                                   th:checked="${sinExpiracion}" aria-describedby="ayudaVigencia">
+                            Sin expiración
+                        </label>
+                        <p class="form-note" id="ayudaVigencia">Deja el vencimiento vacío si marcas esta casilla. Si ingresas una fecha, el sistema calcula la vigencia.</p>
+                    </div>
+                </section>
+
+                <section class="cert-bloque" aria-labelledby="certCredencial">
+                    <div class="cert-bloque-titulo">
+                        <h2 id="certCredencial">Credencial</h2>
+                        <a class="cert-enlace" th:if="${credencialActual != null}" th:href="@{${credencialActual}}"
+                           target="_blank" rel="noopener noreferrer">Ver credencial actual</a>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="urlCredencial">Enlace de verificación</label>
+                            <input type="url" class="input" th:field="*{urlCredencial}" th:errorclass="is-invalid"
+                                   placeholder="https://..."
+                                   th:attr="aria-invalid=${#fields.hasErrors('urlCredencial')},
+                                            aria-describedby=${#fields.hasErrors('urlCredencial') ? 'enlaceError' : null}">
+                            <p class="field-error" id="enlaceError" th:errors="*{urlCredencial}"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="archivoCredencial">Archivo de credencial</label>
+                            <input type="file" class="input cert-archivo" id="archivoCredencial" name="archivoCredencial"
+                                   accept=".pdf,.png,.jpg,.jpeg"
+                                   th:classappend="${errorArchivo != null ? 'is-invalid' : null}"
+                                   th:attr="aria-invalid=${errorArchivo != null},
+                                            aria-describedby=${errorArchivo != null ? 'archivoAyuda archivoError' : 'archivoAyuda'}">
+                            <p class="form-note" id="archivoAyuda">PDF, PNG o JPG, hasta 5 MB. El archivo tiene prioridad sobre el enlace.</p>
+                            <p class="form-note" th:if="${archivoActual}">El archivo actual se conserva hasta que elijas reemplazarlo.</p>
+                            <p class="field-error" id="archivoError" th:if="${errorArchivo}" th:text="${errorArchivo}"></p>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="cert-pie-form">
+                    <a class="btn btn-light" th:href="@{/colaborador/certificaciones(page=${paginaLista})}">Cancelar</a>
+                    <button class="btn btn-primary" type="submit"
+                            th:text="${certificacionActual == null ? 'Guardar certificación' : 'Guardar cambios'}">
+                        Guardar certificación
+                    </button>
+                </div>
+            </form>
         </div>
     </main>
 </div>
-
-<script>
-    const archivoCredencial = document.getElementById('archivoCredencial');
-    const archivoCredencialNombre = document.getElementById('archivoCredencialNombre');
-
-    archivoCredencial.addEventListener('change', function () {
-        archivoCredencialNombre.textContent =
-            this.files && this.files.length > 0
-                ? this.files[0].name
-                : 'Ningún archivo seleccionado';
-    });
-</script>
 </body>
 </html>

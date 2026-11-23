@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Archivo demasiado grande | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<main class="content" th:with="fotoPerfil=${path != null and #strings.endsWith(path, '/colaborador/perfil/guardar')},
+                               credencial=${path != null and #strings.endsWith(path, '/colaborador/certificaciones/guardar')},
+                               inicio=${usuarioSesion == null ? '/' : (rolSesion == 'ADMIN' ? '/admin/inicio' : (rolSesion == 'PM' ? '/pm/inicio' : (rolSesion == 'RM' ? '/resource/inicio' : '/colaborador/inicio')))}">
+    <section class="card section">
+        <h1>El archivo supera el tamaño permitido</h1>
+        <p class="muted" th:if="${fotoPerfil}">Selecciona una foto JPG o PNG de hasta 5 MB.</p>
+        <p class="muted" th:if="${credencial}">Selecciona un PDF, PNG o JPG de hasta 5 MB para la credencial.</p>
+        <p class="muted" th:if="${!fotoPerfil and !credencial}">Vuelve al formulario y elige un archivo que cumpla el límite indicado.</p>
+        <a class="btn btn-primary" th:if="${fotoPerfil}" th:href="@{/colaborador/perfil/editar}">Volver a editar perfil</a>
+        <a class="btn btn-primary" th:if="${credencial}" th:href="@{/colaborador/certificaciones}">Volver a certificaciones</a>
+        <a class="btn btn-light" th:if="${!fotoPerfil and !credencial}" th:href="@{${inicio}}">Volver al inicio</a>
+    </section>
+</main>
+</body>
+</html>

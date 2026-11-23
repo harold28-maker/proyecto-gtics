@@ -12,6 +12,7 @@
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
         <div class="content">
             <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
             <section class="page-intro">
                 <div>
                     <p class="eyebrow">Requerimientos técnicos</p>

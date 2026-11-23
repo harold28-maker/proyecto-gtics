@@ -25,177 +25,117 @@
         <header th:replace="~{fragments/layout :: topbar(${titulo})}">
         </header>
 
-        <div class="content">
+        <div class="content audit-management">
 
-            <!-- ENCABEZADO -->
             <section class="page-intro">
-
-                <div>
-                    <h2>
-                        Registro de actividad
-                    </h2>
-
-                    <p>
-                        Consulta las acciones realizadas por los usuarios del sistema.
-                    </p>
-                </div>
-
+                <h2>Registro de actividad</h2>
             </section>
 
+            <section class="card" aria-label="Registro de actividad">
 
-            <!-- CONTENIDO -->
-            <section class="card">
+                <form class="filters audit-filters" method="get" th:action="@{/admin/auditoria}">
+                    <label class="audit-search">
+                        Buscar en el registro
+                        <input class="input" type="search" name="q" th:value="${q}"
+                               placeholder="Usuario, acción o detalle">
+                    </label>
 
-                <!-- FILTROS -->
-                <form class="filters"
-                      method="get"
-                      th:action="@{/admin/auditoria}">
+                    <label>
+                        Módulo
+                        <select name="modulo">
+                            <option value="">Todos los módulos</option>
+                            <option th:each="m : ${modulos}"
+                                    th:value="${m}" th:text="${m}" th:selected="${m == modulo}"></option>
+                        </select>
+                    </label>
 
-                    <input class="search"
-                           type="text"
-                           name="q"
-                           th:value="${q}"
-                           placeholder="Buscar usuario, acción o módulo">
+                    <label class="audit-date-filter">
+                        Desde
+                        <input class="input" type="date" name="desde" th:value="${desde}">
+                    </label>
 
+                    <label class="audit-date-filter">
+                        Hasta
+                        <input class="input" type="date" name="hasta" th:value="${hasta}">
+                    </label>
 
-                    <select class="compact"
-                            name="modulo">
-
-                        <option value=""
-                                th:selected="${modulo == null or modulo == ''}">
-                            Todos los módulos
-                        </option>
-
-                        <option value="Administración"
-                                th:selected="${modulo == 'Administración'}">
-                            Administración
-                        </option>
-
-                        <option value="Proyectos"
-                                th:selected="${modulo == 'Proyectos'}">
-                            Proyectos
-                        </option>
-
-                        <option value="Asignaciones"
-                                th:selected="${modulo == 'Asignaciones'}">
-                            Asignaciones
-                        </option>
-
-                        <option value="Habilidades"
-                                th:selected="${modulo == 'Habilidades'}">
-                            Habilidades
-                        </option>
-
-                        <option value="Colaboradores"
-                                th:selected="${modulo == 'Colaboradores'}">
-                            Colaboradores
-                        </option>
-
-                    </select>
-
-
-                    <button class="btn btn-light"
-                            type="submit">
-                        Buscar
-                    </button>
-
-
-                    <a class="btn btn-light"
-                       th:href="@{/admin/auditoria}">
-                        Limpiar
-                    </a>
-
+                    <button class="btn btn-light" type="submit">Buscar</button>
+                    <a class="btn btn-light" th:href="@{/admin/auditoria}">Limpiar</a>
                 </form>
 
+                <div class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></div>
 
-                <!-- TABLA -->
-                <div class="table-wrap">
+                <th:block th:if="${resultados != null}">
+                    <div class="empty" th:if="${resultados.isEmpty()}">
+                        No se encontraron registros de auditoría.
+                    </div>
 
-                    <table>
+                    <th:block th:unless="${resultados.isEmpty()}">
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th scope="col">Fecha y hora</th>
+                                    <th scope="col">Usuario</th>
+                                    <th scope="col">Acción</th>
+                                    <th scope="col">Módulo</th>
+                                    <th scope="col">Detalle</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="a : ${resultados.content}">
+                                    <td class="audit-time" th:text="${a.fecha != null
+                                        ? #temporals.format(a.fecha, 'dd/MM/yyyy HH:mm') : '-'}">
+                                        22/11/2026 23:30
+                                    </td>
+                                    <td><strong th:text="${a.usuario != null ? a.usuario.nombreCompleto : 'Sistema'}"></strong></td>
+                                    <td th:text="${a.accion}"></td>
+                                    <td>
+                                        <span class="badge badge-purple" th:text="${a.modulo != null ? a.modulo : '-'}"></span>
+                                    </td>
+                                    <td class="audit-detail" th:text="${a.detalle != null ? a.detalle : '-'}"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                        <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Usuario</th>
-                            <th>Acción</th>
-                            <th>Módulo</th>
-                            <th>Detalle</th>
-                        </tr>
-                        </thead>
+                        <div class="audit-footer">
+                            <span class="audit-count"
+                                  th:text="|${primerRegistro}–${ultimoRegistro} de ${resultados.totalElements} ${resultados.totalElements == 1 ? 'registro' : 'registros'}|">
+                                1–10 de 68 registros
+                            </span>
 
-                        <tbody>
+                            <nav th:if="${resultados.totalPages > 1}" aria-label="Páginas de auditoría">
+                                <form class="audit-pages" method="get" th:action="@{/admin/auditoria}">
+                                    <input type="hidden" name="q" th:value="${q}">
+                                    <input type="hidden" name="modulo" th:value="${modulo}">
+                                    <input type="hidden" name="desde" th:value="${desde}">
+                                    <input type="hidden" name="hasta" th:value="${hasta}">
 
-                        <tr th:each="a : ${auditorias}">
-
-                            <!-- FECHA -->
-                            <td th:text="${a.fecha != null
-                                ? #temporals.format(a.fecha, 'dd/MM/yyyy HH:mm')
-                                : '-'}">
-                                24/09/2026 09:33
-                            </td>
-
-
-                            <!-- USUARIO -->
-                            <td>
-
-                                <strong th:text="${a.usuario != null
-                                    ? a.usuario.nombreCompleto
-                                    : 'Sistema'}">
-
-                                    Administrador SkillBridge
-
-                                </strong>
-
-                            </td>
-
-
-                            <!-- ACCIÓN -->
-                            <td th:text="${a.accion}">
-                                Cambiar estado de usuario
-                            </td>
-
-
-                            <!-- MÓDULO -->
-                            <td>
-
-                                <span class="badge badge-purple"
-                                      th:text="${a.modulo != null
-                                          ? a.modulo
-                                          : '-'}">
-
-                                    Administración
-
-                                </span>
-
-                            </td>
-
-
-                            <!-- DETALLE -->
-                            <td th:text="${a.detalle != null
-                                ? a.detalle
-                                : '-'}">
-
-                                Detalle del evento
-
-                            </td>
-
-                        </tr>
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-
-                <!-- SIN RESULTADOS -->
-                <div th:if="${#lists.isEmpty(auditorias)}"
-                     class="empty">
-
-                    No se encontraron registros de auditoría.
-
-                </div>
-
+                                    <button class="btn btn-light btn-sm" type="submit" name="pagina"
+                                            th:value="${paginaActual - 1}" th:disabled="${!resultados.hasPrevious()}">
+                                        Anterior
+                                    </button>
+                                    <button class="btn btn-light btn-sm" type="submit" name="pagina" value="1"
+                                            th:if="${primeraPaginaVisible > 1}">1</button>
+                                    <span aria-hidden="true" th:if="${primeraPaginaVisible > 2}">…</span>
+                                    <button class="btn btn-light btn-sm" type="submit" name="pagina"
+                                            th:each="n : ${#numbers.sequence(primeraPaginaVisible, ultimaPaginaVisible)}"
+                                            th:value="${n}" th:text="${n}"
+                                            th:attr="aria-current=${n == paginaActual ? 'page' : null}">1</button>
+                                    <span aria-hidden="true" th:if="${ultimaPaginaVisible < resultados.totalPages - 1}">…</span>
+                                    <button class="btn btn-light btn-sm" type="submit" name="pagina"
+                                            th:if="${ultimaPaginaVisible < resultados.totalPages}"
+                                            th:value="${resultados.totalPages}" th:text="${resultados.totalPages}">7</button>
+                                    <button class="btn btn-light btn-sm" type="submit" name="pagina"
+                                            th:value="${paginaActual + 1}" th:disabled="${!resultados.hasNext()}">
+                                        Siguiente
+                                    </button>
+                                </form>
+                            </nav>
+                        </div>
+                    </th:block>
+                </th:block>
             </section>
 
         </div>

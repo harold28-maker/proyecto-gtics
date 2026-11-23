@@ -1,16 +1,118 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Certificaciones | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
-<div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
-<div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
-<div class="grid-3"><div class="metric"><div class="metric-icon">◇</div><div class="label">Certificaciones</div><div class="value" th:text="${#lists.size(certificaciones)}"></div><div class="hint">Credenciales registradas</div></div><div class="metric green"><div class="metric-icon">✓</div><div class="label">Vigentes</div><div class="value" th:text="${vigentes}"></div><div class="hint">Actualmente válidas</div></div><div class="metric blue"><div class="metric-icon">◆</div><div class="label">Perfil profesional</div><div class="value" style="font-size:18px">Respaldado</div><div class="hint">Experiencia verificable</div></div></div>
-<section class="card section"><div class="card-title"><div><h2>Mis certificaciones</h2><p class="muted">Administra las credenciales que respaldan tu experiencia profesional.</p></div><a class="btn btn-primary" th:href="@{/colaborador/certificaciones/nueva}">＋ Agregar certificación</a></div>
-<div class="grid-2"><article class="soft-panel" th:each="c : ${certificaciones}"><div class="card-title"><div><span class="badge badge-purple" th:text="${c.estado.name() == 'SIN_EXPIRACION' ? 'Sin expiración' : (c.estado.name() == 'VIGENTE' ? 'Vigente' : 'Vencida')}"></span><h3 th:text="${c.nombre}"></h3></div><div class="metric-icon">◇</div></div><p class="muted" th:text="${c.entidadEmisora}"></p><div class="profile-info-grid"><div class="info-box"><small>Fecha de emisión</small><strong th:text="${c.fechaEmision != null ? #temporals.format(c.fechaEmision,'dd-MM-yyyy') : '-'}"></strong></div><div class="info-box"><small>Expiración</small><strong th:text="${c.fechaExpiracion != null ? #temporals.format(c.fechaExpiracion,'dd-MM-yyyy') : 'Sin expiración'}"></strong></div></div><div class="action-row" style="margin-top:12px;justify-content:flex-start"><a class="btn btn-light btn-sm" th:href="@{/colaborador/certificaciones/editar/{id}(id=${c.idCertificacion})}">Editar</a><a class="btn btn-blue-soft btn-sm"
-   th:if="${c.urlCredencial != null and !#strings.isEmpty(c.urlCredencial)}"
-   th:href="${c.urlCredencial}"
-   target="_blank"
-   rel="noopener"
-   th:text="${#strings.startsWith(c.urlCredencial, '/colaborador/certificaciones/archivo/') ? 'Ver archivo' : 'Ver credencial'}">Ver credencial</a><form th:action="@{/colaborador/certificaciones/{id}/eliminar(id=${c.idCertificacion})}" method="post" onsubmit="return confirm('¿Eliminar esta certificación?')"><button class="btn btn-danger-soft btn-sm">Eliminar</button></form></div></article></div>
-<div class="empty" th:if="${#lists.isEmpty(certificaciones)}">No tienes certificaciones registradas.</div></section>
-</div></main></div></body></html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Certificaciones | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/certificaciones.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}" role="status"></div>
+            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}" role="alert"></div>
+
+            <section class="grid-3 cert-resumen" aria-label="Resumen de certificaciones">
+                <div class="metric">
+                    <div class="label">Certificaciones</div>
+                    <div class="value" th:text="${totalCertificaciones}">0</div>
+                    <div class="hint">Registradas en tu perfil</div>
+                </div>
+                <div class="metric green">
+                    <div class="label">Vigentes</div>
+                    <div class="value" th:text="${vigentes}">0</div>
+                    <div class="hint">Incluye las que no vencen</div>
+                </div>
+                <div class="metric red">
+                    <div class="label">Vencidas</div>
+                    <div class="value" th:text="${vencidas}">0</div>
+                    <div class="hint">Con vigencia finalizada</div>
+                </div>
+            </section>
+
+            <section class="card section" aria-labelledby="certificacionesTitulo">
+                <div class="card-title cert-encabezado">
+                    <h1 id="certificacionesTitulo">Mis certificaciones</h1>
+                    <a class="btn btn-primary" th:href="@{/colaborador/certificaciones/nueva(page=${paginaActual})}">
+                        + Agregar certificación
+                    </a>
+                </div>
+                <div class="grid-2 cert-lista" th:unless="${certificaciones.isEmpty()}">
+                    <article class="soft-panel cert-ficha" th:each="c : ${certificaciones}">
+                        <div class="cert-ficha-titulo">
+                            <span th:replace="~{fragments/perfil :: estadoCertificacion(${c})}"></span>
+                            <h2 th:text="${c.nombre}"></h2>
+                            <p class="muted" th:text="${#strings.isEmpty(c.entidadEmisora) ? 'Entidad sin registrar' : c.entidadEmisora}">
+                                Entidad sin registrar
+                            </p>
+                        </div>
+
+                        <dl class="grid-2 cert-fechas">
+                            <div class="info-box">
+                                <dt>Fecha de emisión</dt>
+                                <dd>
+                                    <time th:if="${c.fechaEmision != null}" th:datetime="${c.fechaEmision}"
+                                          th:text="${#temporals.format(c.fechaEmision, 'dd-MM-yyyy')}"></time>
+                                    <span class="muted" th:unless="${c.fechaEmision != null}">Sin registrar</span>
+                                </dd>
+                            </div>
+                            <div class="info-box">
+                                <dt>Vencimiento</dt>
+                                <dd>
+                                    <time th:if="${c.fechaExpiracion != null}" th:datetime="${c.fechaExpiracion}"
+                                          th:text="${#temporals.format(c.fechaExpiracion, 'dd-MM-yyyy')}"></time>
+                                    <span class="muted" th:unless="${c.fechaExpiracion != null}"
+                                          th:text="${c.estadoActual.name() == 'SIN_EXPIRACION' ? 'Sin expiración' : 'Sin registrar'}">
+                                    </span>
+                                </dd>
+                            </div>
+                        </dl>
+
+                        <div class="action-row cert-acciones">
+                            <a class="btn btn-light btn-sm"
+                               th:href="@{/colaborador/certificaciones/editar/{id}(id=${c.idCertificacion},page=${paginaActual})}">
+                                Editar
+                            </a>
+                            <a class="btn btn-blue-soft btn-sm" th:unless="${#strings.isEmpty(c.urlCredencial)}"
+                               th:href="@{${c.urlCredencial}}" target="_blank" rel="noopener noreferrer"
+                               th:text="${#strings.startsWith(c.urlCredencial, '/colaborador/certificaciones/archivo/') ? 'Ver archivo' : 'Ver credencial'}">
+                                Ver credencial
+                            </a>
+                            <form th:action="@{/colaborador/certificaciones/{id}/eliminar(id=${c.idCertificacion})}"
+                                  method="post" onsubmit="return confirm('¿Eliminar esta certificación?')">
+                                <input type="hidden" name="page" th:value="${paginaActual}">
+                                <button class="btn btn-danger-soft btn-sm" type="submit">Eliminar</button>
+                            </form>
+                        </div>
+                    </article>
+                </div>
+                <div class="empty" th:if="${certificaciones.isEmpty()}">Aún no tienes certificaciones registradas.</div>
+
+                <footer class="cert-pie-lista" th:if="${totalPaginas > 1}"
+                        th:with="rango=${primerResultado == ultimoResultado ? ultimoResultado : primerResultado + '–' + ultimoResultado}">
+                    <p class="muted" th:text="|Mostrando ${rango} de ${totalCertificaciones} certificaciones|"></p>
+                    <nav class="cert-paginacion" aria-label="Paginación de certificaciones">
+                        <span class="btn btn-light btn-sm" th:if="${paginaActual == 1}" aria-disabled="true">Anterior</span>
+                        <a class="btn btn-light btn-sm" th:if="${paginaActual > 1}"
+                           th:href="@{/colaborador/certificaciones(page=${paginaActual - 1})}">Anterior</a>
+                        <a class="btn btn-sm cert-pagina" th:each="p : ${#numbers.sequence(1, totalPaginas)}"
+                           th:classappend="${p == paginaActual ? 'btn-primary' : 'btn-light'}"
+                           th:href="@{/colaborador/certificaciones(page=${p})}"
+                           th:attr="aria-current=${p == paginaActual ? 'page' : null}"
+                           th:text="${p}">1</a>
+                        <a class="btn btn-light btn-sm" th:if="${paginaActual < totalPaginas}"
+                           th:href="@{/colaborador/certificaciones(page=${paginaActual + 1})}">Siguiente</a>
+                        <span class="btn btn-light btn-sm" th:if="${paginaActual == totalPaginas}" aria-disabled="true">Siguiente</span>
+                    </nav>
+                </footer>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

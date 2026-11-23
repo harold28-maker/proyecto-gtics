@@ -9,6 +9,7 @@ import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import pe.edu.pucp.skillbridge.dto.CargaColaboradorDTO;
+import pe.edu.pucp.skillbridge.dto.CargaColaboradorDTO.Clasificacion;
 import pe.edu.pucp.skillbridge.entity.Asignacion;
 import pe.edu.pucp.skillbridge.entity.Colaborador;
 import pe.edu.pucp.skillbridge.entity.Proyecto;
@@ -17,8 +18,8 @@ import pe.edu.pucp.skillbridge.repository.AsignacionRepository;
 import pe.edu.pucp.skillbridge.repository.ColaboradorRepository;
 import pe.edu.pucp.skillbridge.repository.ProyectoRepository;
 import pe.edu.pucp.skillbridge.repository.RecomendacionIARepository;
+import pe.edu.pucp.skillbridge.service.CapacidadColaboradorService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.nio.charset.StandardCharsets;
 
@@ -34,6 +35,7 @@ public class ResourceManagerController {
     private final RecomendacionIARepository recomendacionIARepository;
     private final AsignacionRepository asignacionRepository;
     private final ProyectoRepository proyectoRepository;
+    private final CapacidadColaboradorService capacidadColaboradorService;
 
     /**
      * Crea el controlador e inicializa los repositorios necesarios para las operaciones de recursos.
@@ -42,46 +44,18 @@ public class ResourceManagerController {
      * @param recomendacionIARepository repositorio de recomendaciones de IA
      * @param asignacionRepository repositorio de asignaciones
      * @param proyectoRepository repositorio de proyectos
+     * @param capacidadColaboradorService servicio de carga vigente
      */
     public ResourceManagerController(ColaboradorRepository colaboradorRepository,
                                      RecomendacionIARepository recomendacionIARepository,
                                      AsignacionRepository asignacionRepository,
-                                     ProyectoRepository proyectoRepository) {
+                                     ProyectoRepository proyectoRepository,
+                                     CapacidadColaboradorService capacidadColaboradorService) {
         this.colaboradorRepository = colaboradorRepository;
         this.recomendacionIARepository = recomendacionIARepository;
         this.asignacionRepository = asignacionRepository;
         this.proyectoRepository = proyectoRepository;
-    }
-
-    /**
-     * Convierte un valor numérico a entero o devuelve cero cuando el valor es nulo.
-     *
-     * @param value valor obtenido de una consulta
-     * @return valor convertido a entero
-     */
-    private Integer intValue(Object value) {
-        return value == null ? 0 : ((Number) value).intValue();
-    }
-
-    /**
-     * Obtiene los datos de carga de todos los colaboradores.
-     *
-     * @return lista de cargas de colaboradores
-     */
-    private List<CargaColaboradorDTO> cargarDatos() {
-        List<CargaColaboradorDTO> resultado = new ArrayList<>();
-        for (Object[] fila : colaboradorRepository.obtenerCargaColaboradores()) {
-            resultado.add(new CargaColaboradorDTO(
-                    intValue(fila[0]),
-                    String.valueOf(fila[1]),
-                    fila[2] == null ? "-" : String.valueOf(fila[2]),
-                    fila[3] == null ? "-" : String.valueOf(fila[3]),
-                    intValue(fila[4]),
-                    intValue(fila[5]),
-                    intValue(fila[6])
-            ));
-        }
-        return resultado;
+        this.capacidadColaboradorService = capacidadColaboradorService;
     }
 
     /**
@@ -92,10 +66,10 @@ public class ResourceManagerController {
      */
     @RequestMapping(value = {"/inicio", "/dashboard"}, method = {RequestMethod.GET, RequestMethod.POST})
     public String inicio(Model model) {
-        List<CargaColaboradorDTO> cargas = cargarDatos();
-        model.addAttribute("titulo", "Dashboard - Resource Manager");
+        List<CargaColaboradorDTO> cargas = capacidadColaboradorService.consultarEquipo();
+        model.addAttribute("titulo", "Inicio");
         model.addAttribute("totalColaboradores", cargas.size());
-        model.addAttribute("disponibles", cargas.stream().filter(c -> c.getDisponibilidad() >= 50).count());
+        model.addAttribute("disponibles", cargas.stream().filter(c -> c.getClasificacion() == Clasificacion.DISPONIBLE).count());
         model.addAttribute("sobrecargados", cargas.stream().filter(c -> c.getCarga() > c.getDisponibilidadBase()).count());
         model.addAttribute("cargaPromedio", cargas.isEmpty() ? 0 : Math.round(cargas.stream().mapToInt(CargaColaboradorDTO::getCarga).average().orElse(0)));
         model.addAttribute("cargas", cargas.stream().limit(6).toList());
@@ -258,12 +232,12 @@ public class ResourceManagerController {
      */
     @GetMapping("/disponibilidad")
     public String disponibilidad(Model model) {
-        List<CargaColaboradorDTO> lista = cargarDatos();
+        List<CargaColaboradorDTO> lista = capacidadColaboradorService.consultarEquipo();
         model.addAttribute("titulo", "Disponibilidad");
         model.addAttribute("cargas", lista);
-        model.addAttribute("disponibles", lista.stream().filter(c -> c.getDisponibilidad() >= 50).count());
-        model.addAttribute("parciales", lista.stream().filter(c -> c.getDisponibilidad() > 0 && c.getDisponibilidad() < 50).count());
-        model.addAttribute("sinDisponibilidad", lista.stream().filter(c -> c.getDisponibilidad() == 0).count());
+        model.addAttribute("disponibles", lista.stream().filter(c -> c.getClasificacion() == Clasificacion.DISPONIBLE).count());
+        model.addAttribute("parciales", lista.stream().filter(c -> c.getClasificacion() == Clasificacion.PARCIAL).count());
+        model.addAttribute("sinDisponibilidad", lista.stream().filter(c -> c.getClasificacion() == Clasificacion.SIN_DISPONIBILIDAD).count());
         return "resource/disponibilidad";
     }
 
@@ -275,7 +249,7 @@ public class ResourceManagerController {
      */
     @GetMapping("/carga")
     public String carga(Model model) {
-        List<CargaColaboradorDTO> lista = cargarDatos();
+        List<CargaColaboradorDTO> lista = capacidadColaboradorService.consultarEquipo();
         model.addAttribute("titulo", "Carga de trabajo");
         model.addAttribute("cargas", lista);
         model.addAttribute("cargaPromedio", lista.isEmpty() ? 0 : Math.round(lista.stream().mapToInt(CargaColaboradorDTO::getCarga).average().orElse(0)));
@@ -331,7 +305,7 @@ public class ResourceManagerController {
     @GetMapping("/reportes")
     public String reportes(@RequestParam(value = "reporte", required = false) String reporte,
                            Model model) {
-        List<CargaColaboradorDTO> cargas = cargarDatos();
+        List<CargaColaboradorDTO> cargas = capacidadColaboradorService.consultarEquipo();
         List<Asignacion> asignaciones = asignacionRepository.findAll();
         List<Proyecto> proyectos = proyectoRepository.findAll();
         var recomendaciones = recomendacionIARepository.findAllByOrderByPorcentajeMatchDesc();
@@ -343,8 +317,8 @@ public class ResourceManagerController {
         model.addAttribute("proyectos", proyectos);
         model.addAttribute("recomendaciones", recomendaciones);
         model.addAttribute("totalColaboradores", cargas.size());
-        model.addAttribute("disponibles", cargas.stream().filter(c -> c.getDisponibilidad() >= 50).count());
-        model.addAttribute("sinDisponibilidad", cargas.stream().filter(c -> c.getDisponibilidad() == 0).count());
+        model.addAttribute("disponibles", cargas.stream().filter(c -> c.getClasificacion() == Clasificacion.DISPONIBLE).count());
+        model.addAttribute("sinDisponibilidad", cargas.stream().filter(c -> c.getClasificacion() == Clasificacion.SIN_DISPONIBILIDAD).count());
         model.addAttribute("sobrecargados", cargas.stream().filter(c -> c.getCarga() > c.getDisponibilidadBase()).count());
         model.addAttribute("cargaPromedio", cargas.isEmpty() ? 0 :
                 Math.round(cargas.stream().mapToInt(CargaColaboradorDTO::getCarga).average().orElse(0)));
@@ -372,7 +346,7 @@ public class ResourceManagerController {
             case "capacidad" -> {
                 nombreArchivo = "reporte_capacidad.csv";
                 csv.append("Colaborador,Cargo,Area,Disponibilidad base,Carga,Disponibilidad\n");
-                for (CargaColaboradorDTO c : cargarDatos()) {
+                for (CargaColaboradorDTO c : capacidadColaboradorService.consultarEquipo()) {
                     csv.append(csv(c.getColaborador())).append(',')
                             .append(csv(c.getCargo())).append(',')
                             .append(csv(c.getArea())).append(',')

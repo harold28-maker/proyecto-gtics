@@ -1,34 +1,48 @@
 package pe.edu.pucp.skillbridge.controller;
 
-import jakarta.servlet.http.HttpSession;
+import jakarta.persistence.EntityManager;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.propertyeditors.StringTrimmerEditor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.TransactionException;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import pe.edu.pucp.skillbridge.dto.HabilidadColaboradorDTO;
 import pe.edu.pucp.skillbridge.entity.*;
 import pe.edu.pucp.skillbridge.repository.*;
+import pe.edu.pucp.skillbridge.service.CapacidadColaboradorService;
+import pe.edu.pucp.skillbridge.service.FotoPerfilService;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -47,10 +61,15 @@ public class ColaboradorController {
     private final NotificacionRepository notificacionRepository;
     private final MensajeChatRepository mensajeChatRepository;
     private final RespuestaForoRepository respuestaForoRepository;
+    private final CapacidadColaboradorService capacidadColaboradorService;
+    private final FotoPerfilService fotoPerfilService;
+    private final TransactionTemplate transacciones;
+    private final EntityManager entidades;
 
     @Value("${skillbridge.upload-dir:uploads}")
     private String uploadDir;
 
+    private static final int CERTIFICACIONES_POR_PAGINA = 4;
     private static final long MAX_CREDENCIAL_BYTES = 5L * 1024L * 1024L;
 
     /**
@@ -65,6 +84,10 @@ public class ColaboradorController {
      * @param notificacionRepository repositorio de notificaciones
      * @param mensajeChatRepository repositorio de mensajes de chat
      * @param respuestaForoRepository repositorio de respuestas de foro
+     * @param capacidadColaboradorService servicio de carga vigente
+     * @param fotoPerfilService servicio compartido de fotos de usuario
+     * @param transacciones transacciones utilizadas al guardar el perfil
+     * @param entidades contexto de persistencia de la cuenta
      */
     public ColaboradorController(UsuarioRepository usuarioRepository,
                                  ColaboradorRepository colaboradorRepository,
@@ -74,7 +97,11 @@ public class ColaboradorController {
                                  ForoRepository foroRepository,
                                  NotificacionRepository notificacionRepository,
                                  MensajeChatRepository mensajeChatRepository,
-                                 RespuestaForoRepository respuestaForoRepository) {
+                                 RespuestaForoRepository respuestaForoRepository,
+                                 CapacidadColaboradorService capacidadColaboradorService,
+                                 FotoPerfilService fotoPerfilService,
+                                 TransactionTemplate transacciones,
+                                 EntityManager entidades) {
         this.usuarioRepository = usuarioRepository;
         this.colaboradorRepository = colaboradorRepository;
         this.habilidadRepository = habilidadRepository;
@@ -84,29 +111,19 @@ public class ColaboradorController {
         this.notificacionRepository = notificacionRepository;
         this.mensajeChatRepository = mensajeChatRepository;
         this.respuestaForoRepository = respuestaForoRepository;
+        this.capacidadColaboradorService = capacidadColaboradorService;
+        this.fotoPerfilService = fotoPerfilService;
+        this.transacciones = transacciones;
+        this.entidades = entidades;
     }
 
-    /**
-     * Obtiene el colaborador asociado a la sesión, o selecciona un colaborador disponible.
-     *
-     * @return colaborador encontrado o {@code null} si no existe ninguno
-     */
-    private Colaborador colaboradorDemo() {
+    /** Obtiene únicamente el perfil de la cuenta autenticada. */
+    private Colaborador colaboradorSesion() {
         ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attrs != null) {
-            HttpSession session = attrs.getRequest().getSession(false);
-            if (session != null && session.getAttribute("usuarioSesionId") instanceof Integer idUsuario) {
-                var colaboradorSesion = colaboradorRepository.findByUsuarioIdUsuario(idUsuario);
-                if (colaboradorSesion.isPresent()) return colaboradorSesion.get();
-            }
-        }
-
-        List<Usuario> usuarios = usuarioRepository.findByRolNombre("COLABORADOR");
-        for (Usuario usuario : usuarios) {
-            var colaborador = colaboradorRepository.findByUsuarioIdUsuario(usuario.getIdUsuario());
-            if (colaborador.isPresent()) return colaborador.get();
-        }
-        return colaboradorRepository.findAll().stream().findFirst().orElse(null);
+        Object usuario = attrs == null ? null : attrs.getRequest().getAttribute("usuarioVerificado");
+        return usuario instanceof Usuario cuenta
+                ? colaboradorRepository.findByUsuarioIdUsuario(cuenta.getIdUsuario()).orElse(null)
+                : null;
     }
 
     /**
@@ -139,19 +156,19 @@ public class ColaboradorController {
         return valor != null && valor.matches("^[\\p{L} ]{1,20}$");
     }
 
-    /**
-     * Valida los datos personales que se pueden editar en el perfil.
-     *
-     * @param nombres nombres del usuario
-     * @param apellidos apellidos del usuario
-     * @param telefono teléfono del usuario
-     * @return mensaje de error o {@code null} si los datos son válidos
-     */
-    private String validarDatosUsuario(String nombres, String apellidos, String telefono) {
-        if (!soloLetrasHasta20(nombres)) return "Los nombres solo pueden contener letras y espacios, con un máximo de 20 caracteres.";
-        if (!soloLetrasHasta20(apellidos)) return "Los apellidos solo pueden contener letras y espacios, con un máximo de 20 caracteres.";
-        if (telefono == null || !telefono.matches("^[0-9]{9}$")) return "El teléfono debe contener exactamente 9 dígitos.";
-        return null;
+    /** Valida los datos personales y conserva el mensaje de cada campo. */
+    private Map<String, String> validarDatosUsuario(String nombres, String apellidos, String telefono) {
+        Map<String, String> errores = new LinkedHashMap<>();
+        if (!soloLetrasHasta20(nombres)) {
+            errores.put("nombres", "Ingresa solo letras y espacios, hasta 20 caracteres.");
+        }
+        if (!soloLetrasHasta20(apellidos)) {
+            errores.put("apellidos", "Ingresa solo letras y espacios, hasta 20 caracteres.");
+        }
+        if (!telefono.matches("^[0-9]{9}$")) {
+            errores.put("telefono", "Ingresa exactamente 9 dígitos.");
+        }
+        return errores;
     }
 
     /**
@@ -162,43 +179,42 @@ public class ColaboradorController {
      */
     @RequestMapping(value = "/inicio", method = {RequestMethod.GET, RequestMethod.POST})
     public String inicio(Model model) {
-        Colaborador c = colaboradorDemo();
-        model.addAttribute("titulo", "Mi espacio de trabajo");
-        model.addAttribute("colaborador", c);
-        if (c != null) {
-            List<Asignacion> asignaciones = asignacionRepository.findByColaboradorIdColaboradorOrderByFechaInicioDesc(c.getIdColaborador());
-            List<Asignacion> activas = asignaciones.stream()
-                    .filter(a -> a.getEstado() == Asignacion.EstadoAsignacion.ACTIVA || a.getEstado() == Asignacion.EstadoAsignacion.PLANIFICADA)
-                    .toList();
-            int cargaActual = activas.stream().mapToInt(a -> a.getPorcentajeDedicacion() == null ? 0 : a.getPorcentajeDedicacion()).sum();
-            int disponibilidadReal = Math.max((c.getDisponibilidadBase() == null ? 0 : c.getDisponibilidadBase()) - cargaActual, 0);
-            Asignacion principal = activas.stream().findFirst().orElse(null);
-
-            model.addAttribute("totalAsignaciones", asignaciones.size());
-            model.addAttribute("asignacionesActivas", activas.size());
-            model.addAttribute("asignacionPrincipal", principal);
-            model.addAttribute("cargaActual", cargaActual);
-            model.addAttribute("disponibilidadReal", disponibilidadReal);
-            model.addAttribute("habilidades", habilidades(c.getIdColaborador()).size());
-            model.addAttribute("totalCertificaciones", certificacionRepository.findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador()).size());
+        Colaborador colaborador = colaboradorSesion();
+        model.addAttribute("titulo", "Inicio");
+        model.addAttribute("colaborador", colaborador);
+        if (colaborador != null) {
+            var resumen = capacidadColaboradorService.consultarPersonal(colaborador);
+            model.addAttribute("resumen", resumen);
+            model.addAttribute("habilidades", habilidades(colaborador.getIdColaborador()).size());
+            model.addAttribute("totalCertificaciones", certificacionRepository
+                    .findByColaboradorIdColaboradorOrderByFechaEmisionDescIdCertificacionDesc(colaborador.getIdColaborador()).size());
         }
         return "colaborador/inicio";
     }
 
     /**
-     * Carga el perfil profesional y sus certificaciones y habilidades.
+     * Carga el perfil profesional y los datos que habilita el rol.
      *
+     * @param bloqueados permisos deshabilitados para el rol
      * @param model modelo utilizado para enviar datos a la vista
      * @return nombre de la vista de perfil
      */
     @GetMapping("/perfil")
-    public String perfil(Model model) {
-        Colaborador c = colaboradorDemo();
+    public String perfil(@RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
+        Colaborador c = colaboradorSesion();
+        if (c == null) return "redirect:/colaborador/inicio";
         model.addAttribute("titulo", "Mi perfil profesional");
         model.addAttribute("colaborador", c);
-        model.addAttribute("certificaciones", c == null ? List.of()
-                : certificacionRepository.findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador()));
-        model.addAttribute("habilidades", c == null ? List.of() : habilidades(c.getIdColaborador()));
+        if (!bloqueados.contains("certificaciones")) {
+            model.addAttribute("certificaciones",
+                    certificacionRepository.findByColaboradorIdColaboradorOrderByFechaEmisionDescIdCertificacionDesc(c.getIdColaborador()));
+        }
+        if (!bloqueados.contains("habilidades")) {
+            model.addAttribute("habilidades", habilidades(c.getIdColaborador()));
+        }
+        if (!bloqueados.contains("asignaciones")) {
+            model.addAttribute("capacidad", capacidadColaboradorService.consultarPersonal(c).capacidad());
+        }
         return "colaborador/perfil";
     }
 
@@ -210,237 +226,328 @@ public class ColaboradorController {
      */
     @GetMapping("/perfil/editar")
     public String editarPerfil(Model model) {
+        Colaborador colaborador = colaboradorSesion();
+        if (colaborador == null) return "redirect:/colaborador/inicio";
+        Usuario cuenta = colaborador.getUsuario();
+        model.addAttribute("colaborador", colaborador);
+        model.addAttribute("nombresPerfil", cuenta.getNombres());
+        model.addAttribute("apellidosPerfil", cuenta.getApellidos());
+        model.addAttribute("telefonoPerfil", cuenta.getTelefono());
+        model.addAttribute("erroresPerfil", Map.of());
+        return vistaEditarPerfil(model);
+    }
+
+    /** Guarda el perfil de la cuenta autenticada tras validar todos los datos en el servidor. */
+    @PostMapping("/perfil/guardar")
+    public String guardarPerfil(@Valid @ModelAttribute("colaborador") Colaborador cambios,
+                                BindingResult bindingResult,
+                                @RequestParam(value = "nombres", defaultValue = "") String nombres,
+                                @RequestParam(value = "apellidos", defaultValue = "") String apellidos,
+                                @RequestParam(value = "telefono", defaultValue = "") String telefono,
+                                @RequestParam(value = "foto", required = false) MultipartFile foto,
+                                @RequestParam(value = "fotoRecortada", required = false) MultipartFile fotoRecortada,
+                                Model model, RedirectAttributes redirect) {
+        Colaborador actual = colaboradorSesion();
+        if (actual == null) return "redirect:/colaborador/inicio";
+
+        cambios.setIdColaborador(actual.getIdColaborador());
+        cambios.setUsuario(actual.getUsuario());
+        model.addAttribute("nombresPerfil", nombres);
+        model.addAttribute("apellidosPerfil", apellidos);
+        model.addAttribute("telefonoPerfil", telefono);
+        Map<String, String> errores = validarDatosUsuario(nombres.trim(), apellidos.trim(), telefono.trim());
+        model.addAttribute("erroresPerfil", errores);
+
+        boolean cambiarFoto = foto != null && (!foto.isEmpty() || StringUtils.hasText(foto.getOriginalFilename()));
+        if (fotoRecortada != null && !fotoRecortada.isEmpty() && !cambiarFoto) {
+            errores.put("foto", "Selecciona primero una foto de perfil.");
+        }
+        if (bindingResult.hasErrors() || !errores.isEmpty()) {
+            return vistaEditarPerfil(model);
+        }
+
+        String fotoNueva;
+        try {
+            fotoNueva = cambiarFoto ? fotoPerfilService.guardar(foto, fotoRecortada) : null;
+        } catch (IllegalArgumentException ex) {
+            errores.put("foto", ex.getMessage());
+            return vistaEditarPerfil(model);
+        } catch (IOException ex) {
+            errores.put("foto", "No se pudo guardar la foto. Vuelve a intentarlo.");
+            return vistaEditarPerfil(model);
+        }
+
+        Integer idUsuario = actual.getUsuario().getIdUsuario();
+        PerfilGuardado guardado = null;
+        try {
+            guardado = transacciones.execute(estado -> actualizarPerfil(idUsuario, cambios,
+                    nombres.trim(), apellidos.trim(), telefono.trim(), fotoNueva));
+        } catch (DataAccessException ex) {
+            model.addAttribute("mensajeError", "No se pudo guardar el perfil. Vuelve a intentarlo.");
+            return vistaEditarPerfil(model);
+        } finally {
+            if (guardado == null) fotoPerfilService.eliminar(fotoNueva);
+        }
+
+        if (guardado == null) return "redirect:/colaborador/inicio";
+        if (fotoNueva != null) fotoPerfilService.eliminar(guardado.fotoAnterior());
+        redirect.addFlashAttribute("mensajeExito", "Tu perfil fue actualizado correctamente.");
+        return "redirect:/colaborador/perfil";
+    }
+
+    private String vistaEditarPerfil(Model model) {
         model.addAttribute("titulo", "Editar perfil profesional");
-        model.addAttribute("colaborador", colaboradorDemo());
         return "colaborador/perfil-form";
     }
 
-    /**
-     * Valida y guarda los datos personales y profesionales editados del colaborador.
-     *
-     * @param colaborador datos profesionales enviados en el formulario
-     * @param bindingResult resultado de las validaciones del formulario
-     * @param nombres nombres editados del usuario
-     * @param apellidos apellidos editados del usuario
-     * @param telefono teléfono editado del usuario
-     * @param model modelo utilizado para comunicar el resultado
-     * @return vista del formulario ante un error o vista del perfil tras guardar
-     */
-    @PostMapping("/perfil/guardar")
-    public String guardarPerfil(@Valid @ModelAttribute("colaborador") Colaborador colaborador,
-                                BindingResult bindingResult,
-                                @RequestParam("nombres") String nombres,
-                                @RequestParam("apellidos") String apellidos,
-                                @RequestParam("telefono") String telefono,
-                                Model model) {
-        Colaborador actual = colaboradorRepository.findById(colaborador.getIdColaborador()).orElseThrow();
-        if (bindingResult.hasErrors()) {
-            colaborador.setUsuario(actual.getUsuario());
-            model.addAttribute("titulo", "Editar perfil profesional");
-            model.addAttribute("mensajeError", bindingResult.getAllErrors().get(0).getDefaultMessage());
-            return "colaborador/perfil-form";
+    private record PerfilGuardado(String fotoAnterior) {}
+
+    private PerfilGuardado actualizarPerfil(Integer idUsuario, Colaborador cambios, String nombres,
+                                            String apellidos, String telefono, String fotoNueva) {
+        Usuario cuenta = usuarioRepository.buscarParaActualizar(idUsuario).orElse(null);
+        if (cuenta == null) return null;
+        entidades.refresh(cuenta);
+        if (cuenta.getEstado() != Usuario.EstadoUsuario.ACTIVO || cuenta.getRol() == null
+                || !"COLABORADOR".equals(cuenta.getRol().getNombre())) {
+            return null;
         }
-        String error = validarDatosUsuario(nombres.trim(), apellidos.trim(), telefono.trim());
-        if (error != null) {
-            colaborador.setUsuario(actual.getUsuario());
-            model.addAttribute("titulo", "Editar perfil profesional");
-            model.addAttribute("colaborador", colaborador);
-            model.addAttribute("mensajeError", error);
-            return "colaborador/perfil-form";
-        }
+        Colaborador perfil = colaboradorRepository.findByUsuarioIdUsuario(idUsuario).orElse(null);
+        if (perfil == null) return null;
 
-        Usuario usuario = actual.getUsuario();
-        usuario.setNombres(nombres.trim());
-        usuario.setApellidos(apellidos.trim());
-        usuario.setTelefono(telefono.trim());
-        actual.setCargo(colaborador.getCargo().trim());
-        actual.setArea(colaborador.getArea().trim());
-        actual.setSeniority(colaborador.getSeniority());
-        actual.setBiografia(colaborador.getBiografia());
-        actual.setInteresesProfesionales(colaborador.getInteresesProfesionales());
-        actual.setDisponibilidadBase(colaborador.getDisponibilidadBase());
+        String fotoAnterior = cuenta.getFotoUrl();
+        cuenta.setNombres(nombres);
+        cuenta.setApellidos(apellidos);
+        cuenta.setTelefono(telefono);
+        if (fotoNueva != null) cuenta.setFotoUrl(fotoNueva);
 
-        usuarioRepository.save(usuario);
-        colaboradorRepository.save(actual);
+        perfil.setCargo(cambios.getCargo().trim());
+        perfil.setArea(cambios.getArea().trim());
+        perfil.setSeniority(cambios.getSeniority());
+        perfil.setBiografia(cambios.getBiografia());
+        perfil.setInteresesProfesionales(cambios.getInteresesProfesionales());
+        perfil.setDisponibilidadBase(cambios.getDisponibilidadBase());
 
-        perfil(model);
-        model.addAttribute("mensajeExito", "Tu perfil fue actualizado correctamente.");
-        return "colaborador/perfil";
+        usuarioRepository.save(cuenta);
+        colaboradorRepository.save(perfil);
+        return new PerfilGuardado(fotoAnterior);
     }
 
-    /**
-     * Lista las certificaciones del colaborador en orden de emisión descendente.
-     *
-     * @param model modelo utilizado para enviar la información a la vista
-     * @return nombre de la vista de certificaciones
-     */
+    /** Lista las certificaciones del colaborador desde la más reciente. */
     @GetMapping("/certificaciones")
-    public String certificaciones(Model model) {
-        Colaborador c = colaboradorDemo();
-        List<Certificacion> lista = c == null ? List.of()
-                : certificacionRepository.findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
-        cargarCertificaciones(model, lista);
+    public String certificaciones(@RequestParam(defaultValue = "1") int page, Model model) {
+        List<Certificacion> lista = listarCertificaciones(colaboradorSesion());
+        int total = lista.size();
+        int totalPaginas = Math.max(1, (int) Math.ceil(total / (double) CERTIFICACIONES_POR_PAGINA));
+        int paginaActual = Math.max(1, Math.min(page, totalPaginas));
+        int desde = (paginaActual - 1) * CERTIFICACIONES_POR_PAGINA;
+        int hasta = Math.min(desde + CERTIFICACIONES_POR_PAGINA, total);
+        long vencidas = lista.stream()
+                .filter(cert -> cert.getEstadoActual() == Certificacion.EstadoCertificacion.VENCIDA)
+                .count();
+
+        model.addAttribute("titulo", "Certificaciones");
+        model.addAttribute("certificaciones", lista.subList(desde, hasta));
+        model.addAttribute("totalCertificaciones", total);
+        model.addAttribute("vigentes", total - vencidas);
+        model.addAttribute("vencidas", vencidas);
+        model.addAttribute("paginaActual", paginaActual);
+        model.addAttribute("totalPaginas", totalPaginas);
+        model.addAttribute("primerResultado", desde + 1);
+        model.addAttribute("ultimoResultado", hasta);
         return "colaborador/certificaciones";
     }
 
-    /**
-     * Agrega al modelo el título, la lista y el número de certificaciones vigentes.
-     *
-     * @param model modelo que recibirá los atributos
-     * @param lista certificaciones que se mostrarán
-     */
-    private void cargarCertificaciones(Model model, List<Certificacion> lista) {
-        model.addAttribute("titulo", "Certificaciones y credenciales");
-        model.addAttribute("certificaciones", lista);
-        model.addAttribute("vigentes", lista.stream()
-                .filter(cert -> cert.getEstado() == Certificacion.EstadoCertificacion.VIGENTE)
-                .count());
+    private List<Certificacion> listarCertificaciones(Colaborador colaborador) {
+        return colaborador == null ? List.of() : certificacionRepository
+                .findByColaboradorIdColaboradorOrderByFechaEmisionDescIdCertificacionDesc(colaborador.getIdColaborador());
     }
 
-    /**
-     * Crea una certificación vacía con estado vigente para el formulario de alta.
-     *
-     * @param model modelo utilizado para enviar la información a la vista
-     * @return nombre de la vista del formulario de certificación
-     */
+    @InitBinder("certificacion")
+    public void prepararDatosCertificacion(WebDataBinder binder) {
+        binder.setAllowedFields("idCertificacion", "nombre", "entidadEmisora",
+                "fechaEmision", "fechaExpiracion", "urlCredencial");
+        binder.registerCustomEditor(String.class, new StringTrimmerEditor(true));
+    }
+
     @GetMapping("/certificaciones/nueva")
-    public String nuevaCertificacion(Model model) {
-        Certificacion certificacion = new Certificacion();
-        certificacion.setEstado(Certificacion.EstadoCertificacion.VIGENTE);
-        model.addAttribute("titulo", "Nueva certificación");
-        model.addAttribute("certificacion", certificacion);
-        return "colaborador/certificacion-form";
+    public String nuevaCertificacion(@RequestParam(defaultValue = "1") int page, Model model) {
+        model.addAttribute("certificacion", new Certificacion());
+        return cargarFormularioCertificacion(model, null, false, page);
     }
 
-    /**
-     * Muestra una certificación en el formulario solo si pertenece al colaborador actual.
-     *
-     * @param id identificador de la certificación
-     * @param model modelo utilizado para enviar datos a la vista
-     * @return vista del formulario o lista de certificaciones ante una edición no válida
-     */
     @GetMapping("/certificaciones/editar/{id}")
-    public String editarCertificacion(@PathVariable Integer id, Model model) {
-        Colaborador c = colaboradorDemo();
-        Certificacion certificacion = certificacionRepository.findById(id).orElse(null);
-
-        if (c == null || certificacion == null || !certificacionPerteneceA(certificacion, c)) {
-            List<Certificacion> lista = c == null ? List.of()
-                    : certificacionRepository.findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
-            cargarCertificaciones(model, lista);
-            model.addAttribute("mensajeError", "La certificación que intentas editar no pertenece a tu perfil.");
-            return "colaborador/certificaciones";
+    public String editarCertificacion(@PathVariable Integer id, @RequestParam(defaultValue = "1") int page,
+                                      Model model, RedirectAttributes redirect) {
+        Certificacion actual = certificacionPropia(colaboradorSesion(), id);
+        if (actual == null) {
+            return volverACertificaciones(redirect, page, "La certificación no pertenece a tu perfil.");
         }
 
-        model.addAttribute("titulo", "Editar certificación");
-        model.addAttribute("certificacion", certificacion);
-        return "colaborador/certificacion-form";
+        Certificacion formulario = new Certificacion();
+        formulario.setIdCertificacion(actual.getIdCertificacion());
+        formulario.setNombre(actual.getNombre());
+        formulario.setEntidadEmisora(actual.getEntidadEmisora());
+        formulario.setFechaEmision(actual.getFechaEmision());
+        formulario.setFechaExpiracion(actual.getFechaExpiracion());
+        if (!esArchivoLocal(actual.getUrlCredencial())) {
+            formulario.setUrlCredencial(actual.getUrlCredencial());
+        }
+
+        model.addAttribute("certificacion", formulario);
+        boolean sinExpiracion = actual.getEstadoActual() == Certificacion.EstadoCertificacion.SIN_EXPIRACION;
+        return cargarFormularioCertificacion(model, actual, sinExpiracion, page);
     }
 
-    /**
-     * Valida, guarda o actualiza una certificación y su archivo de credencial opcional.
-     *
-     * @param certificacion datos de la certificación enviados en el formulario
-     * @param bindingResult resultado de las validaciones del formulario
-     * @param archivoCredencial archivo opcional de la credencial
-     * @param model modelo utilizado para comunicar el resultado
-     * @return vista del formulario o de la lista de certificaciones
-     */
+    /** Valida el formulario antes de guardar la certificación y su credencial opcional. */
     @PostMapping("/certificaciones/guardar")
-    public String guardarCertificacion(@Valid @ModelAttribute("certificacion") Certificacion certificacion,
-                                       BindingResult bindingResult,
-                                       @RequestParam(value = "archivoCredencial", required = false) MultipartFile archivoCredencial,
-                                       Model model) {
-        Colaborador c = colaboradorDemo();
-
-        if (c == null) {
-            model.addAttribute("titulo", certificacion.getIdCertificacion() == null
-                    ? "Nueva certificación" : "Editar certificación");
-            model.addAttribute("mensajeError", "No se encontró el perfil del colaborador.");
-            return "colaborador/certificacion-form";
+    public String guardarCertificacion(@Valid @ModelAttribute("certificacion") Certificacion formulario,
+                                       BindingResult errores,
+                                       @RequestParam(required = false) MultipartFile archivoCredencial,
+                                       @RequestParam(defaultValue = "false") boolean sinExpiracion,
+                                       @RequestParam(defaultValue = "1") int page,
+                                       Model model, RedirectAttributes redirect) {
+        Colaborador colaborador = colaboradorSesion();
+        if (colaborador == null) {
+            return volverACertificaciones(redirect, page, "No se encontró tu perfil de colaborador.");
         }
 
-        Certificacion existente = null;
-        if (certificacion.getIdCertificacion() != null) {
-            existente = certificacionRepository.findById(certificacion.getIdCertificacion()).orElse(null);
-            if (existente == null || !certificacionPerteneceA(existente, c)) {
-                List<Certificacion> lista = certificacionRepository
-                        .findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
-                cargarCertificaciones(model, lista);
-                model.addAttribute("mensajeError", "La certificación que intentas modificar no pertenece a tu perfil.");
-                return "colaborador/certificaciones";
-            }
+        if (sinExpiracion && formulario.getFechaExpiracion() != null) {
+            errores.rejectValue("fechaExpiracion", "validation.certificacion.expiracion.incompatible");
         }
 
-        if (bindingResult.hasErrors()) {
-            if (existente != null && esArchivoLocal(existente.getUrlCredencial())
-                    && (certificacion.getUrlCredencial() == null || certificacion.getUrlCredencial().isBlank())) {
-                certificacion.setUrlCredencial(existente.getUrlCredencial());
-            }
-            model.addAttribute("titulo", certificacion.getIdCertificacion() == null
-                    ? "Nueva certificación" : "Editar certificación");
-            model.addAttribute("mensajeError", bindingResult.getAllErrors().get(0).getDefaultMessage());
-            return "colaborador/certificacion-form";
+        if (!errores.hasFieldErrors("urlCredencial") && !enlaceCredencialValido(formulario.getUrlCredencial())) {
+            errores.rejectValue("urlCredencial", "validation.certificacion.url.pattern");
         }
 
         String errorArchivo = validarArchivoCredencial(archivoCredencial);
-        if (errorArchivo != null) {
-            if (existente != null && esArchivoLocal(existente.getUrlCredencial())
-                    && (certificacion.getUrlCredencial() == null || certificacion.getUrlCredencial().isBlank())) {
-                certificacion.setUrlCredencial(existente.getUrlCredencial());
+        boolean subirArchivo = archivoCredencial != null && !archivoCredencial.isEmpty();
+        if (errores.hasErrors() || errorArchivo != null) {
+            if (subirArchivo && errorArchivo == null) {
+                errorArchivo = "Vuelve a seleccionar el archivo antes de guardar.";
             }
-            model.addAttribute("titulo", certificacion.getIdCertificacion() == null
-                    ? "Nueva certificación" : "Editar certificación");
-            model.addAttribute("mensajeError", errorArchivo);
-            return "colaborador/certificacion-form";
+            model.addAttribute("errorArchivo", errorArchivo);
+            model.addAttribute("mensajeError", "Revisa los campos marcados.");
+            return volverAlFormularioCertificacion(formulario, colaborador, sinExpiracion, page, model, redirect);
         }
 
-        String nombre = certificacion.getNombre() == null ? "" : certificacion.getNombre().trim();
-        String entidad = certificacion.getEntidadEmisora() == null ? "" : certificacion.getEntidadEmisora().trim();
-        String urlIngresada = certificacion.getUrlCredencial() == null ? "" : certificacion.getUrlCredencial().trim();
+        String archivoNuevo = null;
+        CertificacionGuardada guardada = null;
+        try {
+            archivoNuevo = subirArchivo ? guardarArchivoCredencial(archivoCredencial) : null;
+            String rutaNueva = archivoNuevo;
+            guardada = transacciones.execute(estado ->
+                    actualizarCertificacion(formulario, colaborador, sinExpiracion, rutaNueva));
+        } catch (IOException ex) {
+            model.addAttribute("errorArchivo", "No se pudo guardar el archivo. Vuelve a seleccionarlo.");
+            return volverAlFormularioCertificacion(formulario, colaborador, sinExpiracion, page, model, redirect);
+        } catch (DataAccessException | TransactionException ex) {
+            model.addAttribute("mensajeError", "No pudimos guardar la certificación. Vuelve a intentarlo.");
+            if (subirArchivo) {
+                model.addAttribute("errorArchivo", "Vuelve a seleccionar el archivo antes de guardar.");
+            }
+            return volverAlFormularioCertificacion(formulario, colaborador, sinExpiracion, page, model, redirect);
+        } finally {
+            if (guardada == null) eliminarArchivoLocal(archivoNuevo);
+        }
 
-        certificacion.setNombre(nombre);
-        certificacion.setEntidadEmisora(entidad);
-        certificacion.setColaborador(c);
+        if (guardada == null) {
+            return volverACertificaciones(redirect, page, "La certificación no pertenece a tu perfil.");
+        }
 
-        String urlAnterior = existente == null ? null : existente.getUrlCredencial();
+        eliminarArchivoLocal(guardada.archivoAnterior());
+        redirect.addFlashAttribute("mensajeExito", "Certificación guardada correctamente.");
+        return volverACertificaciones(redirect, buscarPaginaCertificacion(colaborador, guardada.id()), null);
+    }
+
+    private String cargarFormularioCertificacion(Model model, Certificacion actual, boolean sinExpiracion, int page) {
+        model.addAttribute("titulo", actual == null ? "Nueva certificación" : "Editar certificación");
+        model.addAttribute("certificacionActual", actual);
+        boolean tieneCredencial = actual != null && StringUtils.hasText(actual.getUrlCredencial());
+        model.addAttribute("credencialActual", tieneCredencial ? actual.getUrlCredencial() : null);
+        model.addAttribute("archivoActual", tieneCredencial && esArchivoLocal(actual.getUrlCredencial()));
+        model.addAttribute("sinExpiracion", sinExpiracion);
+        model.addAttribute("paginaLista", Math.max(1, page));
+        return "colaborador/certificacion-form";
+    }
+
+    private String volverAlFormularioCertificacion(Certificacion formulario, Colaborador colaborador, boolean sinExpiracion,
+                                          int page, Model model, RedirectAttributes redirect) {
+        Integer id = formulario.getIdCertificacion();
+        Certificacion actual = id == null ? null : certificacionPropia(colaborador, id);
+        if (id != null && actual == null) {
+            return volverACertificaciones(redirect, page, "La certificación no pertenece a tu perfil.");
+        }
+        return cargarFormularioCertificacion(model, actual, sinExpiracion, page);
+    }
+
+    private Certificacion certificacionPropia(Colaborador colaborador, Integer id) {
+        return colaborador == null ? null : certificacionRepository
+                .findByIdCertificacionAndColaboradorIdColaborador(id, colaborador.getIdColaborador()).orElse(null);
+    }
+
+    private String volverACertificaciones(RedirectAttributes redirect, int page, String error) {
+        if (page > 1) redirect.addAttribute("page", page);
+        if (error != null) redirect.addFlashAttribute("mensajeError", error);
+        return "redirect:/colaborador/certificaciones";
+    }
+
+    private int buscarPaginaCertificacion(Colaborador colaborador, Integer idCertificacion) {
+        List<Certificacion> lista = listarCertificaciones(colaborador);
+        for (int i = 0; i < lista.size(); i++) {
+            if (idCertificacion.equals(lista.get(i).getIdCertificacion())) {
+                return i / CERTIFICACIONES_POR_PAGINA + 1;
+            }
+        }
+        return 1;
+    }
+
+    private boolean enlaceCredencialValido(String enlace) {
+        if (enlace == null) return true;
 
         try {
-            if (archivoCredencial != null && !archivoCredencial.isEmpty()) {
-                String nuevaRuta = guardarArchivoCredencial(archivoCredencial);
-                certificacion.setUrlCredencial(nuevaRuta);
-            } else if (!urlIngresada.isBlank()) {
-                certificacion.setUrlCredencial(urlIngresada);
-            } else if (existente != null && esArchivoLocal(urlAnterior)) {
-                certificacion.setUrlCredencial(urlAnterior);
-            } else {
-                certificacion.setUrlCredencial(null);
-            }
+            URI uri = new URI(enlace);
+            return uri.getHost() != null
+                    && ("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()));
+        } catch (URISyntaxException ex) {
+            return false;
+        }
+    }
 
-            Certificacion guardada = certificacionRepository.save(certificacion);
+    private record CertificacionGuardada(Integer id, String archivoAnterior) {}
 
-            if (existente != null
-                    && esArchivoLocal(urlAnterior)
-                    && urlAnterior != null
-                    && !urlAnterior.equals(guardada.getUrlCredencial())) {
-                eliminarArchivoLocal(urlAnterior);
-            }
+    private CertificacionGuardada actualizarCertificacion(Certificacion formulario, Colaborador colaborador,
+                                                           boolean sinExpiracion, String archivoNuevo) {
+        Integer id = formulario.getIdCertificacion();
+        Certificacion actual = id == null ? new Certificacion() : certificacionRepository
+                .buscarParaActualizar(id, colaborador.getIdColaborador()).orElse(null);
+        if (actual == null) return null;
 
-        } catch (IOException e) {
-            if (existente != null && esArchivoLocal(urlAnterior)) {
-                certificacion.setUrlCredencial(urlAnterior);
-            }
-            model.addAttribute("titulo", certificacion.getIdCertificacion() == null
-                    ? "Nueva certificación" : "Editar certificación");
-            model.addAttribute("mensajeError", "No se pudo guardar el archivo de la credencial. Intenta nuevamente.");
-            return "colaborador/certificacion-form";
+        String urlAnterior = actual.getUrlCredencial();
+        String url = formulario.getUrlCredencial();
+        if (archivoNuevo != null) {
+            url = archivoNuevo;
+        } else if (url == null && esArchivoLocal(urlAnterior)) {
+            url = urlAnterior;
         }
 
-        List<Certificacion> lista = certificacionRepository
-                .findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
-        cargarCertificaciones(model, lista);
-        model.addAttribute("mensajeExito", "Certificación guardada correctamente.");
-        return "colaborador/certificaciones";
+        boolean vencidaSinFecha = actual.getFechaExpiracion() == null
+                && actual.getEstado() == Certificacion.EstadoCertificacion.VENCIDA;
+        actual.setColaborador(colaborador);
+        actual.setNombre(formulario.getNombre());
+        actual.setEntidadEmisora(formulario.getEntidadEmisora());
+        actual.setFechaEmision(formulario.getFechaEmision());
+        actual.setFechaExpiracion(formulario.getFechaExpiracion());
+        actual.setUrlCredencial(url);
+        if (sinExpiracion) {
+            actual.setEstado(Certificacion.EstadoCertificacion.SIN_EXPIRACION);
+        } else {
+            actual.setEstado(vencidaSinFecha ? Certificacion.EstadoCertificacion.VENCIDA : Certificacion.EstadoCertificacion.VIGENTE);
+            actual.setEstado(actual.getEstadoActual());
+        }
+
+        Certificacion guardada = certificacionRepository.save(actual);
+        String archivoAnterior = esArchivoLocal(urlAnterior) && !urlAnterior.equals(url) ? urlAnterior : null;
+        return new CertificacionGuardada(guardada.getIdCertificacion(), archivoAnterior);
     }
 
     /**
@@ -451,7 +558,7 @@ public class ColaboradorController {
      */
     @GetMapping("/certificaciones/archivo/{nombreArchivo:.+}")
     public ResponseEntity<Resource> verArchivoCredencial(@PathVariable String nombreArchivo) {
-        Colaborador c = colaboradorDemo();
+        Colaborador c = colaboradorSesion();
 
         if (c == null || nombreArchivo.contains("..") || nombreArchivo.contains("/") || nombreArchivo.contains("\\")) {
             return ResponseEntity.notFound().build();
@@ -459,9 +566,7 @@ public class ColaboradorController {
 
         String urlEsperada = "/colaborador/certificaciones/archivo/" + nombreArchivo;
         boolean pertenece = certificacionRepository
-                .findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador())
-                .stream()
-                .anyMatch(cert -> urlEsperada.equals(cert.getUrlCredencial()));
+                .existsByColaboradorIdColaboradorAndUrlCredencial(c.getIdColaborador(), urlEsperada);
 
         if (!pertenece) {
             return ResponseEntity.notFound().build();
@@ -498,51 +603,33 @@ public class ColaboradorController {
         }
     }
 
-    /**
-     * Elimina una certificación del colaborador y su archivo local asociado.
-     *
-     * @param id identificador de la certificación
-     * @param model modelo utilizado para mostrar el resultado
-     * @return vista de certificaciones
-     */
+    /** Elimina la certificación y luego su archivo local, si lo tiene. */
     @PostMapping("/certificaciones/{id}/eliminar")
-    public String eliminarCertificacion(@PathVariable Integer id, Model model) {
-        Colaborador c = colaboradorDemo();
-        Certificacion certificacion = certificacionRepository.findById(id).orElse(null);
-
-        if (c == null || certificacion == null || !certificacionPerteneceA(certificacion, c)) {
-            List<Certificacion> lista = c == null ? List.of()
-                    : certificacionRepository.findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
-            cargarCertificaciones(model, lista);
-            model.addAttribute("mensajeError", "La certificación que intentas eliminar no pertenece a tu perfil.");
-            return "colaborador/certificaciones";
+    public String eliminarCertificacion(@PathVariable Integer id, @RequestParam(defaultValue = "1") int page,
+                                        RedirectAttributes redirect) {
+        Colaborador colaborador = colaboradorSesion();
+        if (colaborador == null) {
+            return volverACertificaciones(redirect, page, "No se encontró tu perfil de colaborador.");
         }
 
-        String urlArchivo = certificacion.getUrlCredencial();
-        certificacionRepository.deleteById(id);
-
-        if (esArchivoLocal(urlArchivo)) {
-            eliminarArchivoLocal(urlArchivo);
+        Certificacion eliminada;
+        try {
+            eliminada = transacciones.execute(estado -> {
+                Certificacion actual = certificacionRepository.buscarParaActualizar(id, colaborador.getIdColaborador())
+                        .orElse(null);
+                if (actual != null) certificacionRepository.delete(actual);
+                return actual;
+            });
+        } catch (DataAccessException | TransactionException ex) {
+            return volverACertificaciones(redirect, page, "No pudimos eliminar la certificación. Vuelve a intentarlo.");
         }
 
-        List<Certificacion> lista = certificacionRepository
-                .findByColaboradorIdColaboradorOrderByFechaEmisionDesc(c.getIdColaborador());
-        cargarCertificaciones(model, lista);
-        model.addAttribute("mensajeExito", "Certificación eliminada del perfil.");
-        return "colaborador/certificaciones";
-    }
-
-    /**
-     * Comprueba si una certificación está asociada al colaborador indicado.
-     *
-     * @param certificacion certificación que se debe verificar
-     * @param colaborador colaborador propietario esperado
-     * @return {@code true} si la certificación pertenece al colaborador; {@code false} en caso contrario
-     */
-    private boolean certificacionPerteneceA(Certificacion certificacion, Colaborador colaborador) {
-        return certificacion.getColaborador() != null
-                && certificacion.getColaborador().getIdColaborador() != null
-                && certificacion.getColaborador().getIdColaborador().equals(colaborador.getIdColaborador());
+        if (eliminada == null) {
+            return volverACertificaciones(redirect, page, "La certificación no pertenece a tu perfil.");
+        }
+        eliminarArchivoLocal(eliminada.getUrlCredencial());
+        redirect.addFlashAttribute("mensajeExito", "Certificación eliminada del perfil.");
+        return volverACertificaciones(redirect, page, null);
     }
 
     /**
@@ -552,8 +639,9 @@ public class ColaboradorController {
      * @return mensaje de error o {@code null} si el archivo es válido
      */
     private String validarArchivoCredencial(MultipartFile archivo) {
-        if (archivo == null || archivo.isEmpty()) {
-            return null;
+        if (archivo == null) return null;
+        if (archivo.isEmpty()) {
+            return StringUtils.hasText(archivo.getOriginalFilename()) ? "El archivo seleccionado está vacío." : null;
         }
 
         if (archivo.getSize() > MAX_CREDENCIAL_BYTES) {
@@ -605,7 +693,7 @@ public class ColaboradorController {
         byte[] cabecera = new byte[8];
 
         try (InputStream entrada = archivo.getInputStream()) {
-            int leidos = entrada.read(cabecera);
+            int leidos = entrada.readNBytes(cabecera, 0, cabecera.length);
 
             if (leidos < 3) {
                 return false;
@@ -647,22 +735,18 @@ public class ColaboradorController {
      */
     private String guardarArchivoCredencial(MultipartFile archivo) throws IOException {
         String ext = extension(archivo.getOriginalFilename());
-        String nombreSeguro = UUID.randomUUID() + "." + ext;
-
         Path base = directorioCredenciales();
         Files.createDirectories(base);
 
-        Path destino = base.resolve(nombreSeguro).normalize();
-
-        if (!destino.startsWith(base)) {
-            throw new IOException("Ruta de archivo inválida.");
-        }
-
+        Path destino = Files.createTempFile(base, "credencial-", "." + ext);
+        String url = "/colaborador/certificaciones/archivo/" + destino.getFileName();
         try (InputStream entrada = archivo.getInputStream()) {
             Files.copy(entrada, destino, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ex) {
+            eliminarArchivoLocal(url);
+            throw ex;
         }
-
-        return "/colaborador/certificaciones/archivo/" + nombreSeguro;
+        return url;
     }
 
     /**
@@ -751,7 +835,7 @@ public class ColaboradorController {
      * @param idEditar identificador de la habilidad seleccionada para editar
      */
     private void cargarHabilidades(Model model, Integer idEditar) {
-        Colaborador c = colaboradorDemo();
+        Colaborador c = colaboradorSesion();
         model.addAttribute("titulo", "Mapa de habilidades");
         model.addAttribute("colaborador", c);
         List<HabilidadColaboradorDTO> actuales = c == null ? List.of() : habilidades(c.getIdColaborador());
@@ -790,11 +874,12 @@ public class ColaboradorController {
      * @return nombre de la vista de habilidades
      */
     @PostMapping("/habilidades/guardar")
+    @Transactional
     public String guardarHabilidad(@RequestParam("idHabilidad") Integer idHabilidad,
                                    @RequestParam("nivel") String nivel,
                                    @RequestParam("aniosExperiencia") BigDecimal aniosExperiencia,
                                    Model model) {
-        Colaborador c = colaboradorDemo();
+        Colaborador c = colaboradorSesion();
         if (c == null) {
             cargarHabilidades(model, null);
             return "colaborador/habilidades";
@@ -803,6 +888,11 @@ public class ColaboradorController {
         if (error != null) {
             cargarHabilidades(model, null);
             model.addAttribute("mensajeError", error);
+            return "colaborador/habilidades";
+        }
+        if (!habilidadRepository.buscarParaActualizar(idHabilidad).map(Habilidad::getEstado).orElse(false)) {
+            cargarHabilidades(model, null);
+            model.addAttribute("mensajeError", "La habilidad seleccionada ya no está disponible. Si necesitas agregarla, contacta al administrador.");
             return "colaborador/habilidades";
         }
         boolean yaExiste = habilidades(c.getIdColaborador()).stream().anyMatch(h -> h.getIdHabilidad().equals(idHabilidad));
@@ -831,7 +921,7 @@ public class ColaboradorController {
                                       @RequestParam("nivel") String nivel,
                                       @RequestParam("aniosExperiencia") BigDecimal aniosExperiencia,
                                       Model model) {
-        Colaborador c = colaboradorDemo();
+        Colaborador c = colaboradorSesion();
         String error = validarExperienciaYNivel(nivel, aniosExperiencia);
         if (c == null || error != null) {
             cargarHabilidades(model, idHabilidad);
@@ -844,7 +934,7 @@ public class ColaboradorController {
             model.addAttribute("mensajeError", "La habilidad que deseas editar ya no está asociada a tu perfil.");
             return "colaborador/habilidades";
         }
-        colaboradorRepository.guardarHabilidad(c.getIdColaborador(), idHabilidad, nivel, aniosExperiencia);
+        colaboradorRepository.actualizarHabilidad(c.getIdColaborador(), idHabilidad, nivel, aniosExperiencia);
         cargarHabilidades(model, null);
         model.addAttribute("mensajeExito", "Habilidad actualizada correctamente.");
         return "colaborador/habilidades";
@@ -859,7 +949,7 @@ public class ColaboradorController {
      */
     @PostMapping("/habilidades/{idHabilidad}/eliminar")
     public String eliminarHabilidad(@PathVariable Integer idHabilidad, Model model) {
-        Colaborador c = colaboradorDemo();
+        Colaborador c = colaboradorSesion();
         if (c != null) colaboradorRepository.eliminarHabilidad(c.getIdColaborador(), idHabilidad);
         cargarHabilidades(model, null);
         model.addAttribute("mensajeExito", "Habilidad retirada del perfil.");
@@ -873,12 +963,32 @@ public class ColaboradorController {
      * @return nombre de la vista de proyectos
      */
     @GetMapping("/proyectos")
-    public String proyectos(Model model) {
-        Colaborador c = colaboradorDemo();
+    public String proyectos(@RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
         model.addAttribute("titulo", "Mis proyectos");
-        model.addAttribute("asignaciones", c == null ? List.of()
-                : asignacionRepository.findByColaboradorIdColaboradorOrderByFechaInicioDesc(c.getIdColaborador()));
+        model.addAttribute("asignaciones", participaciones().stream()
+                .filter(a -> !bloqueados.contains("historial") || !esHistorica(a)).toList());
         return "colaborador/proyectos";
+    }
+
+    @GetMapping("/historial")
+    public String historial(Model model) {
+        model.addAttribute("titulo", "Historial de proyectos");
+        model.addAttribute("esHistorial", true);
+        model.addAttribute("asignaciones", participaciones().stream().filter(this::esHistorica).toList());
+        return "colaborador/proyectos";
+    }
+
+    private List<Asignacion> participaciones() {
+        Colaborador colaborador = colaboradorSesion();
+        return colaborador == null ? List.of() : asignacionRepository
+                .findByColaboradorIdColaboradorOrderByFechaInicioDesc(colaborador.getIdColaborador());
+    }
+
+    private boolean esHistorica(Asignacion asignacion) {
+        Proyecto.EstadoProyecto estado = asignacion.getProyecto().getEstado();
+        return estado == Proyecto.EstadoProyecto.COMPLETED || estado == Proyecto.EstadoProyecto.CANCELLED
+                || asignacion.getEstado() == Asignacion.EstadoAsignacion.FINALIZADA
+                || asignacion.getEstado() == Asignacion.EstadoAsignacion.CANCELADA;
     }
 
     /**
@@ -892,11 +1002,10 @@ public class ColaboradorController {
     @GetMapping("/asignaciones")
     public String asignaciones(@RequestParam(value = "q", required = false) String q,
                                @RequestParam(value = "estado", required = false, defaultValue = "TODOS") String estado,
-                               Model model) {
-        Colaborador c = colaboradorDemo();
-        List<Asignacion> lista = c == null ? List.of()
-                : asignacionRepository.findByColaboradorIdColaboradorOrderByFechaInicioDesc(c.getIdColaborador());
-        lista = lista.stream().filter(a -> {
+                               @RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
+        List<Asignacion> lista = participaciones().stream()
+                .filter(a -> !bloqueados.contains("historial") || !esHistorica(a))
+                .filter(a -> {
             boolean texto = q == null || q.isBlank()
                     || a.getProyecto().getNombre().toLowerCase().contains(q.toLowerCase())
                     || (a.getRolProyecto() != null && a.getRolProyecto().toLowerCase().contains(q.toLowerCase()));
@@ -971,7 +1080,7 @@ public class ColaboradorController {
      */
     @GetMapping("/notificaciones")
     public String notificaciones(@RequestParam(value = "page", defaultValue = "1") int page, Model model) {
-        Colaborador c = colaboradorDemo();
+        Colaborador c = colaboradorSesion();
         List<Notificacion> lista = c == null ? List.of()
                 : notificacionRepository.findByUsuarioIdUsuarioOrderByFechaCreacionDesc(c.getUsuario().getIdUsuario());
         cargarNotificaciones(model, lista, page);
@@ -1018,7 +1127,7 @@ public class ColaboradorController {
         Notificacion n = notificacionRepository.findById(id).orElseThrow();
         n.setLeida(true);
         notificacionRepository.save(n);
-        Colaborador c = colaboradorDemo();
+        Colaborador c = colaboradorSesion();
         List<Notificacion> lista = c == null ? List.of()
                 : notificacionRepository.findByUsuarioIdUsuarioOrderByFechaCreacionDesc(c.getUsuario().getIdUsuario());
         cargarNotificaciones(model, lista, page);
@@ -1033,7 +1142,7 @@ public class ColaboradorController {
      */
     @PostMapping("/notificaciones/leer-todas")
     public String marcarTodasLeidas(Model model) {
-        Colaborador c = colaboradorDemo();
+        Colaborador c = colaboradorSesion();
         List<Notificacion> lista = c == null ? List.of()
                 : notificacionRepository.findByUsuarioIdUsuarioOrderByFechaCreacionDesc(c.getUsuario().getIdUsuario());
         lista.forEach(n -> n.setLeida(true));
@@ -1113,7 +1222,7 @@ public class ColaboradorController {
     @GetMapping("/chat")
     public String chat(@RequestParam(value = "idProyecto", required = false) Integer idProyecto,
                        Model model) {
-        cargarChat(model, colaboradorDemo(), idProyecto);
+        cargarChat(model, colaboradorSesion(), idProyecto);
         return "colaborador/chat";
     }
 
@@ -1129,7 +1238,7 @@ public class ColaboradorController {
     public String enviarMensaje(@RequestParam("idProyecto") Integer idProyecto,
                                 @RequestParam("contenido") String contenido,
                                 Model model) {
-        Colaborador colaborador = colaboradorDemo();
+        Colaborador colaborador = colaboradorSesion();
         List<Asignacion> asignaciones = asignacionesChat(colaborador);
         Proyecto proyecto = proyectoChatPermitido(asignaciones, idProyecto);
         String mensajeTexto = contenido == null ? "" : contenido.trim();

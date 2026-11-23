@@ -22,29 +22,9 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, Intege
      */
     Optional<Colaborador> findByUsuarioIdUsuario(Integer idUsuario);
 
-    /**
-     * Consulta la carga asignada y la disponibilidad restante de cada colaborador.
-     *
-     * @return filas con los datos de identificación, carga y disponibilidad de los colaboradores
-     */
-    @Query(value = """
-            SELECT c.id_colaborador,
-                   CONCAT(u.nombres, ' ', u.apellidos) AS colaborador,
-                   c.cargo,
-                   c.area,
-                   c.disponibilidad_base,
-                   COALESCE(SUM(CASE WHEN a.estado IN ('PLANIFICADA','ACTIVA')
-                                     THEN a.porcentaje_dedicacion ELSE 0 END), 0) AS carga,
-                   GREATEST(c.disponibilidad_base - COALESCE(SUM(
-                           CASE WHEN a.estado IN ('PLANIFICADA','ACTIVA')
-                                THEN a.porcentaje_dedicacion ELSE 0 END), 0), 0) AS disponibilidad
-            FROM colaboradores c
-            JOIN usuarios u ON u.id_usuario = c.id_usuario
-            LEFT JOIN asignaciones a ON a.id_colaborador = c.id_colaborador
-            GROUP BY c.id_colaborador, u.nombres, u.apellidos, c.cargo, c.area, c.disponibilidad_base
-            ORDER BY carga DESC, colaborador
-            """, nativeQuery = true)
-    List<Object[]> obtenerCargaColaboradores();
+    /** Obtiene los perfiles y sus cuentas para el resumen de capacidad del equipo. */
+    @Query("select c from Colaborador c join fetch c.usuario")
+    List<Colaborador> listarConUsuario();
 
     /**
      * Obtiene las habilidades registradas para un colaborador.
@@ -78,6 +58,23 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, Intege
             ON DUPLICATE KEY UPDATE nivel = VALUES(nivel), anios_experiencia = VALUES(anios_experiencia)
             """, nativeQuery = true)
     int guardarHabilidad(Integer idColaborador, Integer idHabilidad, String nivel, BigDecimal aniosExperiencia);
+
+    /**
+     * Actualiza el nivel y la experiencia de una habilidad ya registrada en el perfil.
+     *
+     * @param idColaborador identificador del colaborador
+     * @param idHabilidad identificador de la habilidad
+     * @param nivel nuevo nivel de dominio
+     * @param aniosExperiencia años de experiencia
+     */
+    @Modifying
+    @Transactional
+    @Query(value = """
+            UPDATE colaborador_habilidad
+            SET nivel = ?3, anios_experiencia = ?4
+            WHERE id_colaborador = ?1 AND id_habilidad = ?2
+            """, nativeQuery = true)
+    void actualizarHabilidad(Integer idColaborador, Integer idHabilidad, String nivel, BigDecimal aniosExperiencia);
 
     /**
      * Elimina la relación entre un colaborador y una habilidad.

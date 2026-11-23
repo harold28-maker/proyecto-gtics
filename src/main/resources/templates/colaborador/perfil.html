@@ -1,6 +1,104 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mi perfil | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content" th:if="${colaborador != null}">
-<div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
-<section class="card hero-card"><div class="profile-hero"><div class="profile-avatar" th:text="${#strings.substring(colaborador.usuario.nombres,0,1)}"></div><div><h2 class="mt-0" th:text="${colaborador.usuario.nombreCompleto}"></h2><p class="muted" th:text="|${colaborador.cargo} · ${colaborador.area}|"></p><div class="tags"><span class="tag" th:text="${colaborador.seniority.name() == 'JUNIOR' ? 'Junior' : (colaborador.seniority.name() == 'SEMI_SENIOR' ? 'Semi senior' : (colaborador.seniority.name() == 'SENIOR' ? 'Senior' : 'Líder'))}"></span><span class="tag" th:text="|Disponibilidad ${colaborador.disponibilidadBase}%|"></span><span class="tag" th:text="|${#lists.size(habilidades)} habilidades|"></span></div></div><a class="btn btn-primary" th:href="@{/colaborador/perfil/editar}">Editar perfil</a></div></section>
-<div class="grid-2 section"><section class="card"><h3>Sobre mí</h3><p class="muted" th:text="${colaborador.biografia ?: 'Aún no se ha registrado una biografía.'}"></p><h3>Intereses profesionales</h3><p class="muted" th:text="${colaborador.interesesProfesionales ?: 'Sin intereses registrados.'}"></p><h3>Habilidades principales</h3><div class="tags"><span class="tag" th:each="h : ${habilidades}" th:text="|${h.nombre} · ${h.nivel == 'BASICO' ? 'Básico' : (h.nivel == 'INTERMEDIO' ? 'Intermedio' : (h.nivel == 'AVANZADO' ? 'Avanzado' : 'Experto'))}|"></span></div></section><section class="card"><h3>Información profesional</h3><div class="profile-info-grid"><div class="info-box"><small>Cargo</small><strong th:text="${colaborador.cargo}"></strong></div><div class="info-box"><small>Área</small><strong th:text="${colaborador.area}"></strong></div><div class="info-box"><small>Correo</small><strong th:text="${colaborador.usuario.correo}"></strong></div><div class="info-box"><small>Teléfono</small><strong th:text="${colaborador.usuario.telefono ?: '-'}"></strong></div><div class="info-box"><small>Nivel profesional</small><strong th:text="${colaborador.seniority.name() == 'JUNIOR' ? 'Junior' : (colaborador.seniority.name() == 'SEMI_SENIOR' ? 'Semi senior' : (colaborador.seniority.name() == 'SENIOR' ? 'Senior' : 'Líder'))}"></strong></div><div class="info-box"><small>Disponibilidad</small><strong th:text="|${colaborador.disponibilidadBase}%|"></strong></div></div></section></div>
-<section class="card section"><div class="card-title"><h2>Certificaciones</h2><a class="btn btn-light btn-sm" th:href="@{/colaborador/certificaciones}">Ver todas</a></div><div class="table-wrap"><table><thead><tr><th>Certificación</th><th>Entidad</th><th>Emisión</th><th>Expiración</th><th>Estado</th></tr></thead><tbody><tr th:each="c : ${certificaciones}"><td><strong th:text="${c.nombre}"></strong></td><td th:text="${c.entidadEmisora}"></td><td th:text="${c.fechaEmision != null ? #temporals.format(c.fechaEmision,'dd-MM-yyyy') : '-'}"></td><td th:text="${c.fechaExpiracion != null ? #temporals.format(c.fechaExpiracion,'dd-MM-yyyy') : '-'}"></td><td><span class="badge badge-success" th:text="${c.estado.name() == 'SIN_EXPIRACION' ? 'Sin expiración' : (c.estado.name() == 'VIGENTE' ? 'Vigente' : 'Vencida')}"></span></td></tr></tbody></table></div><div class="empty" th:if="${#lists.isEmpty(certificaciones)}">No hay certificaciones registradas.</div></section>
-</div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Mi perfil | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/perfil-colaborador.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content perfil-contenido">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}" role="status"></div>
+
+            <section class="card perfil-cabecera" aria-labelledby="nombre-perfil">
+                <div class="perfil-identidad">
+                    <span th:replace="~{fragments/perfil :: avatar(${colaborador.usuario}, @{/colaborador/perfil/foto}, 'usuario-foto-vista perfil-avatar-principal')}"></span>
+                    <div>
+                        <h2 id="nombre-perfil" th:text="${colaborador.usuario.nombreCompleto}">Nombre del colaborador</h2>
+                        <p class="muted" th:with="nivel=${colaborador.seniority?.name()}"
+                           th:text="|${colaborador.cargo ?: 'Cargo por definir'} · ${colaborador.area ?: 'Área por definir'}${nivel == null ? '' : ' · ' + (nivel == 'JUNIOR' ? 'Junior' : (nivel == 'SEMI_SENIOR' ? 'Semi senior' : (nivel == 'SENIOR' ? 'Senior' : 'Líder')))}|"></p>
+                    </div>
+                </div>
+                <a class="btn btn-primary" th:href="@{/colaborador/perfil/editar}">Editar perfil</a>
+            </section>
+
+            <div class="perfil-resumen section">
+                <section class="card" aria-labelledby="perfil-sobre-mi">
+                    <div class="card-title"><h2 id="perfil-sobre-mi">Sobre mí</h2></div>
+                    <p class="muted perfil-texto" th:text="${colaborador.biografia ?: 'Aún no se ha registrado una biografía.'}"></p>
+                    <div class="perfil-intereses">
+                        <h3>Intereses profesionales</h3>
+                        <p class="muted perfil-texto" th:text="${colaborador.interesesProfesionales ?: 'Sin intereses registrados.'}"></p>
+                    </div>
+
+                    <div class="perfil-habilidades" th:unless="${permisosBloqueados.contains('habilidades')}">
+                        <div class="perfil-subtitulo">
+                            <h3>Habilidades registradas</h3>
+                            <a th:href="@{/colaborador/habilidades}">Ver habilidades <span aria-hidden="true">→</span></a>
+                        </div>
+                        <p class="muted" th:if="${#lists.isEmpty(habilidades)}">Aún no tienes habilidades registradas.</p>
+                        <ul class="perfil-lista-habilidades" th:unless="${#lists.isEmpty(habilidades)}">
+                            <li th:each="h : ${habilidades}">
+                                <strong th:text="${h.nombre}"></strong>
+                                <span th:text="|· ${h.nivel == 'BASICO' ? 'Básico' : (h.nivel == 'INTERMEDIO' ? 'Intermedio' : (h.nivel == 'AVANZADO' ? 'Avanzado' : 'Experto'))}|"></span>
+                            </li>
+                        </ul>
+                    </div>
+                </section>
+                <section class="card" aria-labelledby="perfil-contacto">
+                    <div class="card-title"><h2 id="perfil-contacto">Contacto</h2></div>
+                    <dl class="perfil-contacto">
+                        <div><dt>Correo institucional</dt><dd th:text="${colaborador.usuario.correo}"></dd></div>
+                        <div><dt>Teléfono</dt><dd th:text="${colaborador.usuario.telefono ?: 'Sin registrar'}"></dd></div>
+                    </dl>
+                    <div class="perfil-capacidad">
+                        <h3>Capacidad</h3>
+                        <dl class="perfil-capacidad-datos">
+                            <div>
+                                <dt>Capacidad base</dt>
+                                <dd th:text="|${colaborador.disponibilidadBase ?: 0} %|"></dd>
+                            </div>
+                            <div class="perfil-disponible" th:if="${capacidad != null}"
+                                 th:classappend="${capacidad.disponibilidad == 0 ? ' sin-capacidad' : ''}">
+                                <dt>Disponible hoy</dt>
+                                <dd th:text="|${capacidad.disponibilidad} %|"></dd>
+                            </div>
+                        </dl>
+                    </div>
+                </section>
+            </div>
+
+            <section class="card section" th:unless="${permisosBloqueados.contains('certificaciones')}">
+                <div class="card-title">
+                    <h2>Certificaciones</h2>
+                    <a class="btn btn-light btn-sm" th:href="@{/colaborador/certificaciones}">Ver todas</a>
+                </div>
+                <p class="empty" th:if="${#lists.isEmpty(certificaciones)}">No hay certificaciones registradas.</p>
+                <div class="table-wrap" th:unless="${#lists.isEmpty(certificaciones)}">
+                    <table>
+                        <thead>
+                        <tr><th scope="col">Certificación</th><th scope="col">Entidad</th><th scope="col">Emisión</th><th scope="col">Vencimiento</th><th scope="col">Estado</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="certificacion : ${certificaciones}">
+                            <td><strong th:text="${certificacion.nombre}"></strong></td>
+                            <td th:text="${certificacion.entidadEmisora ?: '—'}"></td>
+                            <td th:text="${certificacion.fechaEmision != null ? #temporals.format(certificacion.fechaEmision, 'dd-MM-yyyy') : '—'}"></td>
+                            <td th:text="${certificacion.fechaExpiracion != null ? #temporals.format(certificacion.fechaExpiracion, 'dd-MM-yyyy') : '—'}"></td>
+                            <td><span th:replace="~{fragments/perfil :: estadoCertificacion(${certificacion})}"></span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

@@ -3,24 +3,47 @@ package pe.edu.pucp.skillbridge.controller;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.core.io.Resource;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import pe.edu.pucp.skillbridge.entity.*;
 import pe.edu.pucp.skillbridge.repository.*;
+import pe.edu.pucp.skillbridge.repository.CategoriaHabilidadRepository.ResumenCategoria;
+import pe.edu.pucp.skillbridge.repository.HabilidadRepository.UsoHabilidad;
+import pe.edu.pucp.skillbridge.service.CorreoCuentaService;
+import pe.edu.pucp.skillbridge.service.FotoPerfilService;
+import pe.edu.pucp.skillbridge.service.ReporteAdministrativoService;
+import pe.edu.pucp.skillbridge.util.PoliticaContrasena;
 
+import java.io.IOException;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.nio.charset.StandardCharsets;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Controlador encargado de gestionar las páginas y operaciones administrativas
@@ -33,14 +56,18 @@ public class AdminController {
 
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
-    private final PermisoRepository permisoRepository;
     private final ColaboradorRepository colaboradorRepository;
     private final HabilidadRepository habilidadRepository;
+    private final CategoriaHabilidadRepository categoriaHabilidadRepository;
     private final AuditoriaRepository auditoriaRepository;
+    private final ReporteAdministrativoService reporteAdministrativoService;
 
-    // BCrypt se usa únicamente para almacenar contraseñas de forma hasheada.
-    private final BCryptPasswordEncoder passwordEncoder =
-            new BCryptPasswordEncoder();
+    private final CorreoCuentaService correoCuentaService;
+    private final FotoPerfilService fotoPerfilService;
+    private final PasswordEncoder passwordEncoder;
+    private final TransactionTemplate transacciones;
+
+    private record CuentaGuardada(Usuario usuario, String fotoAnterior) {}
 
 
     /**
@@ -49,26 +76,41 @@ public class AdminController {
      *
      * @param usuarioRepository repositorio de usuarios
      * @param rolRepository repositorio de roles
-     * @param permisoRepository repositorio de permisos
      * @param colaboradorRepository repositorio de colaboradores
      * @param habilidadRepository repositorio de habilidades
+     * @param categoriaHabilidadRepository repositorio del catálogo de categorías
      * @param auditoriaRepository repositorio de registros de auditoría
+     * @param reporteAdministrativoService servicio de reportes y exportación a Excel
+     * @param correoCuentaService servicio de envío del correo de bienvenida
+     * @param fotoPerfilService servicio de fotos de usuario
+     * @param passwordEncoder codificador de contraseñas utilizado por la aplicación
+     * @param transacciones ejecutor de las transacciones de guardado
      */
     public AdminController(
             UsuarioRepository usuarioRepository,
             RolRepository rolRepository,
-            PermisoRepository permisoRepository,
             ColaboradorRepository colaboradorRepository,
             HabilidadRepository habilidadRepository,
-            AuditoriaRepository auditoriaRepository
+            CategoriaHabilidadRepository categoriaHabilidadRepository,
+            AuditoriaRepository auditoriaRepository,
+            ReporteAdministrativoService reporteAdministrativoService,
+            CorreoCuentaService correoCuentaService,
+            FotoPerfilService fotoPerfilService,
+            PasswordEncoder passwordEncoder,
+            TransactionTemplate transacciones
     ) {
 
         this.usuarioRepository = usuarioRepository;
         this.rolRepository = rolRepository;
-        this.permisoRepository = permisoRepository;
         this.colaboradorRepository = colaboradorRepository;
         this.habilidadRepository = habilidadRepository;
+        this.categoriaHabilidadRepository = categoriaHabilidadRepository;
         this.auditoriaRepository = auditoriaRepository;
+        this.reporteAdministrativoService = reporteAdministrativoService;
+        this.correoCuentaService = correoCuentaService;
+        this.fotoPerfilService = fotoPerfilService;
+        this.passwordEncoder = passwordEncoder;
+        this.transacciones = transacciones;
     }
 
 
@@ -107,7 +149,7 @@ public class AdminController {
 
         model.addAttribute(
                 "titulo",
-                "Dashboard administrativo"
+                "Inicio"
         );
 
 
@@ -154,6 +196,9 @@ public class AdminController {
         model.addAttribute(
                 "ultimosUsuarios",
                 usuarios.stream()
+                        .sorted(Comparator
+                                .comparing(Usuario::getFechaRegistro, Comparator.nullsLast(Comparator.reverseOrder()))
+                                .thenComparing(Usuario::getIdUsuario, Comparator.reverseOrder()))
                         .limit(5)
                         .toList()
         );
@@ -168,145 +213,45 @@ public class AdminController {
        ========================================================= */
 
     /**
-     * Obtiene la relación de usuarios y permite filtrarla por nombre, correo o rol.
-     *
-     * @param q texto opcional utilizado para filtrar los usuarios
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la lista y los indicadores de usuarios
-     * @return la vista de gestión de usuarios o una redirección al inicio de sesión
+     * Muestra los usuarios y los indicadores de los resultados de búsqueda.
      */
     @GetMapping("/usuarios")
     public String usuarios(
-            @RequestParam(
-                    value = "q",
-                    required = false
-            )
-            String q,
-
+            @RequestParam(value = "q", defaultValue = "") String q,
+            @RequestParam(value = "rol", required = false) Integer rol,
+            @RequestParam(value = "estado", required = false) Usuario.EstadoUsuario estado,
             HttpSession session,
             Model model
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
+        String texto = normalizar(q);
+        List<Usuario> usuarios = usuarioRepository.findAll().stream()
+                .filter(u -> rol == null || (u.getRol() != null && rol.equals(u.getRol().getIdRol())))
+                .filter(u -> estado == null || u.getEstado() == estado)
+                .filter(u -> texto.isEmpty()
+                        || normalizar(u.getNombreCompleto()).contains(texto)
+                        || normalizar(u.getCorreo()).contains(texto)
+                        || normalizar(u.getRolVisual()).contains(texto)
+                        || (u.getRol() != null && normalizar(u.getRol().getNombre()).contains(texto)))
+                .toList();
 
-        List<Usuario> lista =
-                usuarioRepository.findAll();
-
-
-        if (
-                q != null
-                        &&
-                        !q.isBlank()
-        ) {
-
-            String texto =
-                    q.toLowerCase();
-
-
-            lista = lista.stream()
-                    .filter(
-                            u ->
-                                    u.getNombreCompleto()
-                                            .toLowerCase()
-                                            .contains(texto)
-
-                                            ||
-
-                                            u.getCorreo()
-                                                    .toLowerCase()
-                                                    .contains(texto)
-
-                                            ||
-
-                                            u.getRol()
-                                                    .getNombre()
-                                                    .toLowerCase()
-                                                    .contains(texto)
-                    )
-                    .toList();
-        }
-
-
-        cargarUsuarios(
-                model,
-                lista,
-                q
-        );
-
-
+        model.addAttribute("titulo", "Usuarios");
+        model.addAttribute("usuarios", usuarios);
+        model.addAttribute("rolesFiltro", rolRepository.findAll());
+        model.addAttribute("q", q);
+        model.addAttribute("rolFiltro", rol);
+        model.addAttribute("estadoFiltro", estado == null ? null : estado.name());
+        model.addAttribute("hayFiltros", !texto.isEmpty() || rol != null || estado != null);
+        model.addAttribute("activos", usuarios.stream()
+                .filter(u -> u.getEstado() == Usuario.EstadoUsuario.ACTIVO).count());
+        model.addAttribute("inactivos", usuarios.stream()
+                .filter(u -> u.getEstado() == Usuario.EstadoUsuario.INACTIVO).count());
+        model.addAttribute("bloqueados", usuarios.stream()
+                .filter(u -> u.getEstado() == Usuario.EstadoUsuario.BLOQUEADO).count());
         return "admin/usuarios";
-    }
-
-
-    /**
-     * Agrega a la vista los usuarios y los totales de cuentas activas, inactivas
-     * y bloqueadas según la lista proporcionada.
-     *
-     * @param model modelo al que se agregan los datos de la vista
-     * @param lista usuarios que se mostrarán
-     * @param q texto utilizado actualmente como filtro
-     */
-    private void cargarUsuarios(
-            Model model,
-            List<Usuario> lista,
-            String q
-    ) {
-
-        model.addAttribute(
-                "titulo",
-                "Gestión de usuarios"
-        );
-
-
-        model.addAttribute(
-                "usuarios",
-                lista
-        );
-
-
-        model.addAttribute(
-                "q",
-                q
-        );
-
-
-        model.addAttribute(
-                "activos",
-                lista.stream()
-                        .filter(
-                                u ->
-                                        u.getEstado()
-                                                == Usuario.EstadoUsuario.ACTIVO
-                        )
-                        .count()
-        );
-
-
-        model.addAttribute(
-                "inactivos",
-                lista.stream()
-                        .filter(
-                                u ->
-                                        u.getEstado()
-                                                == Usuario.EstadoUsuario.INACTIVO
-                        )
-                        .count()
-        );
-
-
-        model.addAttribute(
-                "bloqueados",
-                lista.stream()
-                        .filter(
-                                u ->
-                                        u.getEstado()
-                                                == Usuario.EstadoUsuario.BLOQUEADO
-                        )
-                        .count()
-        );
     }
 
 
@@ -427,6 +372,22 @@ public class AdminController {
     }
 
 
+    @GetMapping("/usuarios/fotos/{nombre}")
+    public ResponseEntity<Resource> fotoUsuario(@PathVariable("nombre") String nombre, HttpSession session) {
+        if (!esAdmin(session)) {
+            return ResponseEntity.status(403).build();
+        }
+        Resource foto = fotoPerfilService.buscar(nombre);
+        if (foto == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaType.IMAGE_JPEG)
+                .body(foto);
+    }
+
+
     /* =========================================================
        GUARDAR USUARIO
        ========================================================= */
@@ -443,9 +404,14 @@ public class AdminController {
      * @param estadoTexto estado textual seleccionado para el usuario
      * @param password contraseña nueva ingresada en el formulario
      * @param confirmarPassword confirmación de la contraseña ingresada
+     * @param foto imagen original seleccionada al editar
+     * @param fotoRecortada recorte enviado desde la vista previa
+     * @param quitarFoto indica si se debe retirar la foto actual
      * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan datos de validación o de la lista de usuarios
-     * @return la vista del formulario cuando ocurre un error o la vista de usuarios al finalizar
+     * @param administrador cuenta autenticada que realiza la operación
+     * @param model modelo con los datos de validación
+     * @param redirect atributos de los avisos del listado
+     * @return el formulario en caso de error o una redirección al listado
      */
     @PostMapping("/usuarios/guardar")
     public String guardarUsuario(
@@ -504,8 +470,14 @@ public class AdminController {
             )
             String confirmarPassword,
 
+            @RequestParam(value = "foto", required = false) MultipartFile foto,
+            @RequestParam(value = "fotoRecortada", required = false) MultipartFile fotoRecortada,
+            @RequestParam(value = "quitarFoto", defaultValue = "false") boolean quitarFoto,
+
             HttpSession session,
-            Model model
+            @RequestAttribute("usuarioVerificado") Usuario administrador,
+            Model model,
+            RedirectAttributes redirect
     ) {
 
         /* =====================================================
@@ -682,7 +654,7 @@ public class AdminController {
         String correoLimpio =
                 correo == null
                         ? ""
-                        : correo.trim().toLowerCase();
+                        : correo.trim().toLowerCase(Locale.ROOT);
 
         String telefonoLimpio =
                 telefono == null
@@ -789,220 +761,116 @@ public class AdminController {
         }
 
 
-        /* =====================================================
-           NUEVO O EDICIÓN
-           ===================================================== */
+        boolean nuevo = idUsuario == null;
+        String clave = password == null ? "" : password;
+        String confirmacion = confirmarPassword == null ? "" : confirmarPassword;
 
-        boolean nuevo =
-                idUsuario == null;
-
-        Usuario usuario;
-
-
-        if (nuevo) {
-
-            usuario =
-                    new Usuario();
-
+        if (clave.isBlank()) {
+            if (nuevo) {
+                return volverFormularioUsuario(model, formulario, "La contraseña es obligatoria para un usuario nuevo.");
+            }
+            if (!confirmacion.isBlank()) {
+                model.addAttribute("abrirContrasena", true);
+                return volverFormularioUsuario(model, formulario, "Ingresa la nueva contraseña antes de confirmarla.");
+            }
         } else {
-
-            usuario =
-                    usuarioRepository
-                            .findById(idUsuario)
-                            .orElse(null);
-
-            if (usuario == null) {
-
-                return volverFormularioUsuario(
-                        model,
-                        formulario,
-                        "El usuario que intentas editar no existe."
-                );
+            String errorClave = PoliticaContrasena.validar(clave, confirmacion);
+            if (errorClave != null) {
+                model.addAttribute("abrirContrasena", true);
+                return volverFormularioUsuario(model, formulario, errorClave);
             }
         }
 
-
-        /* =====================================================
-           CONTRASEÑA
-           ===================================================== */
-
-        String clave =
-                password == null
-                        ? ""
-                        : password;
-
-        String confirmacion =
-                confirmarPassword == null
-                        ? ""
-                        : confirmarPassword;
-
-
-        if (
-                nuevo
-                        &&
-                        clave.isBlank()
-        ) {
-
-            return volverFormularioUsuario(
-                    model,
-                    formulario,
-                    "La contraseña es obligatoria para un usuario nuevo."
-            );
+        boolean cambiarFoto = foto != null && (!foto.isEmpty() || StringUtils.hasText(foto.getOriginalFilename()));
+        boolean tieneRecorte = fotoRecortada != null && !fotoRecortada.isEmpty();
+        if (nuevo && (cambiarFoto || quitarFoto || tieneRecorte)) {
+            return volverFormularioUsuario(model, formulario, "Puedes agregar una foto al editar la cuenta.");
+        }
+        if ((cambiarFoto && quitarFoto) || (tieneRecorte && !cambiarFoto)) {
+            return volverFormularioUsuario(model, formulario, "Selecciona una foto para cambiarla o elige quitar la actual.");
         }
 
-
-        if (
-                !nuevo
-                        &&
-                        clave.isBlank()
-                        &&
-                        !confirmacion.isBlank()
-        ) {
-
-            return volverFormularioUsuario(
-                    model,
-                    formulario,
-                    "Ingresa la nueva contraseña antes de confirmarla."
-            );
+        String claveHash = clave.isBlank() ? null : passwordEncoder.encode(clave);
+        String fotoNueva;
+        try {
+            fotoNueva = cambiarFoto ? fotoPerfilService.guardar(foto, fotoRecortada) : null;
+        } catch (IllegalArgumentException ex) {
+            return volverFormularioUsuario(model, formulario, ex.getMessage());
+        } catch (IOException ex) {
+            return volverFormularioUsuario(model, formulario, "No se pudo guardar la foto. Vuelve a intentarlo.");
         }
 
+        Integer usuarioId = idUsuario;
+        CuentaGuardada resultado = null;
+        try {
+            resultado = transacciones.execute(transaccion -> {
+                Usuario usuario = nuevo ? new Usuario() : usuarioRepository.buscarParaActualizar(usuarioId).orElse(null);
+                if (usuario == null) {
+                    return null;
+                }
+                usuario.setNombres(nombresLimpios);
+                usuario.setApellidos(apellidosLimpios);
+                usuario.setCorreo(correoLimpio);
+                usuario.setTelefono(telefonoLimpio);
+                usuario.setEstado(estado);
+                usuario.setRol(rol);
+                if (claveHash != null) {
+                    usuario.setPasswordHash(claveHash);
+                }
 
-        if (!clave.isBlank()) {
+                String fotoAnterior = usuario.getFotoUrl();
+                if (cambiarFoto || quitarFoto) {
+                    usuario.setFotoUrl(fotoNueva);
+                }
 
-            if (
-                    !clave.matches(
-                            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).{8,30}$"
-                    )
-            ) {
+                Usuario cuenta = usuarioRepository.save(usuario);
+                if (!"ADMINISTRADOR".equals(rol.getNombre())
+                        && colaboradorRepository.findByUsuarioIdUsuario(cuenta.getIdUsuario()).isEmpty()) {
+                    Colaborador colaborador = new Colaborador();
+                    colaborador.setUsuario(cuenta);
+                    colaborador.setCargo("Por definir");
+                    colaborador.setArea("Por definir");
+                    colaborador.setDisponibilidadBase(100);
+                    colaboradorRepository.save(colaborador);
+                }
 
-                return volverFormularioUsuario(
-                        model,
-                        formulario,
-                        "La contraseña debe tener entre 8 y 30 caracteres, una mayúscula, una minúscula y un número."
-                );
+                registrarAuditoria(administrador, nuevo ? "Crear usuario" : "Actualizar usuario", "Administración",
+                        (nuevo ? "Se registró la cuenta de " : "Se actualizó la cuenta de ") + cuenta.getNombreCompleto());
+                return new CuentaGuardada(cuenta, fotoAnterior);
+            });
+        } catch (DataIntegrityViolationException ex) {
+            return volverFormularioUsuario(model, formulario, "No se pudo guardar el usuario. Verifica el correo y los datos ingresados.");
+        } finally {
+            if (resultado == null) {
+                fotoPerfilService.eliminar(fotoNueva);
             }
+        }
 
+        if (resultado == null) {
+            return volverFormularioUsuario(model, formulario, "El usuario que intentas editar no existe.");
+        }
+        if (cambiarFoto || quitarFoto) {
+            fotoPerfilService.eliminar(resultado.fotoAnterior());
+        }
+        Usuario guardado = resultado.usuario();
 
-            if (!clave.equals(confirmacion)) {
-
-                return volverFormularioUsuario(
-                        model,
-                        formulario,
-                        "Las contraseñas no coinciden."
-                );
+        String mensaje = nuevo ? "Usuario registrado correctamente." : "Usuario actualizado correctamente.";
+        if (nuevo) {
+            var envio = correoCuentaService.enviarBienvenida(
+                    guardado.getCorreo(), guardado.getNombreCompleto(), guardado.getRolVisual(), clave);
+            switch (envio) {
+                case ACEPTADO -> mensaje = "Usuario registrado y correo de bienvenida enviado al proveedor.";
+                case SIN_CONFIGURACION -> redirect.addFlashAttribute("avisoCorreo",
+                        "Falta configurar el servidor SMTP y el remitente de SkillBridge AI para enviar la bienvenida.");
+                case ERROR_AUTENTICACION -> redirect.addFlashAttribute("avisoCorreo",
+                        "El proveedor de correo rechazó la autenticación. Revisa las credenciales SMTP.");
+                case ERROR_ENVIO -> redirect.addFlashAttribute("avisoCorreo",
+                        "No se pudo enviar el correo de bienvenida. Cuando el envío esté disponible, el usuario puede solicitar un enlace desde el login.");
             }
-
-
-            usuario.setPasswordHash(
-                    passwordEncoder.encode(
-                            clave
-                    )
-            );
         }
+        redirect.addFlashAttribute("mensajeExito", mensaje);
 
-
-        /* =====================================================
-           COPIAR SOLO CAMPOS YA VALIDADOS
-           ===================================================== */
-
-        usuario.setNombres(
-                nombresLimpios
-        );
-
-        usuario.setApellidos(
-                apellidosLimpios
-        );
-
-        usuario.setCorreo(
-                correoLimpio
-        );
-
-        usuario.setTelefono(
-                telefonoLimpio
-        );
-
-        usuario.setEstado(
-                estado
-        );
-
-        usuario.setRol(
-                rol
-        );
-
-
-        /* =====================================================
-           GUARDAR
-           ===================================================== */
-
-        Usuario guardado =
-                usuarioRepository.save(
-                        usuario
-                );
-
-
-        if (
-                !"ADMINISTRADOR".equals(
-                        rol.getNombre()
-                )
-                        &&
-                        colaboradorRepository
-                                .findByUsuarioIdUsuario(
-                                        guardado.getIdUsuario()
-                                )
-                                .isEmpty()
-        ) {
-
-            Colaborador colaborador =
-                    new Colaborador();
-
-            colaborador.setUsuario(
-                    guardado
-            );
-
-            colaborador.setCargo(
-                    "Por definir"
-            );
-
-            colaborador.setArea(
-                    "Por definir"
-            );
-
-            colaborador.setDisponibilidadBase(
-                    100
-            );
-
-            colaboradorRepository.save(
-                    colaborador
-            );
-        }
-
-
-        registrarAuditoria(
-                nuevo ? "Crear usuario" : "Actualizar usuario",
-                "Administración",
-                (nuevo
-                        ? "Se registró la cuenta de "
-                        : "Se actualizó la cuenta de ")
-                        + guardado.getNombreCompleto()
-        );
-
-
-        cargarUsuarios(
-                model,
-                usuarioRepository.findAll(),
-                null
-        );
-
-
-        model.addAttribute(
-                "mensajeExito",
-                nuevo
-                        ? "Usuario registrado correctamente."
-                        : "Usuario actualizado correctamente."
-        );
-
-
-        return "admin/usuarios";
+        return "redirect:/admin/usuarios";
     }
 
 
@@ -1086,6 +954,10 @@ public class AdminController {
             Usuario usuario,
             String error
     ) {
+        if (usuario.getIdUsuario() != null) {
+            usuarioRepository.findById(usuario.getIdUsuario())
+                    .ifPresent(cuenta -> usuario.setFotoUrl(cuenta.getFotoUrl()));
+        }
 
         model.addAttribute(
                 "titulo",
@@ -1126,144 +998,64 @@ public class AdminController {
     // evita borrar físicamente registros relacionados.
 
     /**
-     * Cambia entre los estados activo e inactivo el usuario identificado en la ruta
-     * y registra la modificación.
-     *
-     * @param idTexto identificador textual del usuario recibido en la ruta
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la lista actualizada de usuarios
-     * @return la vista de usuarios o una redirección según la validación realizada
+     * Actualiza el estado elegido y vuelve al listado con los filtros activos.
      */
     @PostMapping("/usuarios/{id}/estado")
     public String cambiarEstadoUsuario(
             @PathVariable("id") String idTexto,
+            @RequestParam("activar") boolean activar,
+            @RequestParam(value = "q", defaultValue = "") String q,
+            @RequestParam(value = "rol", required = false) Integer rol,
+            @RequestParam(value = "estado", required = false) Usuario.EstadoUsuario estado,
             HttpSession session,
-            Model model
+            @RequestAttribute("usuarioVerificado") Usuario administrador,
+            RedirectAttributes redirect
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
+        if (!q.isBlank()) {
+            redirect.addAttribute("q", q);
+        }
+        if (rol != null) {
+            redirect.addAttribute("rol", rol);
+        }
+        if (estado != null) {
+            redirect.addAttribute("estado", estado.name());
+        }
 
         Integer id;
-
         try {
             id = Integer.valueOf(idTexto);
-        } catch (Exception e) {
+        } catch (NumberFormatException e) {
             return "redirect:/admin/usuarios";
         }
 
+        Usuario.EstadoUsuario nuevoEstado = activar
+                ? Usuario.EstadoUsuario.ACTIVO
+                : Usuario.EstadoUsuario.INACTIVO;
+        Boolean encontrado = transacciones.execute(transaccion -> {
+            Usuario usuario = usuarioRepository.buscarParaActualizar(id).orElse(null);
+            if (usuario == null) {
+                return false;
+            }
+            if (usuario.getEstado() != nuevoEstado) {
+                usuario.setEstado(nuevoEstado);
+                registrarAuditoria(
+                        administrador,
+                        "Cambiar estado de usuario",
+                        "Administración",
+                        usuario.getNombreCompleto() + " quedó en estado " + nuevoEstado
+                );
+            }
+            return true;
+        });
 
-        Optional<Usuario> encontrado =
-                usuarioRepository.findById(id);
-
-
-        if (encontrado.isEmpty()) {
-            return "redirect:/admin/usuarios";
+        if (Boolean.TRUE.equals(encontrado)) {
+            redirect.addFlashAttribute("mensajeExito", "Estado del usuario actualizado.");
         }
-
-
-        Usuario usuario =
-                encontrado.get();
-
-
-        usuario.setEstado(
-                usuario.getEstado()
-                        == Usuario.EstadoUsuario.ACTIVO
-                        ? Usuario.EstadoUsuario.INACTIVO
-                        : Usuario.EstadoUsuario.ACTIVO
-        );
-
-
-        usuarioRepository.save(
-                usuario
-        );
-
-
-        registrarAuditoria(
-                "Cambiar estado de usuario",
-                "Administración",
-                usuario.getNombreCompleto()
-                        + " quedó en estado "
-                        + usuario.getEstado()
-        );
-
-
-        cargarUsuarios(
-                model,
-                usuarioRepository.findAll(),
-                null
-        );
-
-
-        model.addAttribute(
-                "mensajeExito",
-                "Estado del usuario actualizado."
-        );
-
-
-        return "admin/usuarios";
-    }
-
-
-    /* =========================================================
-       ROLES Y PERMISOS
-       ========================================================= */
-
-    /**
-     * Muestra los roles registrados y los permisos disponibles en la administración.
-     *
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan los roles, permisos y totales asociados
-     * @return la vista de roles y permisos o una redirección al inicio de sesión
-     */
-    @GetMapping("/roles")
-    public String roles(
-            HttpSession session,
-            Model model
-    ) {
-
-        if (!esAdmin(session)) {
-            return "redirect:/login";
-        }
-
-
-        List<Rol> roles =
-                rolRepository.findAll();
-
-
-        model.addAttribute(
-                "titulo",
-                "Roles y permisos"
-        );
-
-
-        model.addAttribute(
-                "roles",
-                roles
-        );
-
-
-        model.addAttribute(
-                "permisos",
-                permisoRepository.findAll()
-        );
-
-
-        model.addAttribute(
-                "totalPermisos",
-                permisoRepository.count()
-        );
-
-
-        model.addAttribute(
-                "totalUsuarios",
-                usuarioRepository.count()
-        );
-
-
-        return "admin/roles";
+        return "redirect:/admin/usuarios";
     }
 
 
@@ -1272,376 +1064,226 @@ public class AdminController {
        ========================================================= */
 
     /**
-     * Obtiene el catálogo de habilidades y permite filtrarlo por nombre.
+     * Filtros que se conservan al volver al catálogo después de una operación.
      *
-     * @param q texto opcional utilizado para buscar habilidades
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la lista de habilidades
-     * @return la vista del catálogo o una redirección al inicio de sesión
+     * @param q texto buscado en el nombre
+     * @param categoriaFiltro categoría seleccionada
+     * @param estadoFiltro estado seleccionado, o {@code null} para mostrar todos
+     */
+    public record FiltrosHabilidades(String q, String categoriaFiltro, Boolean estadoFiltro) {
+        public FiltrosHabilidades {
+            q = q == null ? "" : q.strip();
+            categoriaFiltro = categoriaFiltro == null ? "" : categoriaFiltro;
+        }
+    }
+
+    /**
+     * Muestra el catálogo, el uso de las habilidades y la confirmación de desactivación cuando se solicita.
      */
     @GetMapping("/habilidades")
     public String habilidades(
-            @RequestParam(
-                    value = "q",
-                    required = false
-            )
-            String q,
-
+            @ModelAttribute("filtros") FiltrosHabilidades filtros,
+            @RequestParam(value = "desactivar", required = false) Integer desactivar,
             HttpSession session,
             Model model
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
+        List<Habilidad> catalogo = habilidadRepository.findAll();
+        List<CategoriaHabilidad> categorias = categoriaHabilidadRepository.findAllByOrderByNombreAsc();
+        List<Habilidad> buscadas = filtros.q().isEmpty()
+                ? catalogo : habilidadRepository.findByNombreContainingIgnoreCase(filtros.q());
+        List<Habilidad> habilidades = buscadas.stream()
+                .filter(h -> filtros.categoriaFiltro().isEmpty()
+                        || filtros.categoriaFiltro().equals(h.getCategoria()))
+                .filter(h -> filtros.estadoFiltro() == null
+                        || filtros.estadoFiltro().equals(Boolean.TRUE.equals(h.getEstado())))
+                .toList();
+        Map<Integer, UsoHabilidad> usos = habilidades.isEmpty()
+                ? Map.of()
+                : habilidadRepository.obtenerUsos(habilidades.stream().map(Habilidad::getIdHabilidad).toList())
+                        .stream().collect(Collectors.toMap(UsoHabilidad::getIdHabilidad, Function.identity()));
 
-        List<Habilidad> habilidades =
+        model.addAttribute("titulo", "Catálogo de habilidades");
+        model.addAttribute("habilidades", habilidades);
+        model.addAttribute("usos", usos);
+        model.addAttribute("totalHabilidades", catalogo.size());
+        model.addAttribute("activas", catalogo.stream().filter(h -> Boolean.TRUE.equals(h.getEstado())).count());
+        model.addAttribute("categorias", categorias);
 
-                (
-                        q == null
-                                ||
-                                q.isBlank()
-                )
-
-                        ? habilidadRepository.findAll()
-
-                        : habilidadRepository
-                          .findByNombreContainingIgnoreCase(q);
-
-
-        cargarHabilidades(
-                model,
-                habilidades,
-                q
-        );
-
-
+        if (desactivar != null) {
+            habilidades.stream()
+                    .filter(h -> desactivar.equals(h.getIdHabilidad()) && Boolean.TRUE.equals(h.getEstado()))
+                    .findFirst().ifPresent(h -> model.addAttribute("habilidadConfirmar", h));
+        }
         return "admin/habilidades";
     }
-
-    /**
-     * Agrega al modelo el catálogo de habilidades y sus indicadores de estado y categorías.
-     *
-     * @param model modelo al que se agregan los datos de la vista
-     * @param habilidades habilidades que se muestran
-     * @param q texto utilizado actualmente como filtro
-     */
-    private void cargarHabilidades(
-            Model model,
-            List<Habilidad> habilidades,
-            String q
-    ) {
-
-        model.addAttribute(
-                "titulo",
-                "Catálogo de habilidades"
-        );
-
-
-        model.addAttribute(
-                "habilidades",
-                habilidades
-        );
-
-
-        model.addAttribute(
-                "q",
-                q
-        );
-
-
-        model.addAttribute(
-                "activas",
-                habilidades.stream()
-                        .filter(
-                                h ->
-                                        Boolean.TRUE.equals(
-                                                h.getEstado()
-                                        )
-                        )
-                        .count()
-        );
-
-
-        model.addAttribute(
-                "categorias",
-                habilidades.stream()
-                        .map(
-                                Habilidad::getCategoria
-                        )
-                        .filter(
-                                c ->
-                                        c != null
-                                                &&
-                                                !c.isBlank()
-                        )
-                        .distinct()
-                        .count()
-        );
-    }
-
-
-    /* =========================================================
-       NUEVA HABILIDAD
-       ========================================================= */
 
     /**
      * Prepara el formulario para registrar una habilidad nueva con estado activo.
-     *
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la habilidad nueva
-     * @return la vista del formulario o una redirección al inicio de sesión
      */
     @GetMapping("/habilidades/nueva")
     public String nuevaHabilidad(
+            @ModelAttribute("filtros") FiltrosHabilidades filtros,
             HttpSession session,
             Model model
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
-
-
-        Habilidad habilidad =
-                new Habilidad();
-
-
-        habilidad.setEstado(
-                true
-        );
-
-
-        model.addAttribute(
-                "titulo",
-                "Nueva habilidad"
-        );
-
-
-        model.addAttribute(
-                "habilidad",
-                habilidad
-        );
-
-
-        return "admin/habilidad-form";
+        Habilidad habilidad = new Habilidad();
+        habilidad.setCategoria(filtros.categoriaFiltro());
+        return formularioHabilidad(habilidad, model);
     }
-
-
-    /* =========================================================
-       EDITAR HABILIDAD
-       ========================================================= */
 
     /**
      * Carga los datos de una habilidad existente para modificarla.
-     *
-     * @param idTexto identificador textual de la habilidad recibido en la ruta
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la habilidad encontrada
-     * @return la vista del formulario o una redirección al catálogo
      */
     @GetMapping("/habilidades/editar/{id}")
     public String editarHabilidad(
-            @PathVariable("id") String idTexto,
+            @PathVariable("id") Integer id,
+            @ModelAttribute("filtros") FiltrosHabilidades filtros,
             HttpSession session,
-            Model model
+            Model model,
+            RedirectAttributes redirect
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
-
-        Integer id;
-
-        try {
-            id = Integer.valueOf(idTexto);
-        } catch (Exception e) {
-            return "redirect:/admin/habilidades";
+        Habilidad habilidad = habilidadRepository.findById(id).orElse(null);
+        if (habilidad == null) {
+            redirect.addFlashAttribute("mensajeError", "La habilidad ya no está en el catálogo.");
+            return redirigirCatalogoHabilidades(filtros, redirect);
         }
-
-
-        Optional<Habilidad> encontrada =
-                habilidadRepository.findById(id);
-
-
-        if (encontrada.isEmpty()) {
-            return "redirect:/admin/habilidades";
-        }
-
-
-        model.addAttribute(
-                "titulo",
-                "Editar habilidad"
-        );
-
-
-        model.addAttribute(
-                "habilidad",
-                encontrada.get()
-        );
-
-
-        return "admin/habilidad-form";
+        model.addAttribute("estadoOriginal", habilidad.getEstado());
+        return formularioHabilidad(habilidad, model);
     }
 
-
-    /* =========================================================
-       GUARDAR HABILIDAD
-       ========================================================= */
-
     /**
-     * Valida y guarda una habilidad nueva o actualiza una existente en el catálogo.
-     *
-     * @param habilidad habilidad recibida y validada desde el formulario
-     * @param bindingResult resultados de las validaciones realizadas sobre la habilidad
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan los errores o la lista actualizada
-     * @return la vista del formulario ante un error o la vista del catálogo al guardar
+     * Valida y guarda la habilidad. Solicita confirmación si una edición la desactiva.
      */
     @PostMapping("/habilidades/guardar")
+    @Transactional
     public String guardarHabilidad(
             @Valid @ModelAttribute("habilidad") Habilidad habilidad,
             BindingResult bindingResult,
+            @ModelAttribute("filtros") FiltrosHabilidades filtros,
+            @RequestParam(value = "estadoOriginal", required = false) Boolean estadoOriginal,
+            @RequestParam(value = "confirmarDesactivacion", defaultValue = "false") boolean confirmarDesactivacion,
             HttpSession session,
-            Model model
+            @RequestAttribute("usuarioVerificado") Usuario administrador,
+            Model model,
+            RedirectAttributes redirect
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
-
+        model.addAttribute("estadoOriginal", estadoOriginal);
         if (bindingResult.hasErrors()) {
-            model.addAttribute("titulo", habilidad.getIdHabilidad() == null
-                    ? "Nueva habilidad" : "Editar habilidad");
             model.addAttribute("error", bindingResult.getAllErrors().get(0).getDefaultMessage());
-            return "admin/habilidad-form";
+            return formularioHabilidad(habilidad, model);
+        }
+
+        CategoriaHabilidad categoria = categoriaHabilidadRepository.buscarParaAsignar(habilidad.getCategoria()).orElse(null);
+        if (categoria == null) {
+            bindingResult.rejectValue("categoria", "validation.habilidad.categoria.catalogo");
+            return formularioHabilidad(habilidad, model);
         }
 
         String nombreLimpio = habilidad.getNombre().trim();
-        boolean nombreRepetido = habilidadRepository.findAll().stream()
-                .anyMatch(registrada -> registrada.getNombre() != null
-                        && registrada.getNombre().equalsIgnoreCase(nombreLimpio)
-                        && (habilidad.getIdHabilidad() == null
-                        || !registrada.getIdHabilidad().equals(habilidad.getIdHabilidad())));
+        Integer id = habilidad.getIdHabilidad();
+        Habilidad registrada = id == null ? null : habilidadRepository.buscarParaActualizar(id).orElse(null);
+        if (id != null && registrada == null) {
+            redirect.addFlashAttribute("mensajeError", "La habilidad ya no está en el catálogo.");
+            return redirigirCatalogoHabilidades(filtros, redirect);
+        }
 
+        boolean nombreRepetido = habilidadRepository.findAll().stream()
+                .anyMatch(h -> h.getNombre() != null
+                        && h.getNombre().equalsIgnoreCase(nombreLimpio)
+                        && !h.getIdHabilidad().equals(id));
         if (nombreRepetido) {
             bindingResult.rejectValue("nombre", "validation.habilidad.nombre.unique");
-            model.addAttribute("titulo", habilidad.getIdHabilidad() == null
-                    ? "Nueva habilidad" : "Editar habilidad");
-            model.addAttribute("error", bindingResult.getFieldError("nombre").getDefaultMessage());
-            return "admin/habilidad-form";
+            return formularioHabilidad(habilidad, model);
+        }
+
+        if (registrada != null) {
+            boolean estadoActual = Boolean.TRUE.equals(registrada.getEstado());
+            if (habilidad.getEstado().equals(estadoOriginal)) {
+                habilidad.setEstado(estadoActual);
+            }
+            if (estadoActual && !habilidad.getEstado() && !confirmarDesactivacion) {
+                model.addAttribute("estadoOriginal", true);
+                model.addAttribute("usoConfirmar", habilidadRepository.obtenerUsos(List.of(id)).get(0));
+                return formularioHabilidad(habilidad, model);
+            }
         }
 
         habilidad.setNombre(nombreLimpio);
-        habilidad.setCategoria(habilidad.getCategoria().trim());
+        habilidad.setCategoria(categoria.getNombre());
         habilidad.setDescripcion(habilidad.getDescripcion().trim());
+        habilidadRepository.save(habilidad);
+        registrarAuditoria(administrador, "Guardar habilidad", "Habilidades",
+                "Se actualizó el catálogo: " + habilidad.getNombre());
 
-
-        habilidadRepository.save(
-                habilidad
-        );
-
-
-        registrarAuditoria(
-                "Guardar habilidad",
-                "Habilidades",
-                "Se actualizó el catálogo: "
-                        + habilidad.getNombre()
-        );
-
-
-        cargarHabilidades(
-                model,
-                habilidadRepository.findAll(),
-                null
-        );
-
-
-        model.addAttribute(
-                "mensajeExito",
-                "Habilidad guardada correctamente."
-        );
-
-
-        return "admin/habilidades";
+        redirect.addFlashAttribute("mensajeExito", "Habilidad guardada correctamente.");
+        return redirigirCatalogoHabilidades(filtros, redirect);
     }
 
-
-    /* =========================================================
-       CAMBIAR ESTADO HABILIDAD
-       ========================================================= */
-
     /**
-     * Invierte el estado de una habilidad y actualiza el catálogo mostrado.
-     *
-     * @param idTexto identificador textual de la habilidad recibido en la ruta
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la lista actualizada de habilidades
-     * @return la vista del catálogo o una redirección según la validación realizada
+     * Aplica el estado solicitado, conservando las asociaciones ya registradas.
      */
     @PostMapping("/habilidades/{id}/estado")
+    @Transactional
     public String cambiarEstadoHabilidad(
-            @PathVariable("id") String idTexto,
+            @PathVariable("id") Integer id,
+            @RequestParam("estado") boolean estado,
+            @ModelAttribute("filtros") FiltrosHabilidades filtros,
             HttpSession session,
-            Model model
+            @RequestAttribute("usuarioVerificado") Usuario administrador,
+            RedirectAttributes redirect
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
-
-        Integer id;
-
-        try {
-            id = Integer.valueOf(idTexto);
-        } catch (Exception e) {
-            return "redirect:/admin/habilidades";
+        Habilidad habilidad = habilidadRepository.buscarParaActualizar(id).orElse(null);
+        if (habilidad == null) {
+            redirect.addFlashAttribute("mensajeError", "La habilidad ya no está en el catálogo.");
+            return redirigirCatalogoHabilidades(filtros, redirect);
         }
 
-
-        Optional<Habilidad> encontrada =
-                habilidadRepository.findById(id);
-
-
-        if (encontrada.isEmpty()) {
-            return "redirect:/admin/habilidades";
+        if (estado != Boolean.TRUE.equals(habilidad.getEstado())) {
+            habilidad.setEstado(estado);
+            habilidadRepository.save(habilidad);
+            registrarAuditoria(administrador, estado ? "Activar habilidad" : "Desactivar habilidad", "Habilidades", habilidad.getNombre());
         }
+        redirect.addFlashAttribute("mensajeExito", estado ? "Habilidad activada." : "Habilidad desactivada.");
+        return redirigirCatalogoHabilidades(filtros, redirect);
+    }
 
+    private String formularioHabilidad(Habilidad habilidad, Model model) {
+        model.addAttribute("titulo", habilidad.getIdHabilidad() == null ? "Nueva habilidad" : "Editar habilidad");
+        model.addAttribute("habilidad", habilidad);
+        model.addAttribute("categorias", categoriaHabilidadRepository.findAllByOrderByNombreAsc());
+        return "admin/habilidad-form";
+    }
 
-        Habilidad habilidad =
-                encontrada.get();
-
-
-        habilidad.setEstado(
-                !Boolean.TRUE.equals(
-                        habilidad.getEstado()
-                )
-        );
-
-
-        habilidadRepository.save(
-                habilidad
-        );
-
-
-        cargarHabilidades(
-                model,
-                habilidadRepository.findAll(),
-                null
-        );
-
-
-        model.addAttribute(
-                "mensajeExito",
-                "Estado de la habilidad actualizado."
-        );
-
-
-        return "admin/habilidades";
+    private String redirigirCatalogoHabilidades(FiltrosHabilidades filtros, RedirectAttributes redirect) {
+        if (!filtros.q().isEmpty()) {
+            redirect.addAttribute("q", filtros.q());
+        }
+        if (!filtros.categoriaFiltro().isEmpty()) {
+            redirect.addAttribute("categoriaFiltro", filtros.categoriaFiltro());
+        }
+        if (filtros.estadoFiltro() != null) {
+            redirect.addAttribute("estadoFiltro", filtros.estadoFiltro());
+        }
+        return "redirect:/admin/habilidades";
     }
 
 
@@ -1650,80 +1292,134 @@ public class AdminController {
        ========================================================= */
 
     /**
-     * Agrupa las habilidades existentes por categoría y muestra los totales asociados.
-     *
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan las categorías y sus cantidades
-     * @return la vista de categorías o una redirección al inicio de sesión
+     * Muestra las categorías y el estado de las habilidades vinculadas a cada una.
      */
     @GetMapping("/categorias")
     public String categorias(
+            @RequestParam(value = "q", defaultValue = "") String q,
             HttpSession session,
             Model model
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
+        String texto = normalizar(q);
+        List<ResumenCategoria> catalogo = categoriaHabilidadRepository.resumirCatalogo();
+        List<ResumenCategoria> categorias = catalogo.stream()
+                .filter(c -> normalizar(c.getNombre()).contains(texto))
+                .toList();
 
-        Map<String, Long> categorias =
-                new LinkedHashMap<>();
+        model.addAttribute("titulo", "Categorías de habilidades");
+        model.addAttribute("q", q);
+        model.addAttribute("categorias", categorias);
+        model.addAttribute("totalCategorias", catalogo.size());
+        model.addAttribute("totalHabilidades", habilidadRepository.count());
+        return "admin/categorias";
+    }
 
+    /**
+     * Prepara el formulario para registrar una categoría.
+     */
+    @GetMapping("/categorias/nueva")
+    public String nuevaCategoria(
+            @RequestParam(value = "q", defaultValue = "") String q,
+            HttpSession session,
+            Model model
+    ) {
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+        return formularioCategoria(null, "", q, model);
+    }
 
-        for (
-                Habilidad h :
-                habilidadRepository.findAll()
-        ) {
+    /**
+     * Carga la categoría que el administrador quiere renombrar.
+     */
+    @GetMapping("/categorias/editar/{id}")
+    public String editarCategoria(
+            @PathVariable("id") Integer id,
+            @RequestParam(value = "q", defaultValue = "") String q,
+            HttpSession session,
+            Model model,
+            RedirectAttributes redirect
+    ) {
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+        CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(id).orElse(null);
+        if (categoria == null) {
+            redirect.addAttribute("q", q);
+            redirect.addFlashAttribute("mensajeError", "La categoría ya no está en el catálogo.");
+            return "redirect:/admin/categorias";
+        }
+        return formularioCategoria(id, categoria.getNombre(), q, model);
+    }
 
-            String categoria =
-
-                    (
-                            h.getCategoria() == null
-                                    ||
-                                    h.getCategoria().isBlank()
-                    )
-
-                            ? "Sin categoría"
-
-                            : h.getCategoria();
-
-
-            categorias.put(
-                    categoria,
-                    categorias.getOrDefault(
-                            categoria,
-                            0L
-                    ) + 1
-            );
+    /**
+     * Registra una categoría o actualiza su nombre y sus habilidades en la misma transacción.
+     */
+    @PostMapping("/categorias/guardar")
+    public String guardarCategoria(
+            @RequestParam(value = "idCategoria", required = false) Integer id,
+            @RequestParam(value = "nombre", defaultValue = "") String nombre,
+            @RequestParam(value = "q", defaultValue = "") String q,
+            HttpSession session,
+            @RequestAttribute("usuarioVerificado") Usuario administrador,
+            Model model,
+            RedirectAttributes redirect
+    ) {
+        if (!esAdmin(session)) {
+            return "redirect:/login";
         }
 
+        String nombreLimpio = nombre.replaceAll("(?U)\\s+", " ").trim();
+        if (nombreLimpio.isEmpty() || nombreLimpio.length() > 30) {
+            model.addAttribute("errorNombre", nombreLimpio.isEmpty()
+                    ? "Ingresa un nombre para la categoría."
+                    : "El nombre no puede superar 30 caracteres.");
+            return formularioCategoria(id, nombre, q, model);
+        }
 
-        model.addAttribute(
-                "titulo",
-                "Categorías de habilidades"
-        );
+        boolean guardada;
+        try {
+            guardada = Boolean.TRUE.equals(transacciones.execute(status -> {
+                CategoriaHabilidad categoria = id == null
+                        ? new CategoriaHabilidad() : categoriaHabilidadRepository.buscarParaRenombrar(id).orElse(null);
+                if (categoria == null) {
+                    return false;
+                }
 
+                String anterior = categoria.getNombre();
+                categoria.setNombre(nombreLimpio);
+                categoriaHabilidadRepository.saveAndFlush(categoria);
+                if (id != null && !nombreLimpio.equals(anterior)) {
+                    habilidadRepository.renombrarCategoria(anterior, nombreLimpio);
+                }
+                registrarAuditoria(administrador, id == null ? "Crear categoría" : "Renombrar categoría", "Categorías",
+                        id == null ? nombreLimpio : anterior + " → " + nombreLimpio);
+                return true;
+            }));
+        } catch (DataIntegrityViolationException e) {
+            model.addAttribute("errorNombre", "Ya existe una categoría con ese nombre.");
+            return formularioCategoria(id, nombre, q, model);
+        }
 
-        model.addAttribute(
-                "categorias",
-                categorias
-        );
+        redirect.addAttribute("q", q);
+        if (guardada) {
+            redirect.addFlashAttribute("mensajeExito", id == null ? "Categoría registrada." : "Nombre actualizado.");
+        } else {
+            redirect.addFlashAttribute("mensajeError", "La categoría ya no está en el catálogo.");
+        }
+        return "redirect:/admin/categorias";
+    }
 
-
-        model.addAttribute(
-                "totalCategorias",
-                categorias.size()
-        );
-
-
-        model.addAttribute(
-                "totalHabilidades",
-                habilidadRepository.count()
-        );
-
-
-        return "admin/categorias";
+    private String formularioCategoria(Integer id, String nombre, String q, Model model) {
+        model.addAttribute("titulo", id == null ? "Nueva categoría" : "Renombrar categoría");
+        model.addAttribute("idCategoria", id);
+        model.addAttribute("nombreCategoria", nombre);
+        model.addAttribute("q", q);
+        return "admin/categoria-form";
     }
 
 
@@ -1732,187 +1428,84 @@ public class AdminController {
        ========================================================= */
 
     /**
-     * Consulta los registros de auditoría recientes y permite filtrarlos por texto o módulo.
-     *
-     * @param q texto opcional utilizado para buscar en los datos de auditoría
-     * @param modulo módulo opcional por el que se filtran los registros
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la lista y los filtros actuales
-     * @return la vista de auditoría o una redirección al inicio de sesión
+     * Consulta todo el historial de auditoría con filtros y páginas de diez eventos.
      */
     @GetMapping("/auditoria")
     public String auditoria(
-
-            @RequestParam(
-                    value = "q",
-                    required = false
-            )
-            String q,
-
-            @RequestParam(
-                    value = "modulo",
-                    required = false
-            )
-            String modulo,
-
+            @RequestParam(value = "q", defaultValue = "") String q,
+            @RequestParam(value = "modulo", defaultValue = "") String modulo,
+            @RequestParam(value = "desde", defaultValue = "") String desde,
+            @RequestParam(value = "hasta", defaultValue = "") String hasta,
+            @RequestParam(value = "pagina", defaultValue = "1") int numeroPagina,
             HttpSession session,
             Model model
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
+        q = q.strip();
+        modulo = modulo.strip();
+        desde = desde.strip();
+        hasta = hasta.strip();
+        model.addAttribute("titulo", "Auditoría");
+        model.addAttribute("q", q);
+        model.addAttribute("modulo", modulo);
+        model.addAttribute("desde", desde);
+        model.addAttribute("hasta", hasta);
+        model.addAttribute("modulos", auditoriaRepository.listarModulos());
 
-        /*
-         * Primero cargamos los últimos
-         * registros de auditoría.
-         */
-
-        List<Auditoria> lista =
-                auditoriaRepository
-                        .findTop50ByOrderByFechaDesc();
-
-
-        /* =====================================================
-           FILTRO POR TEXTO
-           ===================================================== */
-
-        if (
-                q != null
-                        &&
-                        !q.isBlank()
-        ) {
-
-            String texto =
-                    normalizar(q);
-
-
-            lista = lista.stream()
-                    .filter(
-                            a -> {
-
-
-                                String usuario =
-                                        "";
-
-
-                                if (
-                                        a.getUsuario()
-                                                != null
-                                ) {
-
-                                    usuario =
-                                            normalizar(
-                                                    a.getUsuario()
-                                                            .getNombreCompleto()
-                                            );
-
-                                }
-
-
-                                String accion =
-                                        normalizar(
-                                                a.getAccion()
-                                        );
-
-
-                                String moduloAuditoria =
-                                        normalizar(
-                                                a.getModulo()
-                                        );
-
-
-                                String detalle =
-                                        normalizar(
-                                                a.getDetalle()
-                                        );
-
-
-                                return
-
-                                        usuario.contains(texto)
-
-                                                ||
-
-                                                accion.contains(texto)
-
-                                                ||
-
-                                                moduloAuditoria.contains(texto)
-
-                                                ||
-
-                                                detalle.contains(texto);
-
-                            }
-                    )
-                    .toList();
+        LocalDate inicio;
+        LocalDate fin;
+        try {
+            inicio = leerFechaAuditoria(desde);
+            fin = leerFechaAuditoria(hasta);
+        } catch (DateTimeException e) {
+            model.addAttribute("mensajeError", "Ingresa fechas válidas para consultar el registro.");
+            return "admin/auditoria";
         }
 
-
-        /* =====================================================
-           FILTRO POR MÓDULO
-           ===================================================== */
-
-        if (
-                modulo != null
-                        &&
-                        !modulo.isBlank()
-        ) {
-
-            String moduloBuscado =
-                    normalizar(modulo);
-
-
-            lista = lista.stream()
-                    .filter(
-                            a ->
-                                    normalizar(
-                                            a.getModulo()
-                                    )
-                                            .equals(
-                                                    moduloBuscado
-                                            )
-                    )
-                    .toList();
+        if (inicio != null && fin != null && fin.isBefore(inicio)) {
+            model.addAttribute("mensajeError", "La fecha final debe ser igual o posterior a la inicial.");
+            return "admin/auditoria";
         }
 
+        String texto = normalizar(q);
+        String patron = texto.isEmpty() ? ""
+                : "%" + texto.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+        LocalDateTime desdeFecha = inicio == null ? null : inicio.atStartOfDay();
+        LocalDateTime hastaFecha = fin == null || fin.equals(LocalDate.of(9999, 12, 31))
+                ? null : fin.plusDays(1).atStartOfDay();
 
-        /* =====================================================
-           DATOS PARA EL HTML
-           ===================================================== */
+        int porPagina = 10;
+        int indice = Math.min(Math.max(1, numeroPagina) - 1, Integer.MAX_VALUE / porPagina);
+        Page<Auditoria> resultados = auditoriaRepository.buscar(patron, modulo, desdeFecha, hastaFecha,
+                PageRequest.of(indice, porPagina));
+        if (resultados.getTotalPages() > 0 && indice >= resultados.getTotalPages()) {
+            resultados = auditoriaRepository.buscar(patron, modulo, desdeFecha, hastaFecha,
+                    PageRequest.of(resultados.getTotalPages() - 1, porPagina));
+        }
 
-        model.addAttribute(
-                "titulo",
-                "Auditoría"
-        );
-
-
-        model.addAttribute(
-                "auditorias",
-                lista
-        );
-
-
-        /*
-         * Devolvemos q y modulo para que
-         * el HTML conserve los filtros.
-         */
-
-        model.addAttribute(
-                "q",
-                q
-        );
-
-
-        model.addAttribute(
-                "modulo",
-                modulo
-        );
-
-
+        int paginaActual = resultados.getNumber() + 1;
+        long inicioPagina = resultados.getPageable().getOffset();
+        model.addAttribute("resultados", resultados);
+        model.addAttribute("primerRegistro", inicioPagina + 1);
+        model.addAttribute("ultimoRegistro", inicioPagina + resultados.getNumberOfElements());
+        model.addAttribute("paginaActual", paginaActual);
+        model.addAttribute("primeraPaginaVisible", Math.max(1, paginaActual - 2));
+        model.addAttribute("ultimaPaginaVisible", Math.min(resultados.getTotalPages(), paginaActual + 2));
         return "admin/auditoria";
+    }
+
+    private LocalDate leerFechaAuditoria(String valor) {
+        if (valor.isEmpty()) {
+            return null;
+        }
+        LocalDate fecha = LocalDate.parse(valor);
+        if (fecha.getYear() < 1 || fecha.getYear() > 9999) {
+            throw new DateTimeException("Año fuera del rango permitido.");
+        }
+        return fecha;
     }
 
 
@@ -2105,53 +1698,20 @@ public class AdminController {
        ========================================================= */
 
     /**
-     * Crea y guarda un registro de auditoría asociado al primer administrador encontrado.
+     * Guarda un evento asociado a la cuenta que realizó la acción.
      *
-     * @param accion acción realizada que se registrará
-     * @param modulo módulo desde el que se realizó la acción
-     * @param detalle descripción adicional del evento registrado
+     * @param administrador cuenta autenticada que realizó la acción
+     * @param accion acción registrada
+     * @param modulo módulo donde ocurrió la acción
+     * @param detalle descripción del evento
      */
-    private void registrarAuditoria(
-            String accion,
-            String modulo,
-            String detalle
-    ) {
-
-        Usuario admin =
-                usuarioRepository
-                        .findFirstByRolNombreOrderByIdUsuarioAsc(
-                                "ADMINISTRADOR"
-                        )
-                        .orElse(null);
-
-
-        Auditoria auditoria =
-                new Auditoria();
-
-
-        auditoria.setUsuario(
-                admin
-        );
-
-
-        auditoria.setAccion(
-                accion
-        );
-
-
-        auditoria.setModulo(
-                modulo
-        );
-
-
-        auditoria.setDetalle(
-                detalle
-        );
-
-
-        auditoriaRepository.save(
-                auditoria
-        );
+    private void registrarAuditoria(Usuario administrador, String accion, String modulo, String detalle) {
+        Auditoria auditoria = new Auditoria();
+        auditoria.setUsuario(administrador);
+        auditoria.setAccion(accion);
+        auditoria.setModulo(modulo);
+        auditoria.setDetalle(detalle);
+        auditoriaRepository.save(auditoria);
     }
 
 
@@ -2164,12 +1724,15 @@ public class AdminController {
      *
      * @param reporte nombre opcional del reporte seleccionado
      * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan usuarios, habilidades, auditorías y agrupaciones
+     * @param model modelo al que se agregan los indicadores, el gráfico y la vista previa
      * @return la vista de reportes o una redirección al inicio de sesión
      */
     @GetMapping("/reportes")
     public String reportes(
             @RequestParam(value = "reporte", required = false) String reporte,
+            @RequestParam(value = "vista", defaultValue = "barras") String vista,
+            @RequestParam(value = "periodo", defaultValue = "planificacion") String periodo,
+            @RequestParam(value = "proyecto", required = false) Integer proyecto,
             HttpSession session,
             Model model
     ) {
@@ -2180,31 +1743,26 @@ public class AdminController {
 
         List<Usuario> usuarios = usuarioRepository.findAll();
         List<Habilidad> habilidades = habilidadRepository.findAll();
-        List<Auditoria> auditorias = auditoriaRepository.findTop50ByOrderByFechaDesc();
 
-        Map<String, Long> usuariosPorRol = usuarios.stream()
-                .filter(u -> u.getRol() != null && u.getRol().getNombre() != null)
-                .collect(Collectors.groupingBy(
-                        u -> u.getRol().getNombre(),
-                        LinkedHashMap::new,
-                        Collectors.counting()
-                ));
-
-        Map<String, Long> habilidadesPorCategoria = habilidades.stream()
-                .filter(h -> h.getCategoria() != null && !h.getCategoria().isBlank())
-                .collect(Collectors.groupingBy(
-                        Habilidad::getCategoria,
-                        LinkedHashMap::new,
-                        Collectors.counting()
-                ));
-
+        boolean vigenteHoy = "hoy".equals(periodo);
+        var graficoDedicacion = reporteAdministrativoService.consultarDedicacion(vigenteHoy);
+        var visualizacion = reporteAdministrativoService.visualizarDedicacion(graficoDedicacion, proyecto);
         model.addAttribute("titulo", "Reportes del sistema");
-        model.addAttribute("reporteSeleccionado", reporte);
-        model.addAttribute("usuarios", usuarios);
-        model.addAttribute("habilidades", habilidades);
-        model.addAttribute("auditorias", auditorias);
-        model.addAttribute("usuariosPorRol", usuariosPorRol);
-        model.addAttribute("habilidadesPorCategoria", habilidadesPorCategoria);
+        model.addAttribute("graficoDedicacion", graficoDedicacion);
+        model.addAttribute("periodoDedicacion", vigenteHoy ? "hoy" : "planificacion");
+        model.addAttribute("visualizacionDedicacion", visualizacion);
+        model.addAttribute("modoDedicacion", "matriz".equals(vista) ? "matriz" : "barras");
+        model.addAttribute("proyectoDedicacion", visualizacion.reparto().proyecto() == null
+                ? null : visualizacion.reparto().proyecto().id());
+        var vistaPrevia = switch (reporte == null ? "" : reporte) {
+            case "dedicacion" -> reporteAdministrativoService.tablaDedicacion(graficoDedicacion);
+            case "usuarios" -> reporteAdministrativoService.tablaUsuarios(usuarios);
+            case "habilidades" -> reporteAdministrativoService.tablaHabilidades(habilidades);
+            case "auditoria" -> reporteAdministrativoService.tablaAuditoria(auditoriaRepository.findTop50ByOrderByFechaDesc());
+            default -> null;
+        };
+        model.addAttribute("vistaPrevia", vistaPrevia);
+        model.addAttribute("reporteActivo", vistaPrevia == null ? null : reporte);
 
         model.addAttribute("totalUsuarios", usuarios.size());
         model.addAttribute("usuariosActivos", usuarios.stream()
@@ -2214,12 +1772,38 @@ public class AdminController {
         model.addAttribute("usuariosBloqueados", usuarios.stream()
                 .filter(u -> u.getEstado() == Usuario.EstadoUsuario.BLOQUEADO).count());
         model.addAttribute("totalHabilidades", habilidades.size());
-        model.addAttribute("habilidadesActivas", habilidades.stream()
-                .filter(h -> Boolean.TRUE.equals(h.getEstado())).count());
 
         return "admin/reportes";
     }
 
+
+    @GetMapping("/reportes/excel")
+    public ResponseEntity<byte[]> descargarExcel(@RequestParam("tipo") String tipo,
+                                                 @RequestParam(value = "periodo", defaultValue = "planificacion") String periodo,
+                                                 HttpSession session) throws IOException {
+        if (!esAdmin(session)) {
+            return ResponseEntity.status(403).build();
+        }
+
+        String clave = tipo.toLowerCase(Locale.ROOT);
+        var tabla = switch (clave) {
+            case "dedicacion" -> reporteAdministrativoService.tablaDedicacion(
+                    reporteAdministrativoService.consultarDedicacion("hoy".equals(periodo)));
+            case "usuarios" -> reporteAdministrativoService.tablaUsuarios(usuarioRepository.findAll());
+            case "habilidades" -> reporteAdministrativoService.tablaHabilidades(habilidadRepository.findAll());
+            case "auditoria" -> reporteAdministrativoService.tablaAuditoria(auditoriaRepository.findTop50ByOrderByFechaDesc());
+            default -> null;
+        };
+        if (tabla == null) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"reporte_" + clave + ".xlsx\"")
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(reporteAdministrativoService.generarExcel(tabla));
+    }
 
     /**
      * Genera y devuelve un archivo CSV con los datos del tipo de reporte solicitado.

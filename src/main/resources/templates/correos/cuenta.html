@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${titulo}">Correo de SkillBridge AI</title>
+</head>
+<body style="margin:0;background:#f2eff7;color:#161529;font-family:Arial,sans-serif;">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f2eff7;">
+    <tr>
+        <td align="center" style="padding:24px 12px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"
+                   style="max-width:600px;background:#fff;border:1px solid #d8d3e2;border-radius:12px;">
+                <tr>
+                    <td style="padding:26px;">
+                        <img src="cid:skillbridge-logo" width="245" alt="SkillBridge AI"
+                             style="display:block;width:245px;max-width:100%;height:auto;margin:0 0 18px;">
+                        <div style="border-top:1px solid #d8d3e2;padding-top:22px;">
+                            <h1 style="margin:0 0 18px;color:#171630;font-size:27px;line-height:1.2;"
+                                th:text="${titulo}">Correo de SkillBridge AI</h1>
+                            <p style="margin:0 0 12px;font-size:16px;line-height:1.5;"
+                               th:text="|Hola, ${nombre}.|">Hola.</p>
+                            <p style="margin:0 0 22px;font-size:16px;line-height:1.5;"
+                               th:text="${mensaje}">Información sobre tu cuenta.</p>
+                        </div>
+
+                        <table th:if="${claveTemporal != null}" width="100%" cellspacing="0" cellpadding="0" border="0"
+                               style="background:#f1eef9;border-radius:8px;font-size:15px;line-height:1.45;">
+                            <tr>
+                                <th scope="row" align="left" style="padding:10px 12px;border-bottom:1px solid #d8d3e2;">Correo institucional</th>
+                                <td style="padding:10px 12px;border-bottom:1px solid #d8d3e2;word-break:break-word;"
+                                    th:text="${correoCuenta}"></td>
+                            </tr>
+                            <tr>
+                                <th scope="row" align="left" style="padding:10px 12px;border-bottom:1px solid #d8d3e2;">Rol</th>
+                                <td style="padding:10px 12px;border-bottom:1px solid #d8d3e2;" th:text="${rol}"></td>
+                            </tr>
+                            <tr>
+                                <th scope="row" align="left" style="padding:10px 12px;">Contraseña temporal</th>
+                                <td style="padding:10px 12px;font-family:monospace;white-space:pre-wrap;word-break:break-word;"
+                                    th:text="${claveTemporal}"></td>
+                            </tr>
+                        </table>
+                        <p th:if="${seguridad != null}" th:text="${seguridad}"
+                           style="margin:18px 0 0;font-size:15px;line-height:1.5;"></p>
+
+                        <p style="margin:22px 0;">
+                            <a th:href="${urlAccion}" th:text="${accion}"
+                               style="display:inline-block;padding:12px 19px;background:#4c15c5;border-radius:6px;color:#fff;font-size:16px;font-weight:bold;text-decoration:none;">
+                                Continuar
+                            </a>
+                        </p>
+                        <p style="margin:0;border-top:1px solid #d8d3e2;padding-top:14px;color:#555469;font-size:14px;line-height:1.45;"
+                           th:text="${nota}"></p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

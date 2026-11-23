@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Permiso deshabilitado | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar(${rolSesion})}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content">
+            <section class="card aviso-permiso">
+                <h2>Permiso deshabilitado</h2>
+                <p><strong th:text="${permiso}">Función</strong></p>
+                <p>El administrador cambió el acceso a esta función. Si necesitas usarla, contacta al administrador de SkillBridge AI.</p>
+                <a class="btn btn-primary"
+                   th:href="${rolSesion == 'ADMIN'} ? @{/admin/inicio} : (${rolSesion == 'PM'} ? @{/pm/inicio} : (${rolSesion == 'RM'} ? @{/resource/inicio} : @{/colaborador/inicio}))">
+                    Volver al inicio
+                </a>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

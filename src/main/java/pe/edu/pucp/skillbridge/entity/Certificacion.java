@@ -2,7 +2,10 @@ package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import org.springframework.format.annotation.DateTimeFormat;
+
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 /**
  * Representa una certificación obtenida por un colaborador.
@@ -14,6 +17,8 @@ public class Certificacion {
      * Estados posibles de una certificación.
      */
     public enum EstadoCertificacion { VIGENTE, VENCIDA, SIN_EXPIRACION }
+
+    private static final ZoneId ZONA_HORARIA = ZoneId.of("America/Lima");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -34,9 +39,11 @@ public class Certificacion {
     private String entidadEmisora;
 
     @Column(name = "fecha_emision")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate fechaEmision;
 
     @Column(name = "fecha_expiracion")
+    @DateTimeFormat(pattern = "yyyy-MM-dd")
     private LocalDate fechaExpiracion;
 
     @Column(name = "url_credencial", length = 300)
@@ -148,6 +155,14 @@ public class Certificacion {
      * @return estado de la certificación
      */
     public EstadoCertificacion getEstado() { return estado; }
+
+    /** Calcula la vigencia cuando existe una fecha de vencimiento. */
+    @Transient
+    public EstadoCertificacion getEstadoActual() {
+        if (fechaExpiracion == null) return estado == null ? EstadoCertificacion.VIGENTE : estado;
+        return fechaExpiracion.isBefore(LocalDate.now(ZONA_HORARIA))
+                ? EstadoCertificacion.VENCIDA : EstadoCertificacion.VIGENTE;
+    }
     /**
      * Establece el estado actual de la certificación.
      *

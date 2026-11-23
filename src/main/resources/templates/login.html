@@ -1,196 +1,92 @@
 <!DOCTYPE html>
-<html lang="es"
-      xmlns:th="http://www.thymeleaf.org">
-
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ingresar | SkillBridge AI</title>
-
-    <link rel="stylesheet"
-          th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-
 <body>
+<main class="login-shell-simple">
+    <th:block th:replace="~{fragments/acceso :: marca}"></th:block>
 
-<div class="login-shell-simple">
-
-    <!-- =====================================================
-         LADO IZQUIERDO
-         ===================================================== -->
-
-    <section class="login-side">
-
-        <div class="login-side-brand">
-
-            <span class="login-logo-simple">
-                SB
-            </span>
-
-            <strong>
-                SkillBridge AI
-            </strong>
-
-        </div>
-
-
-        <div class="login-side-content">
-
-            <h1>
-                Gestión de talento,
-                proyectos y conocimiento
-            </h1>
-
-            <p>
-                Plataforma interna para organizar la información
-                de colaboradores, proyectos, habilidades y
-                asignaciones de la organización.
-            </p>
-
-
-            <div class="login-side-list">
-
-                <div>
-                    <strong>Talento</strong>
-
-                    <span>
-                        Habilidades, experiencia y disponibilidad.
-                    </span>
-                </div>
-
-                <div>
-                    <strong>Proyectos</strong>
-
-                    <span>
-                        Requerimientos, integrantes y asignaciones.
-                    </span>
-                </div>
-
-                <div>
-                    <strong>Conocimiento</strong>
-
-                    <span>
-                        Foros, chat e información histórica.
-                    </span>
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <small class="login-side-footer">
-            SkillBridge AI · Plataforma interna
-        </small>
-
-    </section>
-
-
-    <!-- =====================================================
-         LADO DERECHO
-         ===================================================== -->
-
-    <section class="login-access-side">
+    <section class="login-access-side" aria-labelledby="login-title">
+        <th:block th:replace="~{fragments/acceso :: volverInicio}"></th:block>
 
         <div class="login-box-simple">
+            <header class="login-box-header">
+                <h1 id="login-title">Iniciar sesión</h1>
+                <p class="login-simple-description">Accede con tu cuenta institucional.</p>
+            </header>
 
-            <div class="login-box-header">
-
-                <h2>
-                    Iniciar sesión
-                </h2>
-
-                <p class="login-simple-description">
-                    Ingresa con tu cuenta de SkillBridge AI.
-                    El sistema identificará automáticamente
-                    tu perfil de acceso.
-                </p>
-
-            </div>
-
-
-            <!-- ERROR DEL BACKEND -->
-
-            <div class="login-alert-simple"
-                 th:if="${errorLogin != null}"
-                 th:text="${errorLogin}">
-
+            <div class="login-alert-simple" role="alert"
+                 th:if="${errorLogin != null}" th:text="${errorLogin}">
                 Correo o contraseña incorrectos.
-
             </div>
-
-            <div class="login-alert-simple" th:if="${logoutExitoso}">
+            <div class="login-alert-simple login-alert-success" role="status" th:if="${logoutExitoso}">
                 Sesión cerrada correctamente.
             </div>
+            <div class="login-alert-simple login-alert-success" role="status" th:if="${contrasenaActualizada}">
+                Contraseña actualizada correctamente.
+            </div>
 
-
-            <form th:action="@{/acceder}"
-                  method="post">
-
-
-                <!-- CORREO -->
-
-                <div class="login-field-simple">
-
-                    <label for="correo">
-                        Correo institucional
-                    </label>
-
-                    <input id="correo"
-                           name="correo"
-                           type="email"
-                           maxlength="150"
-                           required
-                           autocomplete="username"
-                           placeholder="nombre@skillbridge.com"
-                           th:value="${correoIngresado}">
-
-                </div>
-
-
-                <!-- CONTRASEÑA -->
-
-                <div class="login-field-simple">
-
-                    <label for="password">
-                        Contraseña
-                    </label>
-
-                    <input id="password"
-                           name="password"
-                           type="password"
-                           minlength="8"
-                           maxlength="30"
-                           required
-                           autocomplete="current-password"
-                           placeholder="Ingresa tu contraseña">
-
-                </div>
-
-
-                <button type="submit"
-                        class="login-button-simple">
-
-                    Ingresar
-
+            <form th:if="${sesionActiva}" id="cerrar-sesion-login" th:action="@{/logout}" method="post">
+                <button class="btn btn-primary login-button-simple" type="submit">
+                    Continuar al inicio de sesión
                 </button>
-
             </form>
 
+            <form th:unless="${sesionActiva}" id="login-form" th:action="@{/acceder}"
+                  method="post" autocomplete="off">
+                <div class="login-field-simple">
+                    <label for="correo">Correo institucional</label>
+                    <input id="correo" name="correo" type="email" maxlength="150" required
+                           autocomplete="off" placeholder="nombre@skillbridge.com"
+                           th:value="${correoIngresado}">
+                </div>
 
-            <p class="login-security-note">
-                El acceso se asigna según el rol registrado
-                para tu cuenta.
-            </p>
+                <div class="login-field-simple">
+                    <label for="password">Contraseña</label>
+                    <input id="password" name="password" type="password"
+                           minlength="8" maxlength="30" required autocomplete="off">
+                    <a class="login-link-simple" th:href="@{/recuperar-contrasena}">¿Olvidaste tu contraseña?</a>
+                </div>
 
+                <button class="btn btn-primary login-button-simple" type="submit">Ingresar</button>
+            </form>
+
+            <p class="login-security-note">El acceso se asigna según tu rol.</p>
         </div>
-
     </section>
+</main>
 
-</div>
+<script th:if="${sesionActiva}">
+    document.getElementById('cerrar-sesion-login').requestSubmit();
+</script>
+<script th:unless="${sesionActiva}">
+    const loginForm = document.getElementById('login-form');
+    let loginInteraction = false;
 
+    for (const eventName of ['pointerdown', 'keydown', 'paste']) {
+        loginForm.addEventListener(eventName, () => {
+            loginInteraction = true;
+        });
+    }
+
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) {
+            loginInteraction = false;
+        }
+        if (!loginInteraction) {
+            loginForm.reset();
+        }
+    });
+
+    loginForm.addEventListener('animationstart', (event) => {
+        if (event.animationName === 'login-autofill' && !loginInteraction) {
+            loginForm.reset();
+        }
+    });
+</script>
 </body>
 </html>

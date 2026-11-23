@@ -3,6 +3,7 @@ package pe.edu.pucp.skillbridge.controller;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,9 +13,11 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import pe.edu.pucp.skillbridge.dto.CargaColaboradorDTO;
+import pe.edu.pucp.skillbridge.dto.CargaColaboradorDTO.Clasificacion;
 import pe.edu.pucp.skillbridge.dto.HabilidadProyectoDTO;
 import pe.edu.pucp.skillbridge.entity.*;
 import pe.edu.pucp.skillbridge.repository.*;
+import pe.edu.pucp.skillbridge.service.CapacidadColaboradorService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +39,7 @@ public class ProjectManagerController {
     private final ForoRepository foroRepository;
     private final HabilidadRepository habilidadRepository;
     private final RespuestaForoRepository respuestaForoRepository;
+    private final CapacidadColaboradorService capacidadColaboradorService;
 
     /**
      * Crea el controlador e inicializa los repositorios usados por sus operaciones.
@@ -48,6 +52,7 @@ public class ProjectManagerController {
      * @param foroRepository repositorio de foros
      * @param habilidadRepository repositorio de habilidades
      * @param respuestaForoRepository repositorio de respuestas de foro
+     * @param capacidadColaboradorService servicio de carga vigente
      */
     public ProjectManagerController(UsuarioRepository usuarioRepository,
                                     ProyectoRepository proyectoRepository,
@@ -56,7 +61,8 @@ public class ProjectManagerController {
                                     RecomendacionIARepository recomendacionIARepository,
                                     ForoRepository foroRepository,
                                     HabilidadRepository habilidadRepository,
-                                    RespuestaForoRepository respuestaForoRepository) {
+                                    RespuestaForoRepository respuestaForoRepository,
+                                    CapacidadColaboradorService capacidadColaboradorService) {
         this.usuarioRepository = usuarioRepository;
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
@@ -65,6 +71,7 @@ public class ProjectManagerController {
         this.foroRepository = foroRepository;
         this.habilidadRepository = habilidadRepository;
         this.respuestaForoRepository = respuestaForoRepository;
+        this.capacidadColaboradorService = capacidadColaboradorService;
     }
 
     /**
@@ -98,24 +105,6 @@ public class ProjectManagerController {
     private int intValue(Object value) { return value == null ? 0 : ((Number) value).intValue(); }
 
     /**
-     * Obtiene los datos de carga de los colaboradores para las vistas del controlador.
-     *
-     * @return lista de cargas de colaboradores
-     */
-    private List<CargaColaboradorDTO> cargas() {
-        List<CargaColaboradorDTO> resultado = new ArrayList<>();
-        for (Object[] fila : colaboradorRepository.obtenerCargaColaboradores()) {
-            resultado.add(new CargaColaboradorDTO(
-                    intValue(fila[0]), String.valueOf(fila[1]),
-                    fila[2] == null ? "-" : String.valueOf(fila[2]),
-                    fila[3] == null ? "-" : String.valueOf(fila[3]),
-                    intValue(fila[4]), intValue(fila[5]), intValue(fila[6])
-            ));
-        }
-        return resultado;
-    }
-
-    /**
      * Recupera las habilidades requeridas por un proyecto.
      *
      * @param idProyecto identificador del proyecto
@@ -147,7 +136,7 @@ public class ProjectManagerController {
         List<Asignacion> asignaciones = pm == null ? List.of()
                 : asignacionRepository.findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(pm.getIdUsuario());
 
-        model.addAttribute("titulo", "Dashboard - Project Manager");
+        model.addAttribute("titulo", "Inicio");
         model.addAttribute("pm", pm);
         model.addAttribute("proyectosActivos", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.ACTIVE).count());
         model.addAttribute("proyectosPlanning", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.PLANNING).count());
@@ -300,11 +289,16 @@ public class ProjectManagerController {
      * @return plantilla de habilidades requeridas
      */
     @PostMapping("/proyectos/{id}/habilidades/guardar")
+    @Transactional
     public String guardarHabilidadProyecto(@PathVariable Integer id,
                                             @RequestParam("idHabilidad") Integer idHabilidad,
                                             @RequestParam("nivel") String nivel,
                                             @RequestParam("vacantes") Integer vacantes,
                                             Model model) {
+        if (!habilidadRepository.buscarParaActualizar(idHabilidad).map(Habilidad::getEstado).orElse(false)) {
+            model.addAttribute("mensajeError", "La habilidad seleccionada ya no está disponible. Si necesitas agregarla, contacta al administrador.");
+            return habilidadesRequeridas(id, model);
+        }
         proyectoRepository.guardarHabilidadRequerida(id, idHabilidad, nivel, vacantes);
         model.addAttribute("mensajeExito", "Requerimiento técnico actualizado.");
         return habilidadesRequeridas(id, model);
@@ -486,11 +480,13 @@ public class ProjectManagerController {
      */
     @GetMapping("/disponibilidad")
     public String disponibilidad(Model model) {
-        List<CargaColaboradorDTO> lista = cargas();
+        List<CargaColaboradorDTO> lista = capacidadColaboradorService.consultarEquipo();
         model.addAttribute("titulo", "Disponibilidad de colaboradores");
         model.addAttribute("cargas", lista);
-        model.addAttribute("disponibles", lista.stream().filter(c -> c.getDisponibilidad() >= 50).count());
-        model.addAttribute("ocupados", lista.stream().filter(c -> c.getDisponibilidad() < 50).count());
+        model.addAttribute("disponibles", lista.stream().filter(c -> c.getClasificacion() == Clasificacion.DISPONIBLE).count());
+        model.addAttribute("parciales", lista.stream().filter(c -> c.getClasificacion() == Clasificacion.PARCIAL).count());
+        model.addAttribute("sinDisponibilidad", lista.stream()
+                .filter(c -> c.getClasificacion() == Clasificacion.SIN_DISPONIBILIDAD).count());
         return "pm/disponibilidad";
     }
 
@@ -600,7 +596,7 @@ public class ProjectManagerController {
         model.addAttribute("proyectosCompletados", proyectos.stream().filter(p -> p.getEstado() == Proyecto.EstadoProyecto.COMPLETED).count());
         model.addAttribute("totalAsignaciones", asignaciones.size());
         model.addAttribute("asignaciones", asignaciones);
-        model.addAttribute("cargas", cargas());
+        model.addAttribute("cargas", capacidadColaboradorService.consultarEquipo());
         model.addAttribute("reporteSeleccionado", reporte);
         return "pm/reportes";
     }
@@ -672,7 +668,7 @@ public class ProjectManagerController {
             case "carga" -> {
                 nombreArchivo = "reporte_carga_pm.csv";
                 csv.append("Colaborador,Cargo,Area,Carga,Disponibilidad\n");
-                for (CargaColaboradorDTO c : cargas()) {
+                for (CargaColaboradorDTO c : capacidadColaboradorService.consultarEquipo()) {
                     csv.append(csv(c.getColaborador())).append(',')
                             .append(csv(c.getCargo())).append(',')
                             .append(csv(c.getArea())).append(',')

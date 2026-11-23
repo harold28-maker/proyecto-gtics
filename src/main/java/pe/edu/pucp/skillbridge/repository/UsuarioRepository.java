@@ -1,6 +1,10 @@
 package pe.edu.pucp.skillbridge.repository;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import pe.edu.pucp.skillbridge.entity.Usuario;
 
 import java.util.List;
@@ -37,4 +41,10 @@ public interface UsuarioRepository
      */
     Optional<Usuario>
     findByCorreoIgnoreCase(String correo);
+
+    long countByRol_IdRol(Integer idRol);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from Usuario u where u.idUsuario = :idUsuario")
+    Optional<Usuario> buscarParaActualizar(@Param("idUsuario") Integer idUsuario);
 }

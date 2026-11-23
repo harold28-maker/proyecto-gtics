@@ -1,0 +1,267 @@
+.reporte-encabezado {
+    flex-wrap: wrap;
+}
+
+.reporte-nota {
+    margin: 0 0 var(--space-sm);
+}
+
+.dedicacion-grafico table {
+    min-inline-size: max-content;
+}
+
+.dedicacion-grafico th {
+    white-space: normal;
+}
+
+.dedicacion-grafico th:first-child {
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+    inline-size: 14rem;
+    min-inline-size: 10rem;
+    box-shadow: 1px 0 var(--color-rule);
+}
+
+.dedicacion-grafico tbody th {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-weight: 600;
+}
+
+.dedicacion-grafico th:not(:first-child),
+.dedicacion-grafico td {
+    inline-size: 11rem;
+    min-inline-size: 9rem;
+}
+
+.dedicacion-valor {
+    display: grid;
+    grid-template-columns: minmax(3rem, 1fr) auto;
+    align-items: center;
+    gap: var(--space-xs);
+    font-variant-numeric: tabular-nums;
+}
+
+.dedicacion-paneles {
+    display: grid;
+    grid-template-columns: minmax(0, 1.66fr) minmax(0, 1fr);
+    gap: var(--space-md);
+}
+
+.dedicacion-paneles h3 {
+    margin: 0;
+    font-size: var(--text-sm);
+}
+
+.dedicacion-encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+    margin-bottom: var(--space-3xs);
+}
+
+.modo-dedicacion {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    border: var(--rule-thin) solid var(--color-rule);
+    border-radius: var(--radius-xs);
+}
+
+.modo-dedicacion a {
+    padding: var(--space-3xs) var(--space-2xs);
+    border-radius: var(--radius-xs);
+    color: var(--color-ink-2);
+    font-size: var(--text-xs);
+}
+
+.modo-dedicacion a[aria-current] {
+    background: var(--color-accent-soft);
+    color: var(--color-accent-hover);
+    font-weight: 600;
+}
+
+.dedicacion-figura {
+    --alto-dedicacion: 11rem;
+    margin: 0;
+    color: var(--color-ink-2);
+    font-size: var(--text-xs);
+}
+.dedicacion-figura figcaption { font-weight: 600; }
+.dedicacion-desplazamiento {
+    overflow-x: auto;
+    padding-block-start: var(--space-sm);
+}
+
+.dedicacion-plot {
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    min-inline-size: calc(3rem + var(--colaboradores) * var(--ancho-grupo));
+}
+
+.dedicacion-eje {
+    position: relative;
+    block-size: var(--alto-dedicacion);
+    color: var(--color-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.dedicacion-eje span {
+    position: absolute;
+    inset-inline-end: var(--space-2xs);
+    transform: translateY(-50%);
+}
+
+.dedicacion-cuerpo { position: relative; }
+.dedicacion-lineas {
+    position: absolute;
+    inset: 0 0 auto;
+    block-size: var(--alto-dedicacion);
+    border-inline-start: var(--rule-thin) solid var(--color-rule-2);
+}
+
+.dedicacion-lineas span {
+    position: absolute;
+    inset-inline: 0;
+    border-top: var(--rule-thin) solid var(--color-rule);
+}
+
+.dedicacion-grupos {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--colaboradores), minmax(0, 1fr));
+}
+
+.dedicacion-columnas {
+    block-size: var(--alto-dedicacion);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: var(--space-2xs);
+}
+
+.dedicacion-columna {
+    position: relative;
+    display: block;
+    flex: 0 0 3.125rem;
+    block-size: var(--altura);
+    border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+    background: var(--serie);
+}
+
+.dedicacion-columna strong {
+    position: absolute;
+    inset-block-end: calc(100% + 3px);
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    color: var(--color-ink);
+    white-space: nowrap;
+}
+
+.dedicacion-nombre {
+    display: block;
+    padding: var(--space-2xs) var(--space-3xs) 2px;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.dedicacion-leyenda, .reparto-lista {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.dedicacion-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs) var(--space-xs);
+    padding: var(--space-xs) 0 0 3rem;
+}
+
+.dedicacion-leyenda li { display: flex; align-items: center; gap: var(--space-3xs); }
+.dedicacion-color {
+    display: inline-block;
+    flex-shrink: 0;
+    inline-size: .6rem;
+    block-size: .6rem;
+    border-radius: 2px;
+    background: var(--serie);
+}
+
+.reparto-dedicacion {
+    min-inline-size: 0;
+    padding-inline-start: var(--space-md);
+    border-inline-start: var(--rule-thin) solid var(--color-rule);
+}
+
+.reparto-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    margin-top: var(--space-2xs);
+}
+
+.reparto-selector label { font-weight: 600; font-size: var(--text-xs); }
+.reparto-selector select { min-inline-size: 0; }
+.reparto-grafico {
+    display: grid;
+    grid-template-columns: 8.75rem minmax(0, 1fr);
+    gap: var(--space-xs);
+    align-items: center;
+    margin-top: var(--space-sm);
+}
+
+.reparto-anillo {
+    inline-size: 8.75rem;
+    block-size: 8.75rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+}
+
+.reparto-anillo > div {
+    inline-size: 5.875rem;
+    block-size: 5.875rem;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--color-paper);
+}
+
+.reparto-anillo strong { font-size: var(--text-xl); line-height: 1.2; }
+.reparto-anillo small, .reparto-lista small { color: var(--color-muted); font-size: var(--text-xs); }
+.reparto-lista li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-3xs);
+    padding-block: var(--space-2xs);
+    font-size: var(--text-xs);
+    border-bottom: var(--rule-thin) solid var(--color-rule);
+}
+
+.reparto-lista li:last-child { border-bottom: 0; }
+.reparto-lista li div { overflow-wrap: anywhere; }
+.reparto-lista small { display: block; }
+.reparto-lista li > strong { font-variant-numeric: tabular-nums; }
+.reparto-nota { margin: var(--space-sm) 0 0; font-size: var(--text-xs); }
+
+#vista-previa, #dedicacion-reportes { scroll-margin-top: 4.5rem; }
+
+@media (max-width: 76rem) {
+    .dedicacion-paneles { grid-template-columns: minmax(0, 1fr); }
+    .reparto-dedicacion {
+        padding: var(--space-sm) 0 0;
+        border-inline-start: 0;
+        border-top: var(--rule-thin) solid var(--color-rule);
+    }
+}
+
+@media (max-width: 30rem) {
+    .reparto-grafico { grid-template-columns: minmax(0, 1fr); }
+    .reparto-anillo { justify-self: center; }
+}
