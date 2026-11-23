@@ -838,14 +838,16 @@ body.modal-open { overflow: hidden; }
 
 .users-management .users-filters,
 .skills-catalog .skills-filters,
-.categories-management .categories-filters {
+.categories-management .categories-filters,
+.audit-management .audit-filters {
     align-items: flex-end;
     gap: var(--space-2xs);
 }
 
 .users-management .users-filters label,
 .skills-catalog .skills-filters label,
-.categories-management .categories-filters label {
+.categories-management .categories-filters label,
+.audit-management .audit-filters label {
     display: grid;
     gap: var(--space-3xs);
     flex: 0 1 10rem;
@@ -857,7 +859,8 @@ body.modal-open { overflow: hidden; }
 
 .users-management .users-filters .users-search,
 .skills-catalog .skills-filters .skills-search,
-.categories-management .categories-filters label {
+.categories-management .categories-filters label,
+.audit-management .audit-filters .audit-search {
     flex: 1 1 15rem;
 }
 
@@ -865,7 +868,9 @@ body.modal-open { overflow: hidden; }
 .users-management .users-filters select,
 .skills-catalog .skills-filters .input,
 .skills-catalog .skills-filters select,
-.categories-management .categories-filters .input {
+.categories-management .categories-filters .input,
+.audit-management .audit-filters .input,
+.audit-management .audit-filters select {
     width: 100%;
     border-color: var(--color-rule-2);
     border-radius: var(--radius-input);
@@ -954,6 +959,30 @@ body.modal-open { overflow: hidden; }
 .categories-management .category-count { font-variant-numeric: tabular-nums; }
 .categories-management .category-active { color: var(--color-success); }
 .categories-management .category-link { color: var(--color-accent); }
+
+/* Auditoría */
+.audit-management .audit-filters input { min-width: 0; }
+.audit-management .audit-filters .audit-date-filter { flex: 0 0 9.5rem; }
+.audit-management tbody td { padding-block: var(--space-2xs); }
+.audit-management table { min-width: 49rem; }
+.audit-time { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.audit-detail { overflow-wrap: anywhere; }
+.audit-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-top: var(--space-sm);
+}
+.audit-count { color: var(--color-muted); font-size: var(--text-sm); }
+.audit-pages { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3xs); }
+.audit-pages .btn { width: auto; min-width: 2.125rem; }
+.audit-pages .btn[aria-current="page"] {
+    color: var(--color-accent);
+    background: var(--color-accent-soft);
+    border-color: var(--color-rule-2);
+}
 
 /* ============================================================
    SYSTEM MONITORING

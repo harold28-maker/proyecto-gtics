@@ -5,6 +5,8 @@ import jakarta.validation.Valid;
 
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.http.CacheControl;
@@ -30,6 +32,9 @@ import pe.edu.pucp.skillbridge.service.ReporteAdministrativoService;
 import pe.edu.pucp.skillbridge.util.PoliticaContrasena;
 
 import java.io.IOException;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -403,6 +408,7 @@ public class AdminController {
      * @param fotoRecortada recorte enviado desde la vista previa
      * @param quitarFoto indica si se debe retirar la foto actual
      * @param session sesión HTTP utilizada para comprobar el acceso administrativo
+     * @param administrador cuenta autenticada que realiza la operación
      * @param model modelo con los datos de validación
      * @param redirect atributos de los avisos del listado
      * @return el formulario en caso de error o una redirección al listado
@@ -469,6 +475,7 @@ public class AdminController {
             @RequestParam(value = "quitarFoto", defaultValue = "false") boolean quitarFoto,
 
             HttpSession session,
+            @RequestAttribute("usuarioVerificado") Usuario administrador,
             Model model,
             RedirectAttributes redirect
     ) {
@@ -827,7 +834,7 @@ public class AdminController {
                     colaboradorRepository.save(colaborador);
                 }
 
-                registrarAuditoria(nuevo ? "Crear usuario" : "Actualizar usuario", "Administración",
+                registrarAuditoria(administrador, nuevo ? "Crear usuario" : "Actualizar usuario", "Administración",
                         (nuevo ? "Se registró la cuenta de " : "Se actualizó la cuenta de ") + cuenta.getNombreCompleto());
                 return new CuentaGuardada(cuenta, fotoAnterior);
             });
@@ -1001,6 +1008,7 @@ public class AdminController {
             @RequestParam(value = "rol", required = false) Integer rol,
             @RequestParam(value = "estado", required = false) Usuario.EstadoUsuario estado,
             HttpSession session,
+            @RequestAttribute("usuarioVerificado") Usuario administrador,
             RedirectAttributes redirect
     ) {
         if (!esAdmin(session)) {
@@ -1035,6 +1043,7 @@ public class AdminController {
             if (usuario.getEstado() != nuevoEstado) {
                 usuario.setEstado(nuevoEstado);
                 registrarAuditoria(
+                        administrador,
                         "Cambiar estado de usuario",
                         "Administración",
                         usuario.getNombreCompleto() + " quedó en estado " + nuevoEstado
@@ -1165,6 +1174,7 @@ public class AdminController {
             @RequestParam(value = "estadoOriginal", required = false) Boolean estadoOriginal,
             @RequestParam(value = "confirmarDesactivacion", defaultValue = "false") boolean confirmarDesactivacion,
             HttpSession session,
+            @RequestAttribute("usuarioVerificado") Usuario administrador,
             Model model,
             RedirectAttributes redirect
     ) {
@@ -1217,7 +1227,7 @@ public class AdminController {
         habilidad.setCategoria(categoria.getNombre());
         habilidad.setDescripcion(habilidad.getDescripcion().trim());
         habilidadRepository.save(habilidad);
-        registrarAuditoria("Guardar habilidad", "Habilidades",
+        registrarAuditoria(administrador, "Guardar habilidad", "Habilidades",
                 "Se actualizó el catálogo: " + habilidad.getNombre());
 
         redirect.addFlashAttribute("mensajeExito", "Habilidad guardada correctamente.");
@@ -1234,6 +1244,7 @@ public class AdminController {
             @RequestParam("estado") boolean estado,
             @ModelAttribute("filtros") FiltrosHabilidades filtros,
             HttpSession session,
+            @RequestAttribute("usuarioVerificado") Usuario administrador,
             RedirectAttributes redirect
     ) {
         if (!esAdmin(session)) {
@@ -1249,7 +1260,7 @@ public class AdminController {
         if (estado != Boolean.TRUE.equals(habilidad.getEstado())) {
             habilidad.setEstado(estado);
             habilidadRepository.save(habilidad);
-            registrarAuditoria(estado ? "Activar habilidad" : "Desactivar habilidad", "Habilidades", habilidad.getNombre());
+            registrarAuditoria(administrador, estado ? "Activar habilidad" : "Desactivar habilidad", "Habilidades", habilidad.getNombre());
         }
         redirect.addFlashAttribute("mensajeExito", estado ? "Habilidad activada." : "Habilidad desactivada.");
         return redirigirCatalogoHabilidades(filtros, redirect);
@@ -1354,6 +1365,7 @@ public class AdminController {
             @RequestParam(value = "nombre", defaultValue = "") String nombre,
             @RequestParam(value = "q", defaultValue = "") String q,
             HttpSession session,
+            @RequestAttribute("usuarioVerificado") Usuario administrador,
             Model model,
             RedirectAttributes redirect
     ) {
@@ -1384,7 +1396,7 @@ public class AdminController {
                 if (id != null && !nombreLimpio.equals(anterior)) {
                     habilidadRepository.renombrarCategoria(anterior, nombreLimpio);
                 }
-                registrarAuditoria(id == null ? "Crear categoría" : "Renombrar categoría", "Categorías",
+                registrarAuditoria(administrador, id == null ? "Crear categoría" : "Renombrar categoría", "Categorías",
                         id == null ? nombreLimpio : anterior + " → " + nombreLimpio);
                 return true;
             }));
@@ -1416,187 +1428,84 @@ public class AdminController {
        ========================================================= */
 
     /**
-     * Consulta los registros de auditoría recientes y permite filtrarlos por texto o módulo.
-     *
-     * @param q texto opcional utilizado para buscar en los datos de auditoría
-     * @param modulo módulo opcional por el que se filtran los registros
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la lista y los filtros actuales
-     * @return la vista de auditoría o una redirección al inicio de sesión
+     * Consulta todo el historial de auditoría con filtros y páginas de diez eventos.
      */
     @GetMapping("/auditoria")
     public String auditoria(
-
-            @RequestParam(
-                    value = "q",
-                    required = false
-            )
-            String q,
-
-            @RequestParam(
-                    value = "modulo",
-                    required = false
-            )
-            String modulo,
-
+            @RequestParam(value = "q", defaultValue = "") String q,
+            @RequestParam(value = "modulo", defaultValue = "") String modulo,
+            @RequestParam(value = "desde", defaultValue = "") String desde,
+            @RequestParam(value = "hasta", defaultValue = "") String hasta,
+            @RequestParam(value = "pagina", defaultValue = "1") int numeroPagina,
             HttpSession session,
             Model model
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
+        q = q.strip();
+        modulo = modulo.strip();
+        desde = desde.strip();
+        hasta = hasta.strip();
+        model.addAttribute("titulo", "Auditoría");
+        model.addAttribute("q", q);
+        model.addAttribute("modulo", modulo);
+        model.addAttribute("desde", desde);
+        model.addAttribute("hasta", hasta);
+        model.addAttribute("modulos", auditoriaRepository.listarModulos());
 
-        /*
-         * Primero cargamos los últimos
-         * registros de auditoría.
-         */
-
-        List<Auditoria> lista =
-                auditoriaRepository
-                        .findTop50ByOrderByFechaDesc();
-
-
-        /* =====================================================
-           FILTRO POR TEXTO
-           ===================================================== */
-
-        if (
-                q != null
-                        &&
-                        !q.isBlank()
-        ) {
-
-            String texto =
-                    normalizar(q);
-
-
-            lista = lista.stream()
-                    .filter(
-                            a -> {
-
-
-                                String usuario =
-                                        "";
-
-
-                                if (
-                                        a.getUsuario()
-                                                != null
-                                ) {
-
-                                    usuario =
-                                            normalizar(
-                                                    a.getUsuario()
-                                                            .getNombreCompleto()
-                                            );
-
-                                }
-
-
-                                String accion =
-                                        normalizar(
-                                                a.getAccion()
-                                        );
-
-
-                                String moduloAuditoria =
-                                        normalizar(
-                                                a.getModulo()
-                                        );
-
-
-                                String detalle =
-                                        normalizar(
-                                                a.getDetalle()
-                                        );
-
-
-                                return
-
-                                        usuario.contains(texto)
-
-                                                ||
-
-                                                accion.contains(texto)
-
-                                                ||
-
-                                                moduloAuditoria.contains(texto)
-
-                                                ||
-
-                                                detalle.contains(texto);
-
-                            }
-                    )
-                    .toList();
+        LocalDate inicio;
+        LocalDate fin;
+        try {
+            inicio = leerFechaAuditoria(desde);
+            fin = leerFechaAuditoria(hasta);
+        } catch (DateTimeException e) {
+            model.addAttribute("mensajeError", "Ingresa fechas válidas para consultar el registro.");
+            return "admin/auditoria";
         }
 
-
-        /* =====================================================
-           FILTRO POR MÓDULO
-           ===================================================== */
-
-        if (
-                modulo != null
-                        &&
-                        !modulo.isBlank()
-        ) {
-
-            String moduloBuscado =
-                    normalizar(modulo);
-
-
-            lista = lista.stream()
-                    .filter(
-                            a ->
-                                    normalizar(
-                                            a.getModulo()
-                                    )
-                                            .equals(
-                                                    moduloBuscado
-                                            )
-                    )
-                    .toList();
+        if (inicio != null && fin != null && fin.isBefore(inicio)) {
+            model.addAttribute("mensajeError", "La fecha final debe ser igual o posterior a la inicial.");
+            return "admin/auditoria";
         }
 
+        String texto = normalizar(q);
+        String patron = texto.isEmpty() ? ""
+                : "%" + texto.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+        LocalDateTime desdeFecha = inicio == null ? null : inicio.atStartOfDay();
+        LocalDateTime hastaFecha = fin == null || fin.equals(LocalDate.of(9999, 12, 31))
+                ? null : fin.plusDays(1).atStartOfDay();
 
-        /* =====================================================
-           DATOS PARA EL HTML
-           ===================================================== */
+        int porPagina = 10;
+        int indice = Math.min(Math.max(1, numeroPagina) - 1, Integer.MAX_VALUE / porPagina);
+        Page<Auditoria> resultados = auditoriaRepository.buscar(patron, modulo, desdeFecha, hastaFecha,
+                PageRequest.of(indice, porPagina));
+        if (resultados.getTotalPages() > 0 && indice >= resultados.getTotalPages()) {
+            resultados = auditoriaRepository.buscar(patron, modulo, desdeFecha, hastaFecha,
+                    PageRequest.of(resultados.getTotalPages() - 1, porPagina));
+        }
 
-        model.addAttribute(
-                "titulo",
-                "Auditoría"
-        );
-
-
-        model.addAttribute(
-                "auditorias",
-                lista
-        );
-
-
-        /*
-         * Devolvemos q y modulo para que
-         * el HTML conserve los filtros.
-         */
-
-        model.addAttribute(
-                "q",
-                q
-        );
-
-
-        model.addAttribute(
-                "modulo",
-                modulo
-        );
-
-
+        int paginaActual = resultados.getNumber() + 1;
+        long inicioPagina = resultados.getPageable().getOffset();
+        model.addAttribute("resultados", resultados);
+        model.addAttribute("primerRegistro", inicioPagina + 1);
+        model.addAttribute("ultimoRegistro", inicioPagina + resultados.getNumberOfElements());
+        model.addAttribute("paginaActual", paginaActual);
+        model.addAttribute("primeraPaginaVisible", Math.max(1, paginaActual - 2));
+        model.addAttribute("ultimaPaginaVisible", Math.min(resultados.getTotalPages(), paginaActual + 2));
         return "admin/auditoria";
+    }
+
+    private LocalDate leerFechaAuditoria(String valor) {
+        if (valor.isEmpty()) {
+            return null;
+        }
+        LocalDate fecha = LocalDate.parse(valor);
+        if (fecha.getYear() < 1 || fecha.getYear() > 9999) {
+            throw new DateTimeException("Año fuera del rango permitido.");
+        }
+        return fecha;
     }
 
 
@@ -1789,53 +1698,20 @@ public class AdminController {
        ========================================================= */
 
     /**
-     * Crea y guarda un registro de auditoría asociado al primer administrador encontrado.
+     * Guarda un evento asociado a la cuenta que realizó la acción.
      *
-     * @param accion acción realizada que se registrará
-     * @param modulo módulo desde el que se realizó la acción
-     * @param detalle descripción adicional del evento registrado
+     * @param administrador cuenta autenticada que realizó la acción
+     * @param accion acción registrada
+     * @param modulo módulo donde ocurrió la acción
+     * @param detalle descripción del evento
      */
-    private void registrarAuditoria(
-            String accion,
-            String modulo,
-            String detalle
-    ) {
-
-        Usuario admin =
-                usuarioRepository
-                        .findFirstByRolNombreOrderByIdUsuarioAsc(
-                                "ADMINISTRADOR"
-                        )
-                        .orElse(null);
-
-
-        Auditoria auditoria =
-                new Auditoria();
-
-
-        auditoria.setUsuario(
-                admin
-        );
-
-
-        auditoria.setAccion(
-                accion
-        );
-
-
-        auditoria.setModulo(
-                modulo
-        );
-
-
-        auditoria.setDetalle(
-                detalle
-        );
-
-
-        auditoriaRepository.save(
-                auditoria
-        );
+    private void registrarAuditoria(Usuario administrador, String accion, String modulo, String detalle) {
+        Auditoria auditoria = new Auditoria();
+        auditoria.setUsuario(administrador);
+        auditoria.setAccion(accion);
+        auditoria.setModulo(modulo);
+        auditoria.setDetalle(detalle);
+        auditoriaRepository.save(auditoria);
     }
 
 
