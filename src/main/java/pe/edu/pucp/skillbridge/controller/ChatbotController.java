@@ -3,6 +3,7 @@ package pe.edu.pucp.skillbridge.controller;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -13,6 +14,7 @@ import pe.edu.pucp.skillbridge.dto.ChatbotResponse;
 import pe.edu.pucp.skillbridge.service.ChatbotService;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/chatbot")
@@ -20,9 +22,17 @@ public class ChatbotController {
 
     private static final Logger log = LoggerFactory.getLogger(ChatbotController.class);
     private final ChatbotService chatbotService;
+    private final String proveedor;
 
-    public ChatbotController(ChatbotService chatbotService) {
+    public ChatbotController(ChatbotService chatbotService,
+                             @Value("${skillbridge.chatbot.provider}") String proveedor) {
         this.chatbotService = chatbotService;
+        this.proveedor = proveedor;
+    }
+
+    @GetMapping("/estado")
+    public Map<String, String> estado() {
+        return Map.of("modo", proveedor);
     }
 
     @PostMapping
@@ -36,7 +46,7 @@ public class ChatbotController {
             log.warn("El chatbot no pudo generar una respuesta ({})", ex.getClass().getSimpleName());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(ChatbotResponse.fallida(
-                            "Google AI Studio no pudo procesar la solicitud. Verifica GEMINI_API_KEY, la cuota y el acceso al modelo, e inténtalo nuevamente."));
+                            "El asistente no pudo completar la solicitud. Inténtalo nuevamente."));
         }
     }
 

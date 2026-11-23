@@ -93,6 +93,18 @@ public class ConsultaDniService {
             respuesta = restTemplate.exchange(apiUrl, HttpMethod.POST, request, Map.class);
         } catch (HttpStatusCodeException ex) {
             int status = ex.getStatusCode().value();
+            if (status == 401) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                        "VerificaID rechazó el token. Comprueba que sea válido para el entorno configurado.");
+            }
+            if (status == 402) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "VerificaID requiere pago para esta consulta. Revisa el saldo o el plan de la cuenta del proveedor.");
+            }
+            if (status == 403) {
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                        "VerificaID denegó el acceso. Solicita la habilitación de Consulta DNI para la cuenta del proveedor.");
+            }
             if (status == 404) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "El proveedor no encontro datos para el DNI");

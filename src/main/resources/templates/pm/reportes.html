@@ -45,22 +45,22 @@
                 <div class="soft-panel" th:unless="${permisosBloqueados.contains('proyectos')}">
                   <strong>Resumen de proyectos</strong>
                   <p class="muted">Estados, progreso y fechas.</p>
-                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='proyectos')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='proyectos')}">Descargar CSV</a></div>
+                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='proyectos')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='proyectos')}">Descargar CSV</a><a class="btn btn-light btn-sm" th:href="@{/pm/reportes/pdf(tipo='proyectos')}">Descargar PDF</a></div>
                 </div>
                 <div class="soft-panel" th:unless="${permisosBloqueados.contains('asignaciones')}">
                   <strong>Asignaciones por proyecto</strong>
                   <p class="muted">Equipo, roles y dedicación.</p>
-                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='asignaciones')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='asignaciones')}">Descargar CSV</a></div>
+                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='asignaciones')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='asignaciones')}">Descargar CSV</a><a class="btn btn-light btn-sm" th:href="@{/pm/reportes/pdf(tipo='asignaciones')}">Descargar PDF</a></div>
                 </div>
                 <div class="soft-panel" th:unless="${permisosBloqueados.contains('disponibilidad')}">
                   <strong>Carga de trabajo</strong>
                   <p class="muted">Distribución de capacidad.</p>
-                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='carga')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='carga')}">Descargar CSV</a></div>
+                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='carga')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='carga')}">Descargar CSV</a><a class="btn btn-light btn-sm" th:href="@{/pm/reportes/pdf(tipo='carga')}">Descargar PDF</a></div>
                 </div>
                 <div class="soft-panel" th:unless="${permisosBloqueados.contains('historial')}">
                   <strong>Historial</strong>
                   <p class="muted">Proyectos finalizados.</p>
-                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='historial')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='historial')}">Descargar CSV</a></div>
+                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='historial')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='historial')}">Descargar CSV</a><a class="btn btn-light btn-sm" th:href="@{/pm/reportes/pdf(tipo='historial')}">Descargar PDF</a></div>
                 </div>
               </div>
             </section>

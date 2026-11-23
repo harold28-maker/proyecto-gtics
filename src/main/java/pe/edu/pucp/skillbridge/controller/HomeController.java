@@ -1,5 +1,7 @@
 package pe.edu.pucp.skillbridge.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -41,10 +43,18 @@ public class HomeController {
     public String login(@RequestParam(required = false) String error,
                         @RequestParam(required = false) String logout,
                         Authentication authentication,
-                        Model model) {
+                        Model model, HttpServletRequest request) {
         model.addAttribute("sesionActiva", tieneSesionActiva(authentication));
         model.addAttribute("titulo", "Iniciar sesión");
-        model.addAttribute("correoIngresado", "");
+        // Consumimos el correo de un único intento fallido; no se guarda la contraseña.
+        String correoIngresado = "";
+        HttpSession sesion = request.getSession(false);
+        if (error != null && sesion != null) {
+            Object recordado = sesion.getAttribute("loginCorreoFallido");
+            if (recordado instanceof String correo) correoIngresado = correo;
+        }
+        if (sesion != null) sesion.removeAttribute("loginCorreoFallido");
+        model.addAttribute("correoIngresado", correoIngresado);
         model.addAttribute("errorLogin", error == null ? null
                 : "Correo o contraseña incorrectos, o la cuenta no está activa.");
         model.addAttribute("logoutExitoso", logout != null);

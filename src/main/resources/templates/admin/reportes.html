@@ -40,6 +40,7 @@
                         <a class="btn btn-light btn-sm"
                            th:href="@{/admin/reportes(reporte='dedicacion',vista=${modoDedicacion},periodo=${periodoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                         <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='dedicacion',periodo=${periodoDedicacion})}">Descargar Excel</a>
+                        <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/pdf(tipo='dedicacion',periodo=${periodoDedicacion})}">Descargar PDF</a>
                     </div>
                 </div>
 
@@ -177,6 +178,7 @@
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='usuarios',vista=${modoDedicacion},periodo=${periodoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                             <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='usuarios')}">Descargar Excel</a>
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='usuarios')}">Descargar CSV</a>
+                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/pdf(tipo='usuarios')}">Descargar PDF</a>
                         </div>
                     </div>
                     <div class="soft-panel" th:unless="${permisosBloqueados.contains('habilidades')}">
@@ -186,6 +188,7 @@
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='habilidades',vista=${modoDedicacion},periodo=${periodoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                             <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='habilidades')}">Descargar Excel</a>
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='habilidades')}">Descargar CSV</a>
+                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/pdf(tipo='habilidades')}">Descargar PDF</a>
                         </div>
                     </div>
                     <div class="soft-panel" th:unless="${permisosBloqueados.contains('auditoria')}">
@@ -195,6 +198,7 @@
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='auditoria',vista=${modoDedicacion},periodo=${periodoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                             <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='auditoria')}">Descargar Excel</a>
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='auditoria')}">Descargar CSV</a>
+                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/pdf(tipo='auditoria')}">Descargar PDF</a>
                         </div>
                     </div>
                 </div>

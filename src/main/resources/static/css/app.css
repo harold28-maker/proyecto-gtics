@@ -1,5 +1,6 @@
 @import url("/css/design-tokens.css");
 @import url("/css/chatbot.css");
+@import url("/css/roles-unificados.css");
 
 :root {
     --bg: #f8f9fa;
@@ -1368,7 +1369,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 }
 
 .public-brand {
-    flex: 0 1 28.75rem;
+    flex: 0 1 22rem;
     min-width: 0;
     margin-inline-start: -1.5rem;
 }
@@ -1379,7 +1380,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
     display: flex;
     flex-wrap: wrap;
     column-gap: clamp(1.25rem, 3vw, 3rem);
-    font-size: clamp(.9375rem, 1.35vw, 1.25rem);
+    font-size: clamp(.875rem, 1.12vw, 1rem);
     font-weight: 600;
 }
 
@@ -1407,7 +1408,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 
 .public-hero h1 {
     margin: 0;
-    font-size: clamp(2.625rem, 4.55vw, 4.375rem);
+    font-size: clamp(2rem, 3.15vw, 3rem);
     font-weight: 800;
     line-height: 1.06;
     letter-spacing: -.05em;
@@ -1417,7 +1418,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
     max-width: 36rem;
     margin: clamp(1rem, 1.75vw, 1.75rem) 0 0;
     color: var(--home-muted);
-    font-size: clamp(1.0625rem, 1.8vw, 1.75rem);
+    font-size: clamp(.9375rem, 1.18vw, 1.125rem);
     line-height: 1.4;
 }
 
@@ -1431,13 +1432,13 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 
 .public-actions .btn-primary {
     width: auto;
-    min-height: clamp(3rem, 4.1vw, 3.875rem);
+    min-height: clamp(2.75rem, 3.3vw, 3.125rem);
     padding-inline: clamp(1rem, 2.15vw, 2rem);
     border-color: var(--home-accent);
     border-radius: var(--radius-xs);
     background: var(--home-accent);
     font-family: var(--font-display);
-    font-size: clamp(1rem, 1.55vw, 1.5rem);
+    font-size: clamp(.875rem, 1.1vw, 1rem);
 }
 
 .public-actions .btn-primary:hover {
@@ -1448,7 +1449,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 .public-link {
     gap: var(--space-xs);
     color: var(--home-muted);
-    font-size: clamp(1rem, 1.4vw, 1.375rem);
+    font-size: clamp(.875rem, 1.1vw, 1rem);
     font-weight: 600;
 }
 
@@ -1483,7 +1484,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 
 .public-project-photo strong {
     font-family: var(--font-display);
-    font-size: clamp(1.25rem, 1.9vw, 1.8125rem);
+    font-size: clamp(1.0625rem, 1.45vw, 1.375rem);
     font-weight: 800;
     line-height: 1.2;
     letter-spacing: -.025em;
@@ -1491,7 +1492,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 
 .public-project-photo figcaption span {
     color: var(--home-muted);
-    font-size: clamp(.9375rem, 1.4vw, 1.3125rem);
+    font-size: clamp(.875rem, 1.1vw, 1rem);
     line-height: 1.5;
 }
 
@@ -1503,7 +1504,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 
 .public-modules-section h2 {
     margin: 0 0 var(--space-xs);
-    font-size: clamp(1.875rem, 2.7vw, 2.5625rem);
+    font-size: clamp(1.5rem, 2vw, 1.875rem);
     font-weight: 800;
     line-height: 1.15;
     letter-spacing: -.04em;
@@ -1522,12 +1523,12 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
     grid-template-columns: 3.5rem minmax(0, 1fr) 1rem;
     align-items: center;
     gap: clamp(.5rem, 1.2vw, 1.125rem);
-    min-height: 4.75rem;
+    min-height: 4.25rem;
     padding: var(--space-2xs) var(--space-3xs);
     list-style: none;
     cursor: pointer;
     font-family: var(--font-display);
-    font-size: clamp(1.125rem, 1.7vw, 1.625rem);
+    font-size: clamp(.9375rem, 1.2vw, 1.125rem);
     font-weight: 800;
     line-height: 1.16;
     letter-spacing: -.025em;
@@ -1575,7 +1576,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 @media (max-width: 48rem) {
     .public-brand { flex-basis: 20rem; margin-inline-start: -1rem; }
     .public-hero { grid-template-columns: minmax(0, 1fr); }
-    .public-hero h1 { font-size: clamp(2.375rem, 8.5vw, 3.5rem); }
+    .public-hero h1 { font-size: clamp(1.875rem, 6vw, 2.5rem); }
 }
 
 @media (max-width: 34rem) {
@@ -1716,7 +1717,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 .login-simple-description {
     margin: 0;
     color: var(--login-muted);
-    font-size: clamp(1rem, 1.55vw, 1.5rem);
+    font-size: clamp(.875rem, 1.1vw, 1rem);
     line-height: 1.45;
 }
 
@@ -1770,7 +1771,7 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
     border-radius: var(--radius-xs);
     background: var(--login-accent);
     box-shadow: none;
-    font-size: clamp(1rem, 1.55vw, 1.5rem);
+    font-size: clamp(.875rem, 1.1vw, 1rem);
 }
 
 .login-button-simple.btn-primary:hover {

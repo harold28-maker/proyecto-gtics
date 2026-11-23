@@ -30,6 +30,7 @@ import pe.edu.pucp.skillbridge.service.CorreoCuentaService;
 import pe.edu.pucp.skillbridge.service.FotoPerfilService;
 import pe.edu.pucp.skillbridge.service.ReporteAdministrativoService;
 import pe.edu.pucp.skillbridge.util.PoliticaContrasena;
+import pe.edu.pucp.skillbridge.util.ReportePdf;
 
 import java.io.IOException;
 import java.time.DateTimeException;
@@ -1803,6 +1804,33 @@ public class AdminController {
                 .cacheControl(CacheControl.noStore())
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(reporteAdministrativoService.generarExcel(tabla));
+    }
+
+    /**
+     * Descarga la misma tabla administrativa que Excel, ahora en formato PDF.
+     * El permiso de cada tipo también es validado por PermisosWebConfig.
+     */
+    @GetMapping(value = "/reportes/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> descargarPdf(@RequestParam("tipo") String tipo,
+                                               @RequestParam(value = "periodo", defaultValue = "planificacion") String periodo,
+                                               HttpSession session) {
+        if (!esAdmin(session)) return ResponseEntity.status(403).build();
+        String clave = tipo.toLowerCase(Locale.ROOT);
+        var tabla = switch (clave) {
+            case "dedicacion" -> reporteAdministrativoService.tablaDedicacion(
+                    reporteAdministrativoService.consultarDedicacion("hoy".equals(periodo)));
+            case "usuarios" -> reporteAdministrativoService.tablaUsuarios(usuarioRepository.findAll());
+            case "habilidades" -> reporteAdministrativoService.tablaHabilidades(habilidadRepository.findAll());
+            case "auditoria" -> reporteAdministrativoService.tablaAuditoria(auditoriaRepository.findTop50ByOrderByFechaDesc());
+            default -> null;
+        };
+        if (tabla == null) return ResponseEntity.badRequest().build();
+        byte[] pdf = ReportePdf.generar(tabla.nombre(), tabla.columnas(), tabla.filas());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"reporte_" + clave + ".pdf\"")
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 
     /**

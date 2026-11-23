@@ -1,0 +1,40 @@
+# Solo para ENTORNO LOCAL de pruebas, no para produccion.
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Definir MYSQL_ROOT_PASSWORD en .env}
+    volumes:
+      - sb_mysql:/var/lib/mysql
+      # Inicializa una BD vacía en el PRIMER arranque del volumen.
+      # ATENCION: este SQL contiene DROP DATABASE; no ejecutarlo sobre datos reales.
+      - ./src/main/resources/database/skillbridge_ai_18_tablas_corregida.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+  skillbridge:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/skillbridge_ai?serverTimezone=America/Lima&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Definir MYSQL_ROOT_PASSWORD en .env}
+      SKILLBRIDGE_CHATBOT_PROVIDER: ${SKILLBRIDGE_CHATBOT_PROVIDER:-local}
+      SPRING_AI_MODEL_CHAT: ${SPRING_AI_MODEL_CHAT:-none}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      VERIFICAID_TOKEN: ${VERIFICAID_TOKEN:-}
+      VERIFICAID_URL: ${VERIFICAID_URL:-https://sandbox-api.verifica.id/v2/consulta/personas}
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - sb_uploads:/app/uploads
+volumes:
+  sb_mysql:
+  sb_uploads:

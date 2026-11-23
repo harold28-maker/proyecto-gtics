@@ -1,0 +1,12 @@
+.git
+.idea
+target
+uploads
+.env
+*.zip
+*.log
+README*.md
+LEEME*.md
+GUIA*.md
+AVANCE*.md
+postman

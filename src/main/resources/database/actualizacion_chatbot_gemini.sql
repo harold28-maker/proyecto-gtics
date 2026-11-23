@@ -1,7 +1,4 @@
--- Ejecutar una sola vez sobre una base SkillBridge existente (local o Amazon RDS).
-USE skillbridge_ai;
-
-SET NAMES utf8mb4;
+-- Si se ejecuta manualmente, selecciona primero la base de SkillBridge.
 
 CREATE TABLE IF NOT EXISTS mensajes_chatbot (
     id_mensaje_chatbot BIGINT AUTO_INCREMENT PRIMARY KEY,

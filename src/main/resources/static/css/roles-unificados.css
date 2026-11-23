@@ -1,0 +1,32 @@
+/* Coherencia visual de los cuatro roles con la identidad del panel Administrador. */
+:root { --sb-radius: 14px; }
+/* La tipografía de tablas, indicadores, botones y tarjetas sigue el CSS compartido. */
+.content { max-width: 1600px; margin-inline: auto; width: 100%; }
+.content > .page-intro { margin-bottom: 22px; }
+.content .page-intro h2 { font-size: clamp(1.35rem, 2vw, 1.8rem); line-height: 1.2; letter-spacing: -0.025em; }
+.content .card-title h2 { font-size: 1.05rem; line-height: 1.35; }
+.content .metric .value { font-variant-numeric: tabular-nums; }
+.content .table-wrap { overflow-x: auto; }
+.content .table-wrap table { min-width: 600px; }
+.content .table-wrap th { font-size: .79rem; }
+.content .table-wrap td { font-size: .9rem; }
+.content .card, .content .metric { border-radius: var(--sb-radius); }
+.content .btn { font-size: .87rem; }
+.chatbot-launch { background: var(--panel); border-color: var(--border); color: var(--text); }
+.chatbot-launch-mark,.chatbot-avatar { background: var(--purple); color: #fff; }
+.chatbot-panel { z-index: 10000; font-family: inherit; }
+.chatbot-panel[hidden] { display: none !important; }
+.chatbot-panel-head { background: var(--panel); }
+.chatbot-launch:hover,.chatbot-send:hover { background: var(--purple-soft); }
+.topbar-account { gap: .6rem; }
+.sb-chat-log { max-height: 480px; min-height: 220px; overflow-y: auto; display:flex; flex-direction:column; gap: 12px; }
+.sb-message { padding: 12px 14px; max-width: 85%; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; }
+.sb-message--mine { align-self: flex-end; background: var(--purple-soft); border-color: var(--purple); }
+.sb-message__meta { color: var(--muted); font-size: .75rem; margin-bottom: 5px; }
+.sb-message__body { white-space: pre-wrap; overflow-wrap:anywhere; line-height:1.55; }
+.sb-form textarea { width:100%; padding:12px; min-height:80px; resize:vertical; border:1px solid var(--border-strong); border-radius:10px; }
+.sb-project-link { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:14px; border:1px solid var(--border); border-radius:10px; margin-top:8px; }
+.sb-project-link:hover { background:var(--purple-soft); }
+.sb-dni-output { border-left:3px solid var(--green); padding:12px 18px; background:var(--green-soft); }
+.sb-dni-note { font-size:.875rem; color:var(--muted); line-height:1.6; }
+@media(max-width:760px){ .chatbot-launch{min-width:44px} .chatbot-launch span:last-child{display:none} .topbar-account{gap:6px} .content .table-wrap table{min-width:550px} }

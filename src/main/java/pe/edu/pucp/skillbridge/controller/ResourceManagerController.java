@@ -20,6 +20,9 @@ import pe.edu.pucp.skillbridge.repository.ProyectoRepository;
 import pe.edu.pucp.skillbridge.repository.RecomendacionIARepository;
 import pe.edu.pucp.skillbridge.service.CapacidadColaboradorService;
 
+import pe.edu.pucp.skillbridge.util.ReportePdf;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.nio.charset.StandardCharsets;
 
@@ -330,6 +333,33 @@ public class ResourceManagerController {
         return "resource/reportes";
     }
 
+
+    /**
+     * Genera PDF usando los datos ya preparados para la exportación CSV.
+     * Respeta la sesión del rol y los permisos del interceptor de reportes.
+     */
+    @GetMapping(value = "/reportes/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> descargarPdf(@RequestParam("tipo") String tipo) {
+        String clave = tipo == null ? "" : tipo.toLowerCase(java.util.Locale.ROOT);
+        String titulo = switch (clave) {
+            case "capacidad" -> "Capacidad del equipo";
+            case "asignaciones" -> "Asignaciones de recursos";
+            case "talento" -> "Talent Matching";
+            case "proyectos" -> "Proyectos de recursos";
+            default -> null;
+        };
+        if (titulo == null) return ResponseEntity.badRequest().build();
+        ResponseEntity<String> exportacion = exportarReporte(clave);
+        if (!exportacion.getStatusCode().is2xxSuccessful() || exportacion.getBody() == null) {
+            return ResponseEntity.status(exportacion.getStatusCode()).build();
+        }
+        byte[] pdf = ReportePdf.desdeCsv(titulo, exportacion.getBody());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"reporte_resource_" + clave + ".pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .cacheControl(org.springframework.http.CacheControl.noStore())
+                .body(pdf);
+    }
 
     /**
      * Exporta como CSV el tipo de reporte solicitado por el usuario.

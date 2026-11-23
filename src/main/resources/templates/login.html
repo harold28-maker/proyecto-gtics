@@ -41,7 +41,7 @@
                 <div class="login-field-simple">
                     <label for="correo">Correo institucional</label>
                     <input id="correo" name="correo" type="email" maxlength="150" required
-                           autocomplete="off" placeholder="nombre@skillbridge.com"
+                           autocomplete="username" placeholder="nombre@skillbridge.com"
                            th:value="${correoIngresado}">
                 </div>
 
@@ -64,28 +64,11 @@
     document.getElementById('cerrar-sesion-login').requestSubmit();
 </script>
 <script th:unless="${sesionActiva}">
-    const loginForm = document.getElementById('login-form');
-    let loginInteraction = false;
-
-    for (const eventName of ['pointerdown', 'keydown', 'paste']) {
-        loginForm.addEventListener(eventName, () => {
-            loginInteraction = true;
-        });
-    }
-
-    window.addEventListener('pageshow', (event) => {
-        if (event.persisted) {
-            loginInteraction = false;
-        }
-        if (!loginInteraction) {
-            loginForm.reset();
-        }
-    });
-
-    loginForm.addEventListener('animationstart', (event) => {
-        if (event.animationName === 'login-autofill' && !loginInteraction) {
-            loginForm.reset();
-        }
+    // Seguridad: nunca conservar la contraseña al regresar a esta página.
+    // El correo se restaura desde el servidor solamente si la contraseña falló.
+    window.addEventListener('pageshow', function () {
+        const clave = document.getElementById('password');
+        if (clave) clave.value = '';
     });
 </script>
 </body>

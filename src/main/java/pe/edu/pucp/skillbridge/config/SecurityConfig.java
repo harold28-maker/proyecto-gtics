@@ -79,7 +79,15 @@ public class SecurityConfig {
                         .usernameParameter("correo")
                         .passwordParameter("password")
                         .successHandler(successHandler)
-                        .failureUrl("/login?error=true")
+                        .failureHandler((request, response, exception) -> {
+                            // Guardar SOLO el correo durante el siguiente redirect de error.
+                            // No conservar contraseñas ni incluir el correo en la URL.
+                            String correo = request.getParameter("correo");
+                            String limpio = correo == null ? "" : correo.strip();
+                            if (limpio.length() > 150) limpio = limpio.substring(0, 150);
+                            request.getSession(true).setAttribute("loginCorreoFallido", limpio);
+                            response.sendRedirect(request.getContextPath() + "/login?error=true");
+                        })
                         .permitAll()
                 )
                 .logout(logout -> logout

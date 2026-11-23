@@ -16,6 +16,17 @@ El perfil usa `localhost:3306` y el usuario `root` de forma predeterminada.
 Puedes cambiarlos con `SPRING_DATASOURCE_URL` y `SPRING_DATASOURCE_USERNAME`.
 Para activar Gmail junto con MySQL local, usa `SPRING_PROFILES_ACTIVE=local,gmail`.
 En AWS se conserva la configuración de RDS del perfil predeterminado.
+El perfil local usa la guía del asistente sin credenciales de Gemini. Para
+probar Gemini en local, configura `SKILLBRIDGE_CHATBOT_PROVIDER=gemini`,
+`SPRING_AI_MODEL_CHAT=google-genai` y `GEMINI_API_KEY`.
+
+### Consulta DNI
+
+Administración y Resource Management pueden abrir **Consulta DNI** desde el menú.
+Configura `VERIFICAID_TOKEN` con un token del entorno configurado en
+`VERIFICAID_URL`. La URL predeterminada apunta al sandbox. Si VerificaID
+responde 403, el administrador de la cuenta debe solicitar la habilitación
+de Consulta DNI al proveedor.
 
 ## 3. Base de datos
 ### Si crearás la BD desde cero

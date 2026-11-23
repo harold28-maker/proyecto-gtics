@@ -297,7 +297,7 @@
              role="dialog"
              aria-modal="false"
              aria-labelledby="chatbotTitle"
-             th:attr="data-csrf-token=${_csrf.token},data-csrf-header=${_csrf.headerName}"
+             th:attr="data-csrf-token=${_csrf.token},data-csrf-header=${_csrf.headerName},data-status-url=@{/api/chatbot/estado}"
              hidden>
 
         <div class="chatbot-panel-head">
@@ -310,7 +310,7 @@
 
                     <h2 id="chatbotTitle">Asistente SkillBridge</h2>
 
-                    <p><span class="chatbot-presence" aria-hidden="true"></span> Gemini · contexto de tu sesión</p>
+                    <p><span class="chatbot-presence" aria-hidden="true"></span> <span data-chatbot-mode>Asistente de tu sesión</span></p>
 
                 </div>
 

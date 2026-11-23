@@ -18,6 +18,13 @@
     const status = panel.querySelector("[data-chatbot-status]");
     const csrfToken = panel.dataset.csrfToken;
     const csrfHeader = panel.dataset.csrfHeader;
+    const modeLabel = panel.querySelector("[data-chatbot-mode]");
+    fetch(panel.dataset.statusUrl, { headers: { Accept: "application/json" } })
+        .then(response => response.ok ? response.json() : Promise.reject())
+        .then(({ modo }) => {
+            modeLabel.textContent = modo === "gemini" ? "Gemini" : "Guía local";
+        })
+        .catch(() => {});
     let historyLoaded = false;
     let busy = false;
 
