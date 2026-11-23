@@ -6,6 +6,22 @@ import java.math.BigDecimal;
  * Representa una habilidad registrada para un colaborador.
  */
 public class HabilidadColaboradorDTO {
+
+    public enum Nivel {
+        BASICO("Básico"),
+        INTERMEDIO("Intermedio"),
+        AVANZADO("Avanzado"),
+        EXPERTO("Experto");
+
+        private final String etiqueta;
+
+        Nivel(String etiqueta) {
+            this.etiqueta = etiqueta;
+        }
+
+        public String getEtiqueta() { return etiqueta; }
+    }
+
     private Integer idHabilidad;
     private String nombre;
     private String categoria;
@@ -64,4 +80,15 @@ public class HabilidadColaboradorDTO {
      * @return años de experiencia
      */
     public BigDecimal getAniosExperiencia() { return aniosExperiencia; }
+
+    public Nivel getNivelHabilidad() {
+        for (Nivel opcion : Nivel.values()) {
+            if (opcion.name().equals(nivel)) return opcion;
+        }
+        return null;
+    }
+
+    public String getAniosExperienciaLocal() {
+        return aniosExperiencia == null ? "" : aniosExperiencia.stripTrailingZeros().toPlainString().replace('.', ',');
+    }
 }

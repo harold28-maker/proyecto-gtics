@@ -1,16 +1,161 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mis habilidades | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
-<div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div><div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
-<div class="grid-2 skills-summary"><div class="metric"><div class="metric-icon">✦</div><div class="label">Total de habilidades</div><div class="value" th:text="${#lists.size(habilidades)}"></div><div class="hint">Registradas en tu perfil</div></div><div class="metric green"><div class="metric-icon">↗</div><div class="label">Desarrollo profesional</div><div class="value" style="font-size:18px">Continuo</div><div class="hint">Mantén nivel y experiencia al día</div></div></div>
-<div class="grid-3 section">
-<section class="card" style="grid-column:span 2"><div class="card-title"><div><h2>Mi mapa de habilidades</h2><p class="muted">Nivel y experiencia que SkillBridge utiliza para identificar oportunidades compatibles con tu perfil.</p></div><span class="badge badge-purple">Perfil profesional</span></div><div class="table-wrap"><table><thead><tr><th>Habilidad</th><th>Categoría</th><th>Nivel</th><th>Experiencia</th><th>Dominio</th><th>Acciones</th></tr></thead><tbody>
-<tr th:each="h : ${habilidades}"><td><strong th:text="${h.nombre}"></strong></td><td><span class="badge badge-blue" th:text="${h.categoria}"></span></td><td><span class="badge badge-purple" th:text="${h.nivel == 'BASICO' ? 'Básico' : (h.nivel == 'INTERMEDIO' ? 'Intermedio' : (h.nivel == 'AVANZADO' ? 'Avanzado' : 'Experto'))}"></span></td><td th:text="|${h.aniosExperiencia} años|"></td><td><div class="progress"><span th:style="|width:${h.nivel == 'EXPERTO' ? 100 : (h.nivel == 'AVANZADO' ? 85 : (h.nivel == 'INTERMEDIO' ? 60 : 35))}%|"></span></div></td><td><div class="action-row"><a class="btn btn-light btn-sm" th:href="@{/colaborador/habilidades(editar=${h.idHabilidad})}">Editar</a><form th:action="@{/colaborador/habilidades/{id}/eliminar(id=${h.idHabilidad})}" method="post" onsubmit="return confirm('¿Quitar esta habilidad de tu perfil?')"><button class="btn btn-danger-soft btn-sm">Quitar</button></form></div></td></tr>
-</tbody></table></div><div class="empty" th:if="${#lists.isEmpty(habilidades)}">Todavía no has agregado habilidades.</div></section>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Mis habilidades | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/habilidades-colaborador.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <div class="alert-success" role="status" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+            <div class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+            <div class="alert-error" role="alert" th:if="${!tienePerfil and mensajeError == null}">
+                No se encontró tu perfil de colaborador.
+            </div>
 
-<section class="card skill-action-card" th:if="${habilidadEditar == null}"><p class="eyebrow">Completar perfil</p><h2 class="mt-0">Agregar habilidad</h2><p class="muted">Selecciona una habilidad que aún no forme parte de tu perfil.</p><form th:action="@{/colaborador/habilidades/guardar}" method="post"><div class="form-group"><label>Habilidad</label><select name="idHabilidad" required><option value="">Selecciona una habilidad</option><option th:each="h : ${habilidadesDisponibles}" th:value="${h.idHabilidad}" th:text="|${h.nombre} · ${h.categoria}|"></option></select></div><div class="form-group"><label>Nivel</label><select name="nivel"><option value="BASICO">Básico</option><option value="INTERMEDIO">Intermedio</option><option value="AVANZADO">Avanzado</option><option value="EXPERTO">Experto</option></select></div><div class="form-group"><label>Años de experiencia</label><input type="number" step="0.5" min="0" max="50" name="aniosExperiencia" value="0" required><div class="form-note">Valor permitido: 0 a 50 años.</div></div><button class="btn btn-primary" style="margin-top:16px;width:100%" th:disabled="${#lists.isEmpty(habilidadesDisponibles)}">Agregar habilidad</button></form><div class="empty" th:if="${#lists.isEmpty(habilidadesDisponibles)}">Ya agregaste todas las habilidades disponibles.</div></section>
+            <section class="grid-2 habilidades-resumen" aria-label="Resumen de habilidades">
+                <div class="metric">
+                    <div class="label">Habilidades</div>
+                    <div class="value" th:text="${habilidades.size()}">0</div>
+                    <div class="hint">Registradas en tu perfil</div>
+                </div>
+                <div class="metric blue">
+                    <div class="label">Categorías</div>
+                    <div class="value" th:text="${totalCategorias}">0</div>
+                    <div class="hint" th:if="${totalCategorias > 0}">
+                        <span th:text="${categoriasVisibles}"></span>
+                        <span th:if="${categoriasRestantes > 0}" th:text="| · +${categoriasRestantes}|"></span>
+                    </div>
+                </div>
+            </section>
 
-<section class="card skill-action-card" th:if="${habilidadEditar != null}"><p class="eyebrow">Actualizar experiencia</p><h2 class="mt-0">Editar habilidad</h2><p class="muted">Modifica únicamente el nivel o los años de experiencia de una habilidad ya registrada.</p><form th:action="@{/colaborador/habilidades/actualizar}" method="post"><input type="hidden" name="idHabilidad" th:value="${habilidadEditar.idHabilidad}"><div class="form-group"><label>Habilidad</label><input th:value="${habilidadEditar.nombre}" readonly></div><div class="form-group"><label>Nivel</label><select name="nivel"><option value="BASICO" th:selected="${habilidadEditar.nivel == 'BASICO'}">Básico</option><option value="INTERMEDIO" th:selected="${habilidadEditar.nivel == 'INTERMEDIO'}">Intermedio</option><option value="AVANZADO" th:selected="${habilidadEditar.nivel == 'AVANZADO'}">Avanzado</option><option value="EXPERTO" th:selected="${habilidadEditar.nivel == 'EXPERTO'}">Experto</option></select></div><div class="form-group"><label>Años de experiencia</label><input type="number" step="0.5" min="0" max="50" name="aniosExperiencia" th:value="${habilidadEditar.aniosExperiencia}" required><div class="form-note">Valor permitido: 0 a 50 años.</div></div><div class="form-actions" style="margin-top:16px"><a class="btn btn-light" th:href="@{/colaborador/habilidades}">Cancelar</a><button class="btn btn-primary">Actualizar habilidad</button></div></form></section>
+            <div class="section habilidades-cuerpo" th:classappend="${!tienePerfil ? 'habilidades-sin-panel' : null}">
+                <section class="card habilidades-panel habilidades-listado" aria-labelledby="habilidadesTitulo">
+                    <div class="card-title">
+                        <h2 id="habilidadesTitulo">Habilidades de mi perfil</h2>
+                    </div>
+                    <div class="table-wrap" th:unless="${habilidades.isEmpty()}">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th scope="col">Habilidad</th>
+                                <th scope="col">Categoría</th>
+                                <th scope="col">Nivel</th>
+                                <th scope="col">Experiencia</th>
+                                <th scope="col">Acciones</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="h : ${habilidades}" th:with="nivel=${h.nivelHabilidad}">
+                                <td><strong th:text="${h.nombre}"></strong></td>
+                                <td>
+                                    <span class="badge badge-blue" th:unless="${#strings.isEmpty(h.categoria)}" th:text="${h.categoria}"></span>
+                                    <span class="muted" th:if="${#strings.isEmpty(h.categoria)}">Sin categoría</span>
+                                </td>
+                                <td><span class="badge badge-purple" th:text="${nivel == null ? 'Sin nivel' : nivel.etiqueta}"></span></td>
+                                <td class="habilidad-experiencia"
+                                    th:text="${h.aniosExperiencia == null ? 'Sin registrar' : h.aniosExperienciaLocal + (h.aniosExperiencia == 1 ? ' año' : ' años')}">
+                                </td>
+                                <td>
+                                    <div class="action-row">
+                                        <a class="btn btn-light btn-sm"
+                                           th:href="@{/colaborador/habilidades(editar=${h.idHabilidad})} + '#habilidad-panel'"
+                                           th:aria-label="|Editar ${h.nombre}|">Editar</a>
+                                        <a class="btn btn-danger-soft btn-sm"
+                                           th:href="@{/colaborador/habilidades(quitar=${h.idHabilidad})} + '#habilidad-panel'"
+                                           th:aria-label="|Quitar ${h.nombre}|">Quitar</a>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="empty" th:if="${habilidades.isEmpty()}">Todavía no has agregado habilidades.</div>
+                </section>
+
+                <section class="card habilidades-panel" id="habilidad-panel" th:if="${tienePerfil}" aria-labelledby="panelHabilidadTitulo">
+                    <th:block th:if="${habilidadQuitar != null}">
+                        <h2 id="panelHabilidadTitulo" th:text="|¿Quitar ${habilidadQuitar.nombre} de tu perfil?|"></h2>
+                        <p class="muted habilidad-intro">Se retirarán el nivel y la experiencia que registraste para esta habilidad.</p>
+                        <form th:action="@{/colaborador/habilidades/{id}/eliminar(id=${habilidadQuitar.idHabilidad})}" method="post">
+                            <div class="habilidad-acciones">
+                                <a class="btn btn-light" th:href="@{/colaborador/habilidades}">Cancelar</a>
+                                <button type="submit" class="btn btn-danger-soft">Quitar del perfil</button>
+                            </div>
+                        </form>
+                    </th:block>
+
+                    <th:block th:unless="${habilidadQuitar != null}">
+                        <h2 id="panelHabilidadTitulo" th:text="${habilidadEditar == null ? 'Agregar habilidad' : 'Editar habilidad'}"></h2>
+                        <p class="muted habilidad-intro" th:if="${habilidadEditar == null}">
+                            Elige una habilidad del catálogo que aún no esté en tu perfil.
+                        </p>
+                        <p class="muted habilidad-intro" th:if="${habilidadEditar != null}">
+                            Actualiza tu nivel o tus años de experiencia.
+                        </p>
+
+                        <form class="habilidad-form"
+                              th:action="${habilidadEditar == null} ? @{/colaborador/habilidades/guardar} : @{/colaborador/habilidades/actualizar}"
+                              th:object="${habilidadForm}" method="post" novalidate>
+                            <div class="form-group" th:if="${habilidadEditar == null}">
+                                <label for="idHabilidad">Habilidad</label>
+                                <select th:field="*{idHabilidad}" th:errorclass="is-invalid" required
+                                        th:attr="aria-invalid=${#fields.hasErrors('idHabilidad')},
+                                                 aria-describedby=${#fields.hasErrors('idHabilidad') ? 'habilidadError' : null}">
+                                    <option value="">Selecciona una habilidad</option>
+                                    <option th:each="h : ${habilidadesDisponibles}" th:value="${h.idHabilidad}"
+                                            th:text="${#strings.isEmpty(h.categoria) ? h.nombre : h.nombre + ' · ' + h.categoria}">
+                                    </option>
+                                </select>
+                                <p class="field-error" id="habilidadError" th:errors="*{idHabilidad}"></p>
+                            </div>
+                            <div class="form-group" th:if="${habilidadEditar != null}">
+                                <input type="hidden" th:field="*{idHabilidad}">
+                                <label for="habilidadActual">Habilidad</label>
+                                <input id="habilidadActual" type="text" th:value="${habilidadEditar.nombre}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label for="nivel">Nivel</label>
+                                <select th:field="*{nivel}" th:errorclass="is-invalid" required
+                                        th:attr="aria-invalid=${#fields.hasErrors('nivel')},
+                                                 aria-describedby=${#fields.hasErrors('nivel') ? 'nivelError' : null}">
+                                    <option value="">Selecciona un nivel</option>
+                                    <option th:each="opcion : ${niveles}" th:value="${opcion.name()}" th:text="${opcion.etiqueta}"></option>
+                                </select>
+                                <p class="field-error" id="nivelError" th:errors="*{nivel}"></p>
+                            </div>
+                            <div class="form-group">
+                                <label for="aniosExperiencia">Años de experiencia</label>
+                                <input type="text" inputmode="decimal" th:field="*{aniosExperiencia}" th:errorclass="is-invalid"
+                                       placeholder="Ej. 1,5" required
+                                       th:attr="aria-invalid=${#fields.hasErrors('aniosExperiencia')},
+                                                aria-describedby=${#fields.hasErrors('aniosExperiencia') ? 'experienciaError experienciaAyuda' : 'experienciaAyuda'}">
+                                <p class="field-error" id="experienciaError" th:errors="*{aniosExperiencia}"></p>
+                                <p class="form-note" id="experienciaAyuda">De 0 a 50 años, con hasta un decimal.</p>
+                            </div>
+
+                            <div class="habilidad-acciones" th:if="${habilidadEditar != null}">
+                                <a class="btn btn-light" th:href="@{/colaborador/habilidades}">Cancelar</a>
+                                <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                            </div>
+                            <button th:if="${habilidadEditar == null}" th:disabled="${habilidadesDisponibles.isEmpty()}"
+                                    type="submit" class="btn btn-primary habilidad-agregar">Agregar habilidad</button>
+                            <p class="form-note" th:if="${habilidadEditar == null and habilidadesDisponibles.isEmpty()}">
+                                No hay habilidades disponibles para agregar.
+                            </p>
+                        </form>
+                    </th:block>
+                </section>
+            </div>
+        </div>
+    </main>
 </div>
-</div></main></div></body></html>
+</body>
+</html>

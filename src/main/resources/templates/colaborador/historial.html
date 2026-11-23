@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Historial | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/colaborador-consultas.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content vista-colaborador">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <p class="alert-success" role="status" th:if="${mensajeExito}" th:text="${mensajeExito}"></p>
+            <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
+            <section class="page-intro vista-portada">
+                <div><h2>Historial de proyectos</h2><p>Consulta tus participaciones anteriores.</p></div>
+                <a class="btn btn-light" th:if="${puedeVerProyectos}" th:href="@{/colaborador/proyectos}">Ver mis proyectos</a>
+            </section>
+            <section class="card panel-consulta" aria-label="Participaciones anteriores">
+                <p class="empty" th:if="${filas.isEmpty()}">Aún no tienes participaciones anteriores.</p>
+
+                    <div class="table-wrap" th:unless="${filas.isEmpty()}">
+                        <table class="tabla-participaciones">
+                            <thead>
+                            <tr>
+                                <th scope="col">Proyecto</th>
+                                <th scope="col">Rol en el proyecto</th>
+                                <th scope="col">Inicio</th>
+                                <th scope="col">Fin</th>
+                                <th scope="col">Dedicación</th>
+                                <th scope="col">Estado de la participación</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="fila : ${filas}" th:with="a=${fila.asignacion}">
+                                <td><strong th:text="${a.proyecto.nombre}"></strong></td>
+                                <td th:text="${a.rolProyecto ?: 'Sin rol registrado'}"></td>
+                                <td class="sin-corte" th:text="${a.fechaInicio != null ? #temporals.format(a.fechaInicio, 'dd-MM-yyyy') : 'Sin fecha'}"></td>
+                                <td class="sin-corte" th:text="${a.fechaFin != null ? #temporals.format(a.fechaFin, 'dd-MM-yyyy') : 'Sin fecha de fin'}"></td>
+                                <td class="sin-corte" th:text="|${a.porcentajeDedicacion} %|"></td>
+                                <td><span class="badge" th:classappend="${fila.estado.estilo}" th:text="${fila.estado.etiqueta}"></span></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

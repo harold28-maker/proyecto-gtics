@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * Controlador MVC que administra el portafolio de proyectos, asignaciones,
- * recomendaciones, foros, disponibilidad e informes de un Project Manager.
+ * recomendaciones, disponibilidad e informes de un Project Manager.
  */
 @Controller
 @RequestMapping("/pm")
@@ -36,9 +36,7 @@ public class ProjectManagerController {
     private final AsignacionRepository asignacionRepository;
     private final ColaboradorRepository colaboradorRepository;
     private final RecomendacionIARepository recomendacionIARepository;
-    private final ForoRepository foroRepository;
     private final HabilidadRepository habilidadRepository;
-    private final RespuestaForoRepository respuestaForoRepository;
     private final CapacidadColaboradorService capacidadColaboradorService;
 
     /**
@@ -49,9 +47,7 @@ public class ProjectManagerController {
      * @param asignacionRepository repositorio de asignaciones
      * @param colaboradorRepository repositorio de colaboradores
      * @param recomendacionIARepository repositorio de recomendaciones de IA
-     * @param foroRepository repositorio de foros
      * @param habilidadRepository repositorio de habilidades
-     * @param respuestaForoRepository repositorio de respuestas de foro
      * @param capacidadColaboradorService servicio de carga vigente
      */
     public ProjectManagerController(UsuarioRepository usuarioRepository,
@@ -59,18 +55,14 @@ public class ProjectManagerController {
                                     AsignacionRepository asignacionRepository,
                                     ColaboradorRepository colaboradorRepository,
                                     RecomendacionIARepository recomendacionIARepository,
-                                    ForoRepository foroRepository,
                                     HabilidadRepository habilidadRepository,
-                                    RespuestaForoRepository respuestaForoRepository,
                                     CapacidadColaboradorService capacidadColaboradorService) {
         this.usuarioRepository = usuarioRepository;
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.colaboradorRepository = colaboradorRepository;
         this.recomendacionIARepository = recomendacionIARepository;
-        this.foroRepository = foroRepository;
         this.habilidadRepository = habilidadRepository;
-        this.respuestaForoRepository = respuestaForoRepository;
         this.capacidadColaboradorService = capacidadColaboradorService;
     }
 
@@ -511,69 +503,6 @@ public class ProjectManagerController {
         model.addAttribute("proyectos", proyectoRepository.findAll());
         model.addAttribute("proyectoSeleccionado", idProyecto);
         return "pm/recomendaciones";
-    }
-
-    /**
-     * Lista los foros aplicando filtros opcionales de texto, categoría y estado.
-     *
-     * @param q texto de búsqueda opcional
-     * @param categoria categoría seleccionada opcionalmente
-     * @param estado estado seleccionado opcionalmente
-     * @param model modelo utilizado para cargar los resultados y filtros
-     * @return nombre de la plantilla de foros
-     */
-    @GetMapping("/foros")
-    public String foros(@RequestParam(value = "q", required = false) String q,
-                        @RequestParam(value = "categoria", required = false) String categoria,
-                        @RequestParam(value = "estado", required = false) String estado,
-                        Model model) {
-        List<Foro> foros = filtrarForos(q, categoria, estado);
-        cargarForos(model, foros, q, categoria, estado);
-        return "pm/foros";
-    }
-
-    /**
-     * Filtra los foros por texto, categoría y estado.
-     *
-     * @param q texto de búsqueda opcional
-     * @param categoria categoría requerida opcionalmente
-     * @param estado estado requerido opcionalmente
-     * @return lista de foros que cumplen los filtros
-     */
-    private List<Foro> filtrarForos(String q, String categoria, String estado) {
-        return foroRepository.findAllByOrderByFechaCreacionDesc().stream().filter(f -> {
-            boolean coincideTexto = q == null || q.isBlank()
-                    || f.getTitulo().toLowerCase().contains(q.toLowerCase())
-                    || f.getContenido().toLowerCase().contains(q.toLowerCase());
-            boolean coincideCategoria = categoria == null || categoria.isBlank() || "TODAS".equals(categoria)
-                    || categoria.equalsIgnoreCase(f.getCategoria());
-            boolean coincideEstado = estado == null || estado.isBlank() || "TODOS".equals(estado)
-                    || estado.equalsIgnoreCase(f.getEstado().name());
-            return coincideTexto && coincideCategoria && coincideEstado;
-        }).toList();
-    }
-
-    /**
-     * Agrega al modelo los foros filtrados, opciones de filtro e indicadores.
-     *
-     * @param model modelo utilizado para cargar los atributos
-     * @param foros foros que se mostrarán
-     * @param q texto de búsqueda aplicado
-     * @param categoria categoría aplicada
-     * @param estado estado aplicado
-     */
-    private void cargarForos(Model model, List<Foro> foros, String q, String categoria, String estado) {
-        model.addAttribute("titulo", "Foro del proyecto");
-        model.addAttribute("foros", foros);
-        model.addAttribute("q", q);
-        model.addAttribute("categoriaSeleccionada", categoria);
-        model.addAttribute("estadoSeleccionado", estado);
-        model.addAttribute("categoriasForo", ForoController.CATEGORIAS_FORO);
-        model.addAttribute("totalForos", foroRepository.count());
-        model.addAttribute("abiertos", foroRepository.findAll().stream().filter(f -> f.getEstado() == Foro.EstadoForo.ABIERTO).count());
-        model.addAttribute("resueltos", foroRepository.findAll().stream().filter(f -> f.getEstado() == Foro.EstadoForo.RESUELTO).count());
-        model.addAttribute("conteoRespuestas", foros.stream().collect(java.util.stream.Collectors.toMap(
-                Foro::getIdForo, f -> respuestaForoRepository.countByForoIdForo(f.getIdForo()))));
     }
 
     /**

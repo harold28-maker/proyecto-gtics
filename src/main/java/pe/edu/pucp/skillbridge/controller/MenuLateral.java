@@ -54,6 +54,7 @@ public class MenuLateral {
                     enlace("/colaborador/asignaciones", "Mis asignaciones", "asignaciones"),
                     enlace("/colaborador/foros", "Foro", "foros", "/foros"),
                     enlace("/colaborador/chat", "Chat", "chat"),
+                    enlace("/colaborador/asistente", "Asistente de IA", "asistente"),
                     enlace("/colaborador/notificaciones", "Notificaciones", "notificaciones")
             )
     );

@@ -93,6 +93,8 @@ public class PermisosRolService {
                             List.of("/colaborador/foros", "/foros")),
                     new Permiso("chat", "Colaboración", "Participar en el chat", "Proyectos en los que participa", true,
                             List.of("/colaborador/chat")),
+                    new Permiso("asistente", "Colaboración", "Consultar el asistente de IA", "Publicaciones autorizadas", true,
+                            List.of("/colaborador/asistente")),
                     new Permiso("notificaciones", "Notificaciones", "Consultar notificaciones", "Sus propias notificaciones", true,
                             List.of("/colaborador/notificaciones"))
             )

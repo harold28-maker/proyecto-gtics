@@ -1,0 +1,116 @@
+.habilidades-resumen .metric {
+    min-height: 7.25rem;
+}
+
+.habilidades-resumen .value {
+    margin-block: var(--space-2xs) var(--space-3xs);
+}
+
+.habilidades-cuerpo {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(19.5rem, 1fr);
+    gap: var(--space-sm);
+    align-items: start;
+}
+
+.habilidades-cuerpo.habilidades-sin-panel {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.habilidades-panel {
+    min-width: 0;
+    scroll-margin-top: 5rem;
+}
+
+.habilidades-panel h2 {
+    margin: 0;
+    color: var(--color-ink);
+    font: 700 var(--text-lg)/1.3 var(--font-display);
+    overflow-wrap: anywhere;
+}
+
+.habilidades-panel .habilidad-intro {
+    margin: var(--space-2xs) 0 var(--space-sm);
+    font-size: var(--text-sm);
+    line-height: 1.5;
+}
+
+.habilidades-listado table {
+    min-width: 34rem;
+}
+
+.habilidades-listado th {
+    white-space: nowrap;
+}
+
+.habilidades-listado td {
+    height: 4.1rem;
+}
+
+.habilidades-listado th:last-child {
+    text-align: right;
+}
+
+.habilidad-experiencia {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.habilidades-listado .action-row {
+    gap: var(--space-2xs);
+    flex-wrap: nowrap;
+}
+
+.habilidad-form {
+    display: grid;
+    gap: var(--space-sm);
+}
+
+.habilidad-form .form-group label {
+    margin-bottom: var(--space-2xs);
+    font-size: var(--text-sm);
+}
+
+.habilidad-form .form-group input,
+.habilidad-form .form-group select {
+    width: 100%;
+    min-height: 2.75rem;
+    border-radius: var(--radius-input);
+    font-size: var(--text-sm);
+}
+
+.habilidad-form .form-group select:not(.is-invalid) {
+    border-color: var(--color-rule-2);
+    background: var(--color-paper);
+}
+
+.habilidad-form .form-group select:focus {
+    border-color: var(--color-focus);
+}
+
+.habilidad-form .form-note,
+.habilidad-form .field-error {
+    font-size: var(--text-xs);
+}
+
+.habilidad-agregar {
+    width: 100%;
+}
+
+.habilidad-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-2xs);
+}
+
+.habilidad-acciones .btn,
+.habilidades-listado .action-row .btn {
+    width: auto;
+}
+
+@media (max-width: 72rem) {
+    .habilidades-cuerpo {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

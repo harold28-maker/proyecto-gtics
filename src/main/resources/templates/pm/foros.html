@@ -45,6 +45,7 @@
                         <a class="btn btn-light" th:href="@{/pm/foros}">Limpiar</a>
                     </form>
 
+                    <p class="alert-error" role="alert" th:each="error : ${erroresFiltros.values()}" th:text="${error}"></p>
                     <div class="forum-feed">
                         <article class="forum-card" th:each="f : ${foros}"
                                  th:classappend="${f.estado.name() == 'RESUELTO'} ? ' resuelto' : (${f.estado.name() == 'CERRADO'} ? ' cerrado' : '')">
@@ -66,7 +67,7 @@
 
                 <aside class="forum-side-card">
                     <section class="card"><p class="eyebrow">Taxonomía</p><h3 class="mt-0">Categorías del foro</h3><div class="category-list"><a class="category-pill" th:each="cat : ${categoriasForo}" th:href="@{/pm/foros(categoria=${cat})}"><span th:text="${cat}"></span><span>→</span></a></div></section>
-                    <div class="knowledge-tip"><strong>Gestión del conocimiento</strong><p>Como Project Manager puedes editar, cerrar o eliminar publicaciones y marcar respuestas como solución.</p></div>
+                    <div class="knowledge-tip"><strong>Gestión del conocimiento</strong><p>Puedes moderar las publicaciones de los proyectos que administras.</p></div>
                 </aside>
             </div>
         </div>

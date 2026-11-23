@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Asistente de IA | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/colaborador-consultas.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content vista-colaborador">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <p class="alert-success" role="status" th:if="${mensajeExito}" th:text="${mensajeExito}"></p>
+            <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
+            <section class="page-intro vista-portada">
+                <div><h2>Asistente de IA</h2><p>Consulta información de tus proyectos y pide resúmenes de las discusiones del foro.</p></div>
+            </section>
+            <div class="consulta-cuerpo">
+                <section class="card panel-consulta asistente-panel" aria-label="Consulta al asistente">
+                    <p class="empty" th:unless="${puedeConsultarForo}">El administrador deshabilitó tu acceso al foro. Contáctalo para poder consultar estas fuentes.</p>
+                    <p class="empty" th:if="${puedeConsultarForo and proyectos.isEmpty()}">Aún no tienes proyectos con fuentes para consultar.</p>
+                    <form th:unless="${proyectos.isEmpty()}" th:action="@{/colaborador/asistente}" method="post" novalidate>
+                        <div class="consulta-contexto">
+                            <div class="form-group">
+                                <label for="proyecto-consulta">Proyecto consultado</label>
+                                <select id="proyecto-consulta" name="idProyecto"
+                                        th:attr="aria-invalid=${errorProyecto != null},aria-describedby=${errorProyecto != null ? 'error-proyecto' : null}">
+                                    <option value="">Selecciona un proyecto</option>
+                                    <option th:each="p : ${proyectos}" th:value="${p.idProyecto}" th:text="${p.nombre}"
+                                            th:selected="${proyectoSeleccionado != null and p.idProyecto == proyectoSeleccionado.idProyecto}"></option>
+                                </select>
+                                <p class="field-error" role="alert" id="error-proyecto" th:if="${errorProyecto}" th:text="${errorProyecto}"></p>
+                            </div>
+                        </div>
+                        <p class="empty" th:unless="${resultado}">Selecciona un proyecto y escribe una pregunta sobre una discusión o solución.</p>
+                        <div class="consulta-conversacion" th:if="${resultado}" aria-live="polite">
+                            <div class="consulta-pregunta">
+                                <strong>Tu consulta</strong>
+                                <p th:text="${pregunta}"></p>
+                            </div>
+                            <div class="consulta-respuesta">
+                                <strong th:text="${resultado.titulo}"></strong>
+                                <p class="muted" th:if="${resultado.aviso}" th:text="${resultado.aviso}"></p>
+                                <p class="texto-respuesta" th:text="${resultado.texto}"></p>
+                                <p class="referencia" th:unless="${resultado.fuentes.isEmpty()}">
+                                    <a th:each="f, i : ${resultado.fuentes}" th:href="|#fuente-${i.count}|"
+                                       th:text="|Ver fuente [${i.count}]|"></a>
+                                </p>
+                            </div>
+                        </div>
+                        <div class="compositor-consulta">
+                            <label for="pregunta-ia">Pregunta</label>
+                            <textarea id="pregunta-ia" name="pregunta" rows="2" placeholder="Ej. Resume las pruebas de integración"
+                                      th:text="${resultado == null ? pregunta : ''}"
+                                      th:attr="aria-invalid=${errorPregunta != null},aria-describedby=${errorPregunta != null ? 'limite-pregunta error-pregunta' : 'limite-pregunta'}"></textarea>
+                            <p class="field-error" role="alert" id="error-pregunta" th:if="${errorPregunta}" th:text="${errorPregunta}"></p>
+                            <div class="compositor-pie">
+                                <small id="limite-pregunta">Hasta 1000 caracteres.</small>
+                                <button class="btn btn-primary" type="submit">Consultar</button>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+                <aside class="card panel-consulta consulta-fuentes" aria-labelledby="fuentes-titulo">
+                    <h3 id="fuentes-titulo">Fuentes consultadas</h3>
+                    <p class="muted" th:if="${resultado == null or resultado.fuentes.isEmpty()}">Aquí aparecerán las publicaciones relacionadas con tu consulta.</p>
+                    <th:block th:if="${resultado != null}">
+                        <article th:each="fuente, i : ${resultado.fuentes}" th:id="|fuente-${i.count}|">
+                            <p class="fuente-titulo"><strong th:text="|[${i.count}] ${fuente.titulo}|"></strong></p>
+                            <p class="fuente-meta" th:text="|Foro · ${proyectoSeleccionado.nombre}|"></p>
+                            <a class="btn btn-light btn-sm" th:href="@{/foros/{id}(id=${fuente.idForo})}">Ver publicación</a>
+                        </article>
+                    </th:block>
+                </aside>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

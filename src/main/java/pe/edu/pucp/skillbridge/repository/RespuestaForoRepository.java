@@ -1,5 +1,6 @@
 package pe.edu.pucp.skillbridge.repository;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import pe.edu.pucp.skillbridge.entity.RespuestaForo;
 import java.util.List;
@@ -15,6 +16,9 @@ public interface RespuestaForoRepository extends JpaRepository<RespuestaForo, In
      * @return lista de respuestas del foro, desde la más antigua hasta la más reciente
      */
     List<RespuestaForo> findByForoIdForoOrderByFechaCreacionAsc(Integer idForo);
+
+    List<RespuestaForo> findByForoIdForoOrderByEsSolucionDescFechaCreacionAscIdRespuestaAsc(
+            Integer idForo, Pageable limite);
     /**
      * Cuenta las respuestas registradas para un foro determinado.
      *

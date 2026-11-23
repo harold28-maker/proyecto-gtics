@@ -41,21 +41,27 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, Intege
             """, nativeQuery = true)
     List<Object[]> obtenerHabilidades(Integer idColaborador);
 
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM colaborador_habilidad
+            WHERE id_colaborador = ?1 AND id_habilidad = ?2
+            """, nativeQuery = true)
+    long contarHabilidad(Integer idColaborador, Integer idHabilidad);
+
     /**
-     * Registra o actualiza la habilidad y la experiencia asignadas a un colaborador.
+     * Registra la habilidad y la experiencia de un colaborador.
      *
      * @param idColaborador identificador del colaborador
      * @param idHabilidad identificador de la habilidad
      * @param nivel nivel actual de dominio de la habilidad
      * @param aniosExperiencia años de experiencia asociados a la habilidad
-     * @return número de filas insertadas o actualizadas
+     * @return número de filas insertadas
      */
     @Modifying
     @Transactional
     @Query(value = """
             INSERT INTO colaborador_habilidad(id_colaborador, id_habilidad, nivel, anios_experiencia)
             VALUES (?1, ?2, ?3, ?4)
-            ON DUPLICATE KEY UPDATE nivel = VALUES(nivel), anios_experiencia = VALUES(anios_experiencia)
             """, nativeQuery = true)
     int guardarHabilidad(Integer idColaborador, Integer idHabilidad, String nivel, BigDecimal aniosExperiencia);
 
@@ -66,6 +72,7 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, Intege
      * @param idHabilidad identificador de la habilidad
      * @param nivel nuevo nivel de dominio
      * @param aniosExperiencia años de experiencia
+     * @return número de filas afectadas
      */
     @Modifying
     @Transactional
@@ -74,7 +81,7 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, Intege
             SET nivel = ?3, anios_experiencia = ?4
             WHERE id_colaborador = ?1 AND id_habilidad = ?2
             """, nativeQuery = true)
-    void actualizarHabilidad(Integer idColaborador, Integer idHabilidad, String nivel, BigDecimal aniosExperiencia);
+    int actualizarHabilidad(Integer idColaborador, Integer idHabilidad, String nivel, BigDecimal aniosExperiencia);
 
     /**
      * Elimina la relación entre un colaborador y una habilidad.

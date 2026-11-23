@@ -64,6 +64,19 @@ public class Asignacion {
         return fechaInicio == null || fechaFin == null || !fechaFin.isBefore(fechaInicio);
     }
 
+    public boolean esHistorica(LocalDate fecha) {
+        Proyecto.EstadoProyecto estadoProyecto = proyecto.getEstado();
+        return estado == EstadoAsignacion.FINALIZADA || estado == EstadoAsignacion.CANCELADA
+                || estadoProyecto == Proyecto.EstadoProyecto.COMPLETED
+                || estadoProyecto == Proyecto.EstadoProyecto.CANCELLED
+                || (fechaFin != null && fechaFin.isBefore(fecha));
+    }
+
+    public boolean estaVigente(LocalDate fecha) {
+        return estado == EstadoAsignacion.ACTIVA && fechaInicio != null
+                && !fechaInicio.isAfter(fecha) && !esHistorica(fecha);
+    }
+
     /**
      * Obtiene el identificador de la asignación.
      *

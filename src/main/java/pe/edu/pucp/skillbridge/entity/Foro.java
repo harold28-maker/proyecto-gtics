@@ -2,6 +2,9 @@ package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.time.LocalDateTime;
 
 /**
@@ -45,6 +48,20 @@ public class Foro {
     @Enumerated(EnumType.STRING)
     @NotNull(message = "{validation.foro.estado.required}")
     private EstadoForo estado = EstadoForo.ABIERTO;
+
+    @ManyToMany
+    @JoinTable(name = "foro_etiqueta",
+            joinColumns = @JoinColumn(name = "id_foro"),
+            inverseJoinColumns = @JoinColumn(name = "id_etiqueta"))
+    @OrderBy("nombre ASC")
+    private Set<EtiquetaForo> etiquetas = new LinkedHashSet<>();
+
+    public Set<EtiquetaForo> getEtiquetas() { return etiquetas; }
+
+    public void setEtiquetas(Set<EtiquetaForo> seleccionadas) {
+        etiquetas.clear();
+        etiquetas.addAll(seleccionadas);
+    }
 
     @Column(name = "fecha_creacion", insertable = false, updatable = false)
     private LocalDateTime fechaCreacion;
