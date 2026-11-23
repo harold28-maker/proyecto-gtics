@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<span class="usuario-avatar" th:fragment="avatar(usuario, ruta, clase)" th:classappend="${clase}" aria-hidden="true">
+    <span th:text="${usuario.iniciales}">MG</span>
+    <img th:if="${usuario.fotoUrl != null and #strings.startsWith(usuario.fotoUrl, '/admin/usuarios/fotos/')}"
+         th:src="${ruta}" alt="" onerror="this.hidden = true">
+</span>
+
+<dialog class="usuario-recorte" id="recorteFoto" th:fragment="recorte" aria-labelledby="recorteTitulo">
+    <h3 id="recorteTitulo">Ajustar foto</h3>
+    <p class="form-note" id="recorteAyuda">Arrastra la imagen o usa las flechas para centrarla.</p>
+    <canvas width="384" height="384" tabindex="0" aria-label="Vista circular de la foto"
+            aria-describedby="recorteAyuda"></canvas>
+    <label class="usuario-recorte-zoom">
+        Zoom
+        <input id="zoomFoto" type="range" min="1" max="3" step="0.05" value="1">
+    </label>
+    <p class="form-note" id="recorteEstado" role="status" hidden></p>
+    <div class="usuario-form-actions">
+        <button class="btn btn-light" type="button" id="cancelarFoto">Cancelar</button>
+        <button class="btn btn-primary" type="button" id="usarFoto">Usar foto</button>
+    </div>
+</dialog>
+
+<span class="badge" th:fragment="estadoCertificacion(certificacion)"
+      th:with="estado=${certificacion.estadoActual.name()}"
+      th:classappend="${estado == 'VENCIDA' ? 'badge-danger' : (estado == 'VIGENTE' ? 'badge-success' : 'badge-purple')}"
+      th:text="${estado == 'VENCIDA' ? 'Vencida' : (estado == 'VIGENTE' ? 'Vigente' : 'Sin expiración')}">Vigente</span>
+</body>
+</html>

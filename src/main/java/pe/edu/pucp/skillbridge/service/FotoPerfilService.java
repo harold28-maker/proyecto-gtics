@@ -128,6 +128,11 @@ public class FotoPerfilService {
         return new FileSystemResource(archivo);
     }
 
+    public Resource buscarPorUrl(String url) {
+        return url != null && url.startsWith(PREFIJO_URL)
+                ? buscar(url.substring(PREFIJO_URL.length())) : null;
+    }
+
     public void eliminar(String url) {
         if (url == null || !url.startsWith(PREFIJO_URL)) {
             return;

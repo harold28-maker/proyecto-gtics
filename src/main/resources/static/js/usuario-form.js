@@ -51,7 +51,7 @@ function prepararRecorte(campo) {
             vista.removeAttribute("src");
         }
         vista.hidden = !urlVista;
-        quitar.hidden = !seleccion;
+        if (quitar) quitar.hidden = !seleccion;
         elegir.textContent = seleccion ? "Cambiar foto" : "Subir foto";
     }
 
@@ -91,7 +91,7 @@ function prepararRecorte(campo) {
         } catch {
             if (lectura === turno) {
                 seleccion = { archivo };
-                quitarValor.value = "false";
+                if (quitarValor) quitarValor.value = "false";
                 mostrarFoto(null);
                 informar("Vista previa no disponible. El servidor revisará el archivo al guardar.");
             }
@@ -111,7 +111,7 @@ function prepararRecorte(campo) {
         ventana.showModal();
     });
 
-    quitar.addEventListener("click", () => {
+    quitar?.addEventListener("click", () => {
         turno += 1;
         guardar.disabled = false;
         seleccion = null;
@@ -168,7 +168,7 @@ function prepararRecorte(campo) {
             }
 
             seleccion = { archivo: imagenActual.archivo, recorte };
-            quitarValor.value = "false";
+            if (quitarValor) quitarValor.value = "false";
             mostrarFoto(recorte);
             informar("La foto se actualizará al guardar.");
             ventana.close();

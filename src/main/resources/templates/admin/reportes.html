@@ -31,14 +31,21 @@
                 <div class="card-title reporte-encabezado">
                     <h2>Dedicación por proyecto</h2>
                     <div class="actions">
+                        <nav class="modo-dedicacion" aria-label="Período de dedicación">
+                            <a th:href="@{/admin/reportes(vista=${modoDedicacion},periodo='planificacion',proyecto=${proyectoDedicacion},reporte=${reporteActivo})} + '#dedicacion-reportes'"
+                               th:attr="aria-current=${periodoDedicacion == 'planificacion' ? 'true' : null}">Activas y planificadas</a>
+                            <a th:href="@{/admin/reportes(vista=${modoDedicacion},periodo='hoy',proyecto=${proyectoDedicacion},reporte=${reporteActivo})} + '#dedicacion-reportes'"
+                               th:attr="aria-current=${periodoDedicacion == 'hoy' ? 'true' : null}">Hoy</a>
+                        </nav>
                         <a class="btn btn-light btn-sm"
-                           th:href="@{/admin/reportes(reporte='dedicacion',vista=${modoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
-                        <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='dedicacion')}">Descargar Excel</a>
+                           th:href="@{/admin/reportes(reporte='dedicacion',vista=${modoDedicacion},periodo=${periodoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
+                        <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='dedicacion',periodo=${periodoDedicacion})}">Descargar Excel</a>
                     </div>
                 </div>
 
-                <div class="empty" th:if="${graficoDedicacion.proyectos.isEmpty()}">
-                    Aún no hay asignaciones activas ni planificadas en proyectos vigentes.
+                <div class="empty" th:if="${graficoDedicacion.proyectos.isEmpty()}"
+                     th:text="${periodoDedicacion == 'hoy' ? 'Aún no hay asignaciones vigentes para hoy.' : 'Aún no hay asignaciones activas ni planificadas en proyectos vigentes.'}">
+                    Aún no hay asignaciones en este período.
                 </div>
 
                 <div class="dedicacion-paneles" th:unless="${graficoDedicacion.proyectos.isEmpty()}">
@@ -46,13 +53,16 @@
                         <div class="dedicacion-encabezado">
                             <h3>Dedicación por colaborador</h3>
                             <nav class="modo-dedicacion" aria-label="Visualización de la dedicación">
-                                <a th:href="@{/admin/reportes(vista='barras',proyecto=${proyectoDedicacion},reporte=${reporteActivo})} + '#dedicacion-reportes'"
+                                <a th:href="@{/admin/reportes(vista='barras',periodo=${periodoDedicacion},proyecto=${proyectoDedicacion},reporte=${reporteActivo})} + '#dedicacion-reportes'"
                                    th:attr="aria-current=${modoDedicacion == 'barras' ? 'true' : null}">Barras</a>
-                                <a th:href="@{/admin/reportes(vista='matriz',proyecto=${proyectoDedicacion},reporte=${reporteActivo})} + '#dedicacion-reportes'"
+                                <a th:href="@{/admin/reportes(vista='matriz',periodo=${periodoDedicacion},proyecto=${proyectoDedicacion},reporte=${reporteActivo})} + '#dedicacion-reportes'"
                                    th:attr="aria-current=${modoDedicacion == 'matriz' ? 'true' : null}">Matriz</a>
                             </nav>
                         </div>
-                        <p class="muted reporte-nota" id="dedicacion-nota">Asignaciones activas y planificadas · Proyectos vigentes</p>
+                        <p class="muted reporte-nota" id="dedicacion-nota"
+                           th:text="${periodoDedicacion == 'hoy' ? 'Asignaciones activas vigentes hoy' : 'Asignaciones activas y planificadas · Proyectos vigentes'}">
+                            Asignaciones activas y planificadas · Proyectos vigentes
+                        </p>
 
                         <figure class="dedicacion-figura" th:if="${modoDedicacion == 'barras'}">
                             <figcaption>Dedicación asignada</figcaption>
@@ -124,6 +134,7 @@
                         <h3>Reparto de dedicación</h3>
                         <form class="reparto-selector" method="get" th:action="@{/admin/reportes} + '#dedicacion-reportes'">
                             <input type="hidden" name="vista" th:value="${modoDedicacion}">
+                            <input type="hidden" name="periodo" th:value="${periodoDedicacion}">
                             <input type="hidden" name="reporte" th:value="${reporteActivo}" th:if="${reporteActivo != null}">
                             <label for="proyecto-reparto">Proyecto</label>
                             <select name="proyecto" id="proyecto-reparto" onchange="this.form.requestSubmit()">
@@ -163,7 +174,7 @@
                         <strong>Usuarios y accesos</strong>
                         <p class="muted">Cuenta, correo, rol, estado y teléfono.</p>
                         <div class="actions">
-                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='usuarios',vista=${modoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
+                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='usuarios',vista=${modoDedicacion},periodo=${periodoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                             <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='usuarios')}">Descargar Excel</a>
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='usuarios')}">Descargar CSV</a>
                         </div>
@@ -172,7 +183,7 @@
                         <strong>Catálogo de habilidades</strong>
                         <p class="muted">Habilidad, categoría, estado y descripción.</p>
                         <div class="actions">
-                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='habilidades',vista=${modoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
+                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='habilidades',vista=${modoDedicacion},periodo=${periodoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                             <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='habilidades')}">Descargar Excel</a>
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='habilidades')}">Descargar CSV</a>
                         </div>
@@ -181,7 +192,7 @@
                         <strong>Auditoría reciente</strong>
                         <p class="muted">Últimos eventos administrativos registrados.</p>
                         <div class="actions">
-                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='auditoria',vista=${modoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
+                            <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(reporte='auditoria',vista=${modoDedicacion},periodo=${periodoDedicacion},proyecto=${proyectoDedicacion})} + '#vista-previa'">Vista previa</a>
                             <a class="btn btn-primary btn-sm" th:href="@{/admin/reportes/excel(tipo='auditoria')}">Descargar Excel</a>
                             <a class="btn btn-light btn-sm" th:href="@{/admin/reportes/exportar(tipo='auditoria')}">Descargar CSV</a>
                         </div>
@@ -192,7 +203,7 @@
             <section class="card section" id="vista-previa" th:if="${vistaPrevia != null}">
                 <div class="card-title reporte-encabezado">
                     <h2 th:text="|Vista previa · ${vistaPrevia.nombre}|">Vista previa</h2>
-                    <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(vista=${modoDedicacion},proyecto=${proyectoDedicacion})}">Cerrar</a>
+                    <a class="btn btn-light btn-sm" th:href="@{/admin/reportes(vista=${modoDedicacion},periodo=${periodoDedicacion},proyecto=${proyectoDedicacion})}">Cerrar</a>
                 </div>
                 <p class="muted" th:if="${vistaPrevia.filas.isEmpty()}">No hay registros en este reporte.</p>
                 <div class="table-wrap" th:unless="${vistaPrevia.filas.isEmpty()}">

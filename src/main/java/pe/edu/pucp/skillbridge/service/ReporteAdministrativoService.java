@@ -10,9 +10,7 @@ import org.springframework.stereotype.Service;
 import pe.edu.pucp.skillbridge.entity.Asignacion;
 import pe.edu.pucp.skillbridge.entity.Auditoria;
 import pe.edu.pucp.skillbridge.entity.Habilidad;
-import pe.edu.pucp.skillbridge.entity.Proyecto;
 import pe.edu.pucp.skillbridge.entity.Usuario;
-import pe.edu.pucp.skillbridge.repository.AsignacionRepository;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -33,10 +31,10 @@ public class ReporteAdministrativoService {
     private static final List<String> COLORES_PROYECTOS = List.of("#8350d2", "#b57a32", "#4b79ab", "#327e67");
     private static final List<String> COLORES_REPARTO = List.of("#327e67", "#65a992", "#a9d7c7");
 
-    private final AsignacionRepository asignacionRepository;
+    private final CapacidadColaboradorService capacidadColaboradorService;
 
-    public ReporteAdministrativoService(AsignacionRepository asignacionRepository) {
-        this.asignacionRepository = asignacionRepository;
+    public ReporteAdministrativoService(CapacidadColaboradorService capacidadColaboradorService) {
+        this.capacidadColaboradorService = capacidadColaboradorService;
     }
 
     public record Tabla(String nombre, List<String> columnas, List<List<Object>> filas) {}
@@ -60,10 +58,9 @@ public class ReporteAdministrativoService {
     public record VisualizacionDedicacion(int limite, List<MarcaDedicacion> marcas, List<GrupoDedicacion> grupos,
                                          int anchoGrupo, RepartoDedicacion reparto) {}
 
-    public GraficoDedicacion consultarDedicacion() {
-        List<Asignacion> asignaciones = asignacionRepository.findByEstadoInAndProyectoEstadoIn(
-                List.of(Asignacion.EstadoAsignacion.ACTIVA, Asignacion.EstadoAsignacion.PLANIFICADA),
-                List.of(Proyecto.EstadoProyecto.PLANNING, Proyecto.EstadoProyecto.ACTIVE, Proyecto.EstadoProyecto.ON_HOLD));
+    public GraficoDedicacion consultarDedicacion(boolean vigenteHoy) {
+        List<Asignacion> asignaciones = vigenteHoy ? capacidadColaboradorService.vigentesHoy()
+                : capacidadColaboradorService.activasYPlanificadas();
         Map<Eje, Map<Integer, Integer>> porcentajesPorProyecto = new LinkedHashMap<>();
         Map<Integer, Eje> colaboradores = new LinkedHashMap<>();
 

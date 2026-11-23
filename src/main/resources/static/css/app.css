@@ -465,24 +465,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--purple); }
     border-color: var(--purple);
 }
 
-/* Collaborator dashboard overview */
-.collab-dashboard-grid { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(260px,.8fr); gap:12px; margin-top:14px; }
-.focus-project { display:grid; gap:10px; }
-.focus-project-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
-.focus-project-meta { display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
-.focus-project-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
-.focus-stat { padding:8px; border:1px solid var(--border); border-radius:2px; background:#f8f9fa; }
-.focus-stat small { display:block; color:var(--muted); font-size:10px; margin-bottom:1px; text-transform:uppercase; }
-.focus-stat strong { font-size:12px; font-weight:600; }
-.capacity-stack { display:grid; gap:6px; }
-.capacity-row { padding:8px; border-radius:2px; background:#f8f9fa; border:1px solid var(--border); }
-.capacity-row-head { display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:3px; }
-.capacity-row span { color:var(--muted); font-size:11px; }
-.capacity-row strong { font-size:12px; font-weight:600; }
-.profile-readiness { margin-top:10px; padding:8px; border-radius:2px; background:#f8f9fa; border:1px solid var(--border); border-left:2px solid var(--purple); }
-.profile-readiness strong { display:block; margin-bottom:2px; font-size:11px; font-weight:600; }
-.profile-readiness p { margin:0; color:var(--muted); font-size:10px; line-height:1.4; }
-
 /* Forms and notices */
 .form-note { margin-top:3px; color:var(--muted); font-size:10px; }
 .alert-error { margin-bottom:12px; padding:6px 10px; border-radius:2px; color:#d93025; background:#fce8e6; border:1px solid #fad2cf; border-left:2px solid var(--red); font-size:11px; font-weight:500; }
@@ -529,8 +511,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--purple); }
 .forum-pager { margin-top:12px; }
 
 @media (max-width:980px) {
-    .collab-dashboard-grid { grid-template-columns:1fr; }
-    .focus-project-stats { grid-template-columns:1fr; }
 }
 @media (max-width:700px) {
     .notification-summary, .skills-summary { grid-template-columns:1fr; }

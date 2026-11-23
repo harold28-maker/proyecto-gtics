@@ -72,215 +72,15 @@
 
     <nav class="sidebar-simple-nav"
          aria-label="Menú principal"
-         th:switch="${rol}">
-
-
-        <!-- =================================================
-             ADMINISTRADOR
-             ================================================= -->
-
-        <th:block th:case="'ADMIN'">
-
-            <a th:href="@{/admin/inicio}">
-                Inicio
-            </a>
-
-            <a th:href="@{/admin/usuarios}">
-                Usuarios
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('usuarios')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/admin/roles}">
-                Roles y permisos
-            </a>
-
-            <a th:href="@{/admin/habilidades}">
-                Habilidades
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('habilidades')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/admin/categorias}">
-                Categorías
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('categorias')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/admin/auditoria}">
-                Auditoría
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('auditoria')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/admin/monitoreo}">
-                Monitoreo
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('monitoreo')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/admin/reportes}">
-                Reportes
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('reportes')}">Sin acceso</small>
-            </a>
-
-        </th:block>
-
-
-        <!-- =================================================
-             PROJECT MANAGER
-             ================================================= -->
-
-        <th:block th:case="'PM'">
-
-            <a th:href="@{/pm/inicio}">
-                Inicio
-            </a>
-
-            <a th:href="@{/pm/proyectos}">
-                Proyectos
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('proyectos')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/pm/asignaciones}">
-                Asignaciones
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('asignaciones')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/pm/colaboradores}">
-                Colaboradores
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('colaboradores')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/pm/disponibilidad}">
-                Disponibilidad
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('disponibilidad')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/pm/recomendaciones}">
-                Recomendaciones
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('recomendaciones')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/pm/foros}">
-                Foro
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('foros')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/pm/reportes}">
-                Reportes
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('reportes')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/pm/historial}">
-                Historial
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('historial')}">Sin acceso</small>
-            </a>
-
-        </th:block>
-
-
-        <!-- =================================================
-             RESOURCE MANAGER
-             ================================================= -->
-
-        <th:block th:case="'RM'">
-
-            <a th:href="@{/resource/inicio}">
-                Inicio
-            </a>
-
-            <a th:href="@{/resource/colaboradores}">
-                Colaboradores
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('colaboradores')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/resource/asignaciones}">
-                Asignaciones
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('asignaciones')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/resource/disponibilidad}">
-                Disponibilidad
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('capacidad')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/resource/carga}">
-                Carga de trabajo
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('capacidad')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/resource/talent}">
-                Asignación de talento
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('talento')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/resource/reportes}">
-                Reportes
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('reportes')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/resource/historial}">
-                Proyectos anteriores
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('historial')}">Sin acceso</small>
-            </a>
-
-        </th:block>
-
-
-        <!-- =================================================
-             COLABORADOR
-             ================================================= -->
-
-        <th:block th:case="*">
-
-            <a th:href="@{/colaborador/inicio}">
-                Inicio
-            </a>
-
-            <a th:href="@{/colaborador/perfil}">
-                Mi perfil
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('perfil')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/colaborador/certificaciones}">
-                Certificaciones
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('certificaciones')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/colaborador/habilidades}">
-                Mis habilidades
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('habilidades')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/colaborador/proyectos}">
-                Mis proyectos
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('proyectos')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/colaborador/historial}">
-                Historial
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('historial')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/colaborador/asignaciones}">
-                Mis asignaciones
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('asignaciones')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/colaborador/foros}">
-                Foro
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('foros')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/colaborador/chat}">
-                Chat
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('chat')}">Sin acceso</small>
-            </a>
-
-            <a th:href="@{/colaborador/notificaciones}">
-                Notificaciones
-                <small class="permiso-nav-aviso" th:if="${permisosBloqueados.contains('notificaciones')}">Sin acceso</small>
-            </a>
-
-        </th:block>
-
-
+         th:with="opcionActual=${@menuLateral.actual(rol)}">
+        <a th:each="opcion : ${@menuLateral.opciones(rol)}"
+           th:href="@{${opcion.ruta}}"
+           th:classappend="${opcion == opcionActual ? ' active' : ''}"
+           th:attr="aria-current=${opcion == opcionActual ? 'location' : null}">
+            <span th:text="${opcion.nombre}">Inicio</span>
+            <small class="permiso-nav-aviso"
+                   th:if="${opcion.permiso != null and permisosBloqueados.contains(opcion.permiso)}">Sin acceso</small>
+        </a>
     </nav>
 
 
@@ -435,77 +235,6 @@
 
 
         /*
-         * Marca la opción del menú
-         * correspondiente a la página actual.
-         */
-        document.addEventListener(
-            "DOMContentLoaded",
-            function () {
-
-                const rutaActual =
-                    window.location.pathname;
-
-                const opciones =
-                    document.querySelectorAll(
-                        ".sidebar-simple-nav a"
-                    );
-
-
-                opciones.forEach(
-                    function (opcion) {
-
-                        const ruta =
-                            opcion.getAttribute("href");
-
-
-                        if (!ruta) {
-                            return;
-                        }
-
-
-                        /*
-                         * Inicio solamente se marca
-                         * cuando coincide exactamente.
-                         */
-                        if (
-                            ruta.endsWith("/inicio") &&
-                            rutaActual === ruta
-                        ) {
-
-                            opcion.classList.add("active");
-
-                            return;
-
-                        }
-
-
-                        /*
-                         * Las otras opciones también quedan
-                         * marcadas en formularios internos.
-                         *
-                         * Ejemplo:
-                         *
-                         * /admin/usuarios
-                         * /admin/usuarios/nuevo
-                         * /admin/usuarios/editar/1
-                         */
-                        if (
-                            !ruta.endsWith("/inicio") &&
-                            rutaActual.startsWith(ruta)
-                        ) {
-
-                            opcion.classList.add("active");
-
-                        }
-
-                    }
-                );
-
-            }
-        );
-
-
-        /*
          * Cerrar modal con ESC
          */
         document.addEventListener(
@@ -536,12 +265,13 @@
         class="topbar"
         th:with="seccion=${rolSesion == 'ADMIN' ? 'Administración' : (rolSesion == 'PM' ? 'Gestión de proyectos' : (rolSesion == 'RM' ? 'Gestión de recursos' : 'Colaboración'))},
                  inicio=${rolSesion == 'ADMIN' ? '/admin/inicio' : (rolSesion == 'PM' ? '/pm/inicio' : (rolSesion == 'RM' ? '/resource/inicio' : '/colaborador/inicio'))},
-                 nombreRol=${rolSesion == 'ADMIN' ? 'Administrador' : (rolSesion == 'PM' ? 'Project Manager' : (rolSesion == 'RM' ? 'Resource Manager' : 'Colaborador'))}">
+                 nombreRol=${rolSesion == 'ADMIN' ? 'Administrador' : (rolSesion == 'PM' ? 'Project Manager' : (rolSesion == 'RM' ? 'Resource Manager' : 'Colaborador'))},
+                 opcionActual=${@menuLateral.actual(rolSesion)}">
 
     <nav class="topbar-path" aria-label="Ubicación actual">
         <a th:href="@{${inicio}}" th:text="${seccion}">Administración</a>
         <span aria-hidden="true">/</span>
-        <h1 aria-current="page" th:text="${titulo}">Inicio</h1>
+        <h1 aria-current="page" th:text="${opcionActual != null ? opcionActual.nombre : titulo}">Inicio</h1>
     </nav>
 
     <div class="topbar-account">

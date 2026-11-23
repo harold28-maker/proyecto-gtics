@@ -4,6 +4,20 @@ package pe.edu.pucp.skillbridge.dto;
  * Representa la carga laboral y la disponibilidad de un colaborador.
  */
 public class CargaColaboradorDTO {
+    public enum Clasificacion {
+        DISPONIBLE("Disponible"), PARCIAL("Parcial"), SIN_DISPONIBILIDAD("Sin disponibilidad");
+
+        private final String etiqueta;
+
+        Clasificacion(String etiqueta) {
+            this.etiqueta = etiqueta;
+        }
+
+        public String getEtiqueta() {
+            return etiqueta;
+        }
+    }
+
     private Integer idColaborador;
     private String colaborador;
     private String cargo;
@@ -82,4 +96,9 @@ public class CargaColaboradorDTO {
      * @return disponibilidad restante del colaborador
      */
     public Integer getDisponibilidad() { return disponibilidad; }
+
+    public Clasificacion getClasificacion() {
+        if (disponibilidad >= 50) return Clasificacion.DISPONIBLE;
+        return disponibilidad > 0 ? Clasificacion.PARCIAL : Clasificacion.SIN_DISPONIBILIDAD;
+    }
 }

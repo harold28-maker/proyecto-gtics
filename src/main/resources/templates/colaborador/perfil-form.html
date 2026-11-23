@@ -1,22 +1,152 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Editar perfil | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head>
-<body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
-<section class="page-intro"><div><h2>Actualiza tu información profesional</h2><p>Mantén al día tus datos de contacto, cargo, área, nivel profesional, disponibilidad e intereses.</p></div></section>
-<div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
-<section class="card form-card hero-card" th:if="${colaborador != null}">
-<form th:action="@{/colaborador/perfil/guardar}" th:object="${colaborador}" method="post">
-<input type="hidden" th:field="*{idColaborador}">
-<div class="form-grid">
-<div class="form-group"><label>Nombres</label><input name="nombres" th:value="${colaborador.usuario.nombres}" maxlength="20" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]{1,20}" title="Solo letras y espacios, máximo 20 caracteres" required><div class="form-note">Solo letras y espacios, máximo 20 caracteres.</div></div>
-<div class="form-group"><label>Apellidos</label><input name="apellidos" th:value="${colaborador.usuario.apellidos}" maxlength="20" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü ]{1,20}" title="Solo letras y espacios, máximo 20 caracteres" required><div class="form-note">Solo letras y espacios, máximo 20 caracteres.</div></div>
-<div class="form-group"><label>Teléfono</label><input name="telefono" th:value="${colaborador.usuario.telefono}" maxlength="9" inputmode="numeric" pattern="[0-9]{9}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,9)" title="Ingresa exactamente 9 dígitos" required><div class="form-note">Debe contener exactamente 9 números.</div></div>
-<div class="form-group"><label>Cargo</label><input th:field="*{cargo}" th:errorclass="is-invalid" maxlength="20" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü .'-]{1,20}" title="Solo letras y espacios, máximo 20 caracteres" required><div class="field-error" th:errors="*{cargo}"></div><div class="form-note">Solo letras y espacios, máximo 20 caracteres.</div></div>
-<div class="form-group"><label>Área</label><input th:field="*{area}" th:errorclass="is-invalid" maxlength="20" pattern="[A-Za-zÁÉÍÓÚáéíóúÑñÜü .'-]{1,20}" title="Solo letras y espacios, máximo 20 caracteres" required><div class="field-error" th:errors="*{area}"></div><div class="form-note">Solo letras y espacios, máximo 20 caracteres.</div></div>
-<div class="form-group"><label>Nivel profesional</label><select th:field="*{seniority}" th:errorclass="is-invalid"><option value="JUNIOR">Junior</option><option value="SEMI_SENIOR">Semi senior</option><option value="SENIOR">Senior</option><option value="LEAD">Líder</option></select><div class="field-error" th:errors="*{seniority}"></div></div>
-<div class="form-group"><label>Disponibilidad base (%)</label><input type="text" inputmode="numeric" maxlength="3" pattern="(100|[0-9]{1,2})" th:field="*{disponibilidadBase}" th:errorclass="is-invalid" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,3);if(this.value!==''&&Number(this.value)>100)this.value='100'" title="Ingresa un valor entre 0 y 100" required><div class="field-error" th:errors="*{disponibilidadBase}"></div><div class="form-note">Valor permitido: 0 a 100%.</div></div>
-<div class="form-group full"><label>Biografía</label><textarea rows="4" th:field="*{biografia}" th:errorclass="is-invalid" placeholder="Resume tu experiencia y perfil profesional."></textarea><div class="field-error" th:errors="*{biografia}"></div></div>
-<div class="form-group full"><label>Intereses profesionales</label><textarea rows="3" th:field="*{interesesProfesionales}" th:errorclass="is-invalid" placeholder="Backend, Cloud, DevOps, IA..."></textarea><div class="field-error" th:errors="*{interesesProfesionales}"></div></div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Editar perfil | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/perfil-colaborador.css}">
+    <script defer th:src="@{/js/usuario-form.js}"></script>
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content perfil-contenido perfil-edicion"
+             th:with="usuario=${colaborador.usuario}, tieneFoto=${colaborador.usuario.fotoUrl != null and #strings.startsWith(colaborador.usuario.fotoUrl, '/admin/usuarios/fotos/')}">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <section class="page-intro">
+                <div>
+                    <h2>Editar perfil</h2>
+                    <p th:text="${usuario.nombreCompleto}"></p>
+                </div>
+            </section>
+            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}" role="alert"></div>
+
+            <section class="card perfil-editor">
+                <form th:action="@{/colaborador/perfil/guardar}" th:object="${colaborador}"
+                      method="post" enctype="multipart/form-data" novalidate>
+                    <section class="perfil-bloque usuario-foto" aria-labelledby="perfil-foto-titulo">
+                        <div class="usuario-avatar usuario-foto-vista" aria-hidden="true">
+                            <span th:text="${usuario.iniciales}">MG</span>
+                            <img id="fotoPerfilVista" th:src="${tieneFoto} ? @{/colaborador/perfil/foto} : null"
+                                 th:attr="hidden=${tieneFoto ? null : 'hidden'}" alt="" onerror="this.hidden = true">
+                        </div>
+                        <div class="usuario-foto-info">
+                            <h3 id="perfil-foto-titulo">Foto de perfil</h3>
+                            <p class="form-note" id="fotoAyuda">JPG o PNG, hasta 5 MB.</p>
+                            <p class="form-note">Se muestra en tu perfil y en los directorios de SkillBridge AI.</p>
+                            <p class="form-note" id="fotoEstado" role="status" hidden></p>
+                            <p class="field-error" id="foto-error" th:if="${erroresPerfil.containsKey('foto')}"
+                               th:text="${erroresPerfil['foto']}"></p>
+                        </div>
+                        <div class="usuario-foto-acciones">
+                            <input id="fotoPerfil" name="foto" type="file" class="credential-upload-input"
+                                   accept="image/jpeg,image/png" aria-describedby="fotoAyuda foto-error">
+                            <label class="btn btn-light" for="fotoPerfil" id="elegirFoto"
+                                   th:text="${tieneFoto ? 'Cambiar foto' : 'Subir foto'}">Subir foto</label>
+                        </div>
+                    </section>
+
+                    <section class="perfil-bloque" aria-labelledby="perfil-datos-titulo">
+                        <h3 id="perfil-datos-titulo">Datos personales</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="nombres">Nombres</label>
+                                <input id="nombres" name="nombres" th:value="${nombresPerfil}"
+                                       th:classappend="${erroresPerfil.containsKey('nombres') ? 'is-invalid' : ''}"
+                                       aria-describedby="nombres-ayuda nombres-error">
+                                <p class="form-note" id="nombres-ayuda">Solo letras y espacios, hasta 20 caracteres.</p>
+                                <p class="field-error" id="nombres-error" th:if="${erroresPerfil.containsKey('nombres')}"
+                                   th:text="${erroresPerfil['nombres']}"></p>
+                            </div>
+                            <div class="form-group">
+                                <label for="apellidos">Apellidos</label>
+                                <input id="apellidos" name="apellidos" th:value="${apellidosPerfil}"
+                                       th:classappend="${erroresPerfil.containsKey('apellidos') ? 'is-invalid' : ''}"
+                                       aria-describedby="apellidos-ayuda apellidos-error">
+                                <p class="form-note" id="apellidos-ayuda">Solo letras y espacios, hasta 20 caracteres.</p>
+                                <p class="field-error" id="apellidos-error" th:if="${erroresPerfil.containsKey('apellidos')}"
+                                   th:text="${erroresPerfil['apellidos']}"></p>
+                            </div>
+                            <div class="form-group">
+                                <label for="perfil-correo">Correo institucional <span class="perfil-nota-campo">Solo lectura</span></label>
+                                <input id="perfil-correo" type="email" th:value="${usuario.correo}" readonly aria-describedby="perfil-correo-ayuda">
+                                <p class="form-note" id="perfil-correo-ayuda">Se usa para iniciar sesión.</p>
+                            </div>
+                            <div class="form-group">
+                                <label for="telefono">Teléfono</label>
+                                <input id="telefono" name="telefono" inputmode="numeric" th:value="${telefonoPerfil}"
+                                       th:classappend="${erroresPerfil.containsKey('telefono') ? 'is-invalid' : ''}"
+                                       aria-describedby="telefono-ayuda telefono-error">
+                                <p class="form-note" id="telefono-ayuda">Escribe 9 dígitos.</p>
+                                <p class="field-error" id="telefono-error" th:if="${erroresPerfil.containsKey('telefono')}"
+                                   th:text="${erroresPerfil['telefono']}"></p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="perfil-bloque" aria-labelledby="perfil-profesional-titulo">
+                        <h3 id="perfil-profesional-titulo">Información profesional</h3>
+                        <div class="form-grid perfil-datos-profesionales">
+                            <div class="form-group">
+                                <label for="cargo">Cargo</label>
+                                <input th:field="*{cargo}" th:errorclass="is-invalid" aria-describedby="cargo-error">
+                                <p class="field-error" id="cargo-error" th:if="${#fields.hasErrors('cargo')}" th:errors="*{cargo}"></p>
+                            </div>
+                            <div class="form-group">
+                                <label for="area">Área</label>
+                                <input th:field="*{area}" th:errorclass="is-invalid" aria-describedby="area-error">
+                                <p class="field-error" id="area-error" th:if="${#fields.hasErrors('area')}" th:errors="*{area}"></p>
+                            </div>
+                            <div class="form-group">
+                                <label for="seniority">Nivel profesional</label>
+                                <select th:field="*{seniority}" th:errorclass="is-invalid" aria-describedby="seniority-error">
+                                    <option value="JUNIOR">Junior</option>
+                                    <option value="SEMI_SENIOR">Semi senior</option>
+                                    <option value="SENIOR">Senior</option>
+                                    <option value="LEAD">Líder</option>
+                                </select>
+                                <p class="field-error" id="seniority-error" th:if="${#fields.hasErrors('seniority')}" th:errors="*{seniority}"></p>
+                            </div>
+                            <div class="form-group">
+                                <label for="disponibilidadBase">Capacidad base</label>
+                                <div class="perfil-campo-porcentaje">
+                                    <input type="text" inputmode="numeric" th:field="*{disponibilidadBase}" th:errorclass="is-invalid"
+                                           aria-describedby="capacidad-ayuda capacidad-error">
+                                    <span aria-hidden="true">%</span>
+                                </div>
+                                <p class="form-note" id="capacidad-ayuda">Porcentaje que puedes dedicar a proyectos. De 0 a 100.</p>
+                                <p class="field-error" id="capacidad-error" th:if="${#fields.hasErrors('disponibilidadBase')}" th:errors="*{disponibilidadBase}"></p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="perfil-bloque" aria-labelledby="perfil-biografia-titulo">
+                        <h3 id="perfil-biografia-titulo">Sobre mí</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="biografia">Biografía <span class="perfil-nota-campo">Opcional</span></label>
+                                <textarea rows="3" th:field="*{biografia}" th:errorclass="is-invalid" aria-describedby="biografia-error"></textarea>
+                                <p class="field-error" id="biografia-error" th:if="${#fields.hasErrors('biografia')}" th:errors="*{biografia}"></p>
+                            </div>
+                            <div class="form-group">
+                                <label for="interesesProfesionales">Intereses profesionales <span class="perfil-nota-campo">Opcional</span></label>
+                                <textarea rows="3" th:field="*{interesesProfesionales}" th:errorclass="is-invalid" aria-describedby="intereses-error"></textarea>
+                                <p class="field-error" id="intereses-error" th:if="${#fields.hasErrors('interesesProfesionales')}" th:errors="*{interesesProfesionales}"></p>
+                            </div>
+                        </div>
+                    </section>
+                    <div class="form-actions perfil-acciones">
+                        <a class="btn btn-light" th:href="@{/colaborador/perfil}">Cancelar</a>
+                        <button class="btn btn-primary" type="submit">Guardar cambios</button>
+                    </div>
+                </form>
+            </section>
+            <th:block th:replace="~{fragments/perfil :: recorte}"></th:block>
+        </div>
+    </main>
 </div>
-<div class="form-actions"><a class="btn btn-light" th:href="@{/colaborador/perfil}">Cancelar</a><button class="btn btn-primary">Guardar cambios</button></div>
-</form></section></div></main></div></body></html>
+</body>
+</html>

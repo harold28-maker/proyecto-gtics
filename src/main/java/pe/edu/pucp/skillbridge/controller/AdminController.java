@@ -1731,6 +1731,7 @@ public class AdminController {
     public String reportes(
             @RequestParam(value = "reporte", required = false) String reporte,
             @RequestParam(value = "vista", defaultValue = "barras") String vista,
+            @RequestParam(value = "periodo", defaultValue = "planificacion") String periodo,
             @RequestParam(value = "proyecto", required = false) Integer proyecto,
             HttpSession session,
             Model model
@@ -1743,10 +1744,12 @@ public class AdminController {
         List<Usuario> usuarios = usuarioRepository.findAll();
         List<Habilidad> habilidades = habilidadRepository.findAll();
 
-        var graficoDedicacion = reporteAdministrativoService.consultarDedicacion();
+        boolean vigenteHoy = "hoy".equals(periodo);
+        var graficoDedicacion = reporteAdministrativoService.consultarDedicacion(vigenteHoy);
         var visualizacion = reporteAdministrativoService.visualizarDedicacion(graficoDedicacion, proyecto);
         model.addAttribute("titulo", "Reportes del sistema");
         model.addAttribute("graficoDedicacion", graficoDedicacion);
+        model.addAttribute("periodoDedicacion", vigenteHoy ? "hoy" : "planificacion");
         model.addAttribute("visualizacionDedicacion", visualizacion);
         model.addAttribute("modoDedicacion", "matriz".equals(vista) ? "matriz" : "barras");
         model.addAttribute("proyectoDedicacion", visualizacion.reparto().proyecto() == null
@@ -1775,15 +1778,17 @@ public class AdminController {
 
 
     @GetMapping("/reportes/excel")
-    public ResponseEntity<byte[]> descargarExcel(@RequestParam("tipo") String tipo, HttpSession session)
-            throws IOException {
+    public ResponseEntity<byte[]> descargarExcel(@RequestParam("tipo") String tipo,
+                                                 @RequestParam(value = "periodo", defaultValue = "planificacion") String periodo,
+                                                 HttpSession session) throws IOException {
         if (!esAdmin(session)) {
             return ResponseEntity.status(403).build();
         }
 
         String clave = tipo.toLowerCase(Locale.ROOT);
         var tabla = switch (clave) {
-            case "dedicacion" -> reporteAdministrativoService.tablaDedicacion(reporteAdministrativoService.consultarDedicacion());
+            case "dedicacion" -> reporteAdministrativoService.tablaDedicacion(
+                    reporteAdministrativoService.consultarDedicacion("hoy".equals(periodo)));
             case "usuarios" -> reporteAdministrativoService.tablaUsuarios(usuarioRepository.findAll());
             case "habilidades" -> reporteAdministrativoService.tablaHabilidades(habilidadRepository.findAll());
             case "auditoria" -> reporteAdministrativoService.tablaAuditoria(auditoriaRepository.findTop50ByOrderByFechaDesc());
