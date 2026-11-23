@@ -29,13 +29,13 @@ Se excluyeron los directorios generados o dependientes de la computadora (`targe
 6. Importa la colección del directorio `postman/` en Postman.
 7. En las variables de la colección configura `correo_skillbridge` y `clave_skillbridge` de un usuario de prueba con rol ADMINISTRADOR o RESOURCE_MANAGER, y `base_url=http://localhost:8080`.
 8. Prueba primero `GET /api/identidad/estado`: con credenciales válidas debe responder 200; sin credenciales, 401.
-9. Para consultar DNI: configura `VERIFICAID_TOKEN` con el token de sandbox autorizado y, opcionalmente, `VERIFICAID_URL=https://sandbox-api.verifica.id/v2/consulta/personas`.
+9. Para consultar DNI: configura `APIPERU_TOKEN` con una clave de API Perú. El endpoint predeterminado es `https://api.apiperu.pe/dni`.
 
 ## Límites conocidos
 
 - No hay pruebas de integración completas ni compilación Maven ejecutada en este entorno: confirma en IntelliJ y Postman antes de entregar.
-- Sin un token autorizado de VerificaID, las consultas externas de DNI no funcionarán (respuesta 503 de nuestra API).
-- VerificaID **no es una API oficial directa de RENIEC**.
+- Sin un token autorizado de API Perú, las consultas externas de DNI no funcionarán (respuesta 503 de nuestra API).
+- API Perú **no es una API oficial directa de RENIEC**.
 - No se añadieron pantallas de AJAX, chatbot, Docker ni CRUD REST completo. No se cambiaron los CRUD, login, sesión, dashboards o chat originales.
 - No incluyas credenciales ni datos personales de terceros en archivos ZIP compartidos; usa cuentas y DNIs autorizados para pruebas.
 

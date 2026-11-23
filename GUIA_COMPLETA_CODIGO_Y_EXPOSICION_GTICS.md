@@ -4,7 +4,7 @@
 
 Esta guía está basada en los archivos Java y vistas reales de `proyecto-gtics-entregable7.2.zip`, las ocho clases de `ENTREGABLECONPOSTMAN.zip` y los ejemplos de las PPT de la profesora (clases 9.1, 9.2 y 10.1). No supone que hayan implementado todavía AJAX, chatbot o Docker.
 
-> **Importante:** La consulta de identidad se realiza a través de **VerificaID** (proveedor externo explicado en la PPT), **no** mediante una API oficial abierta de RENIEC. El código está integrado, pero requiere token válido, MySQL y pruebas de ejecución para demostrar una consulta real.
+> **Importante:** La consulta de identidad se realiza a través de **API Perú** (proveedor externo), **no** mediante una API oficial abierta de RENIEC. El código está integrado, pero requiere token válido, MySQL y pruebas de ejecución para demostrar una consulta real.
 
 ---
 
@@ -29,7 +29,7 @@ Es una aplicación web para gestionar usuarios, roles, colaboradores, habilidade
 1. Postman envía un JSON por HTTP POST a `/api/identidad/consultar`.
 2. Spring Security exige usuario de prueba con rol ADMINISTRADOR o RESOURCE_MANAGER mediante HTTP Basic.
 3. `IdentidadRestController` recibe el JSON (`@RequestBody`) y valida el DNI (`@Valid`).
-4. `ConsultaDniService` usa `RestTemplateBuilder` / `RestTemplate` para enviar un POST multipart con Bearer token a VerificaID.
+4. `ConsultaDniService` usa `RestTemplateBuilder` / `RestTemplate` para enviar un POST JSON con Bearer token a API Perú.
 5. Si el proveedor devuelve JSON válido, el servicio extrae DNI, nombres y apellidos.
 6. El `@RestController` devuelve un DTO convertido a JSON. **No modifica las tablas.**
 
@@ -56,7 +56,7 @@ Es una aplicación web para gestionar usuarios, roles, colaboradores, habilidade
 | `resources/database/` | Scripts SQL originales del proyecto. |
 | `config/ApiDniSecurityConfig.java` | **Nuevo:** seguridad independiente para la ruta `/api/identidad/**`. |
 | `controller/IdentidadRestController.java` | **Nuevo:** endpoints REST que reciben/devuelven JSON. |
-| `service/ConsultaDniService.java` | **Nuevo:** consume VerificaID y compara datos. |
+| `service/ConsultaDniService.java` | **Nuevo:** consume API Perú y compara datos. |
 | `dto/Dni*` | **Nuevos:** objetos que estructuran y validan los datos JSON. |
 | `postman/*.json` | **Nuevo:** colección de solicitudes para probar el Web Service. |
 
@@ -427,25 +427,23 @@ public class ConsultaDniService {
 - `readTimeout`: máximo para recibir datos.
 - Token y URL vienen de variables externas, no se escriben secretos en Java.
 
-**Cabeceras y envío de formulario al proveedor:**
+**Envío de JSON al proveedor**
 
 ```java
 HttpHeaders headers = new HttpHeaders();
 headers.setBearerAuth(token);
 headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+headers.setContentType(MediaType.APPLICATION_JSON);
 
-MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
-form.add("dni", dni);
-HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(form, headers);
+HttpEntity<Map<String, String>> request = new HttpEntity<>(Map.of("dni", dni), headers);
 ResponseEntity<Map> respuesta = restTemplate.exchange(
     apiUrl, HttpMethod.POST, request, Map.class);
 ```
 
-- `Authorization: Bearer ...`: autoriza a **SkillBridge frente a VerificaID**, usando el token del proveedor.
-- `multipart/form-data`: formato que **VerificaID** espera para recibir el atributo `dni`.
+- `Authorization: Bearer ...`: autoriza a **SkillBridge frente a API Perú**, usando el token del proveedor.
+- `application/json` es el formato de la solicitud, que incluye el atributo `dni`.
 - `exchange`: ejecuta el POST HTTP y permite leer la respuesta externa.
-- La respuesta del proveedor contiene un bloque JSON `data`; de allí el servicio extrae `dni`, `nombres`, `apellido_paterno` y `apellido_materno`.
+- La respuesta del proveedor contiene un bloque JSON `data`; de allí el servicio obtiene el DNI desde `numero` y los nombres y apellidos desde `nombres`, `apellido_paterno` y `apellido_materno`.
 
 **Comparación de nombres:** `validar(...)` llama a `consultar(...)` y compara nombres y apellidos tras normalizar tildes, mayúsculas y espacios. Devuelve `coincide: true/false`.
 
@@ -500,7 +498,7 @@ En la colección cambia:
 - `base_url`: `http://localhost:8080` si ejecutas local.
 - `correo_skillbridge`: correo de un usuario de **prueba** que sea ADMINISTRADOR o RESOURCE_MANAGER.
 - `clave_skillbridge`: contraseña del usuario de prueba.
-- `dni_prueba`: DNI de sandbox autorizado.
+- `dni_prueba`: DNI de prueba autorizado.
 
 **Pruebas recomendadas (sin token externo):**
 
@@ -509,9 +507,9 @@ En la colección cambia:
 3. `POST /api/identidad/consultar` con DNI inválido → esperado 400.
 4. `POST /api/identidad/consultar` con DNI de ocho dígitos, pero **sin token del proveedor** → esperado 503.
 
-**Pruebas adicionales (requieren token real de sandbox):**
+**Pruebas adicionales (requieren una clave de API Perú):**
 
-5. `POST /api/identidad/consultar` → estructura JSON con datos reales del sandbox si el proveedor admite el DNI.
+5. `POST /api/identidad/consultar` → estructura JSON con datos devueltos por API Perú si el proveedor admite el DNI.
 6. `POST /api/identidad/validar` → compara los datos y devuelve `coincide`.
 
 **No deben afirmar un resultado 200 de la consulta externa si no lo han ejecutado con su token.**
@@ -544,7 +542,7 @@ En la colección cambia:
 | 10.2 JavaScript y 10.3 jQuery | **No son parte de este complemento**. Existen como clases del curso, pero no se añadieron nuevas pantallas JS/jQuery. |
 | 11 AJAX | **No implementado en el complemento**: el chat original sigue siendo POST tradicional. |
 
-La PPT utiliza un ejemplo de RENIEC mediante proveedores externos: el código elegido utiliza específicamente **VerificaID**. No confundir al exponer.
+La PPT utiliza un ejemplo de RENIEC mediante proveedores externos: el código elegido utiliza específicamente **API Perú**. No confundir al exponer.
 
 ---
 
@@ -568,7 +566,7 @@ La PPT utiliza un ejemplo de RENIEC mediante proveedores externos: el código el
 16. **¿Qué es Session?** Almacena datos asociados a una sesión web; se usa al iniciar sesión en las vistas.
 17. **¿Por qué `STATELESS` en la API?** Para que cada llamada de Postman se autentique independientemente, sin depender de cookies de sesión.
 18. **¿Qué es HTTP Basic?** Cabecera de autenticación de usuario y contraseña; debe usarse sobre HTTPS fuera de desarrollo local.
-19. **¿Qué es Bearer token?** Credencial que nuestro servidor envía a VerificaID para autorizar la consulta externa.
+19. **¿Qué es Bearer token?** Credencial que nuestro servidor envía a API Perú para autorizar la consulta externa.
 20. **¿Qué hace `RestTemplateBuilder`?** Configura el cliente `RestTemplate` que consume servicios REST.
 21. **¿Qué hace `exchange`?** Envía una solicitud HTTP y recibe una respuesta del servicio remoto.
 22. **¿Cómo saben que el DNI es válido?** Primero comprobamos formato (ocho dígitos) y, con token y permiso, consultamos al proveedor; no hay verificación biométrica.
@@ -577,7 +575,7 @@ La PPT utiliza un ejemplo de RENIEC mediante proveedores externos: el código el
 25. **¿El chat es un chatbot?** No. Actualmente es un chat de mensajes entre colaboradores por proyecto.
 26. **¿El chat tiene AJAX?** No todavía. Usa GET y POST tradicionales y Thymeleaf.
 27. **¿El proyecto ya está dockerizado?** En el material original recibido no hay `Dockerfile` o `docker-compose.yml`; el nombre de la carpeta no lo convierte en Docker.
-28. **¿La API DNI consulta RENIEC directamente?** No. Consulta un proveedor externo llamado VerificaID, como el enfoque enseñado en clase.
+28. **¿La API DNI consulta RENIEC directamente?** No. Consulta un proveedor externo llamado API Perú, como el enfoque enseñado en clase.
 29. **¿Se guardan datos de identidad en BD?** No en esta integración; se consulta y devuelve el resultado mediante DTO.
 30. **¿Qué pueden demostrar sin token?** Que la API responde, verifica autenticación y valida entradas, pero no una consulta efectiva de identidad.
 
@@ -585,7 +583,7 @@ La PPT utiliza un ejemplo de RENIEC mediante proveedores externos: el código el
 
 ## 18. Qué decir en una exposición de 60 segundos
 
-> “Nuestro proyecto SkillBridge AI está hecho en Spring Boot, con Spring MVC, Thymeleaf, Spring Data JPA y MySQL. Implementamos módulos por rol: administrador, Project Manager, Resource Manager y colaborador, cada uno con sus funciones, validaciones y reportes. La seguridad usa Spring Security con usuarios y roles almacenados en la base de datos; el login web utiliza sesión. También desarrollamos un chat entre colaboradores por proyecto y exportación de reportes CSV. Como complemento de las últimas PPT, agregamos un Web Service REST para consultar y comparar los datos de un DNI a través de VerificaID. El endpoint recibe y devuelve JSON, utiliza DTO y validaciones, consume la API externa con RestTemplateBuilder y Bearer token, y está protegido con HTTP Basic para probarlo en Postman. La consulta externa requiere un token válido, por lo que no la damos por verificada hasta ejecutar una prueba real.”
+> “Nuestro proyecto SkillBridge AI está hecho en Spring Boot, con Spring MVC, Thymeleaf, Spring Data JPA y MySQL. Implementamos módulos por rol: administrador, Project Manager, Resource Manager y colaborador, cada uno con sus funciones, validaciones y reportes. La seguridad usa Spring Security con usuarios y roles almacenados en la base de datos; el login web utiliza sesión. También desarrollamos un chat entre colaboradores por proyecto y exportación de reportes CSV. Como complemento de las últimas PPT, agregamos un Web Service REST para consultar y comparar los datos de un DNI a través de API Perú. El endpoint recibe y devuelve JSON, utiliza DTO y validaciones, consume la API externa con RestTemplateBuilder y Bearer token, y está protegido con HTTP Basic para probarlo en Postman. La consulta externa requiere un token válido, por lo que no la damos por verificada hasta ejecutar una prueba real.”
 
 ---
 
@@ -595,7 +593,7 @@ La PPT utiliza un ejemplo de RENIEC mediante proveedores externos: el código el
 - **Chat:** existe y guarda mensajes, pero todavía no es AJAX ni chatbot.
 - **Datos y URL de cloud:** el despliegue cloud final no fue probado en esta entrega.
 - **Docker:** no se agregaron archivos de contenedores.
-- **Consulta DNI:** requiere token de VerificaID; no se grabaron datos en MySQL.
+- **Consulta DNI:** requiere token de API Perú; no se grabaron datos en MySQL.
 - **Seguridad:** se retiró una contraseña cloud **antigua y comentada** del archivo `application.properties` para no distribuirla en el ZIP. Si la clave aún existe, corresponde rotarla; la configuración de conexión **activa** conserva las variables de entorno.
 - **Pruebas:** el complemento incluye una clase de tests de validación sin llamadas externas, pero **no se ejecutó Maven en este entorno** porque no está instalado. Hay que compilar en IntelliJ y probarlo con MySQL y Postman.
 
@@ -610,6 +608,6 @@ La PPT utiliza un ejemplo de RENIEC mediante proveedores externos: el código el
 5. En Postman: probar `/api/identidad/estado` con Basic Auth y mostrar `200`.
 6. Repetir sin autorización y mostrar `401`.
 7. Consultar un DNI con formato erróneo y mostrar `400`.
-8. Si hay token sandbox y autorización de prueba, consultar un DNI válido y después hacer la comparación de nombres.
+8. Con una clave de API Perú y autorización de prueba, consultar un DNI válido y después hacer la comparación de nombres.
 
 **Clave de la exposición:** diferenciar claramente lo que ya funcionaba como web (Spring MVC + Thymeleaf) de lo recién integrado como Web Service (Spring REST + JSON + Postman).

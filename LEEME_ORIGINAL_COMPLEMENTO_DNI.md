@@ -29,8 +29,8 @@ Solo te entrego los **ARCHIVOS PARA AGREGAR/REEMPLAZAR**, no una copia del proye
 
 4. En IntelliJ, recarga el proyecto Maven. Mantén MySQL y configuraciones como estaban.
 5. En **Run > Edit Configurations > Environment variables** puedes configurar:
-   - `VERIFICAID_TOKEN=TOKEN_DE_TU_CUENTA_SANDBOX`
-   - `VERIFICAID_URL=https://sandbox-api.verifica.id/v2/consulta/personas` (opcional; ese es el valor por defecto)
+   - `APIPERU_TOKEN=TOKEN_DE_TU_CUENTA`
+   - `APIPERU_URL=https://api.apiperu.pe/dni` (opcional; ese es el valor por defecto)
 6. Inicia tu app con normalidad (`http://localhost:8080`).
 7. Importa `postman/SkillBridge_DNI_Solo_Postman.postman_collection.json` en Postman.
 8. En las variables de la coleccion, coloca `correo_skillbridge` y `clave_skillbridge` de un **usuario de PRUEBA** con rol `ADMINISTRADOR` o `RESOURCE_MANAGER` que ya exista en la BD. No guardes ni compartas tu clave en la coleccion exportada.
@@ -48,7 +48,7 @@ Solo te entrego los **ARCHIVOS PARA AGREGAR/REEMPLAZAR**, no una copia del proye
 
 **Autenticacion A:** Postman -> SkillBridge: HTTP **Basic** (correo y contrasena de una cuenta de prueba del proyecto). La API solo admite roles ADMINISTRADOR o RESOURCE_MANAGER. Se usa HTTP Basic STATELESS segun PPT de Spring Security; el login web original no se cambia.
 
-**Autenticacion B:** SkillBridge -> VerificaID: `Authorization: Bearer` con `VERIFICAID_TOKEN`, configurado en el servidor y NUNCA enviado desde Postman a SkillBridge ni al navegador.
+**Autenticacion B:** SkillBridge -> API Perú: `Authorization: Bearer` con `APIPERU_TOKEN`, configurado en el servidor y NUNCA enviado desde Postman a SkillBridge ni al navegador.
 
 **Ejemplo de exito si el proveedor responde:**
 
@@ -62,16 +62,16 @@ Solo te entrego los **ARCHIVOS PARA AGREGAR/REEMPLAZAR**, no una copia del proye
 
 - **Clase 9.1 - Fundamentos:** comunicacion cliente/servidor por JSON y HTTP.
 - **Clase 9.2 - Creacion:** `@RestController`, rutas, `@RequestBody`, codigos HTTP y pruebas con Postman.
-- **Clase 10.1 - Consumo p2:** ejemplo **verifica.id**, POST a `/v2/consulta/personas`, atributo DNI y cabecera `Authorization: Bearer <API-KEY>`.
+- **Clase 10.1 - Consumo p2:** consumo de un proveedor externo con Bearer. SkillBridge aplica ese patrón con API Perú, usando un POST JSON a `/dni`.
 - **Clase 10.1 - Web Services REST con Spring Security:** `RestTemplateBuilder` y uso de DTO; proteger una API con HTTP Basic, `STATELESS`. La profe menciona `PersonaResponse` y `PersonaData`; se siguio ese concepto, devolviendo un DTO resumido.
 
 No se incluyeron **jQuery/AJAX** ni **Docker** porque son temas aparte que no solicitaste agregar ahora.
 
 ## LIMITACIONES REALES
 
-- No es una conexion directa con un servicio oficial de RENIEC: se usa el **proveedor VerificaID de la PPT**. Para una API oficial RENIEC se necesita acceso y documentacion autorizada.
-- El enlace por defecto usa el **sandbox**; puedes cambiar a produccion solo con permisos y token adecuado.
-- La cuenta de VerificaID debe estar activa y tener acceso. Sin token, no funcionara una consulta real (HTTP 503).
+- No es una conexion directa con un servicio oficial de RENIEC: se usa el **proveedor API Perú**. Para una API oficial RENIEC se necesita acceso y documentacion autorizada.
+- El endpoint predeterminado de API Perú es `https://api.apiperu.pe/dni`.
+- La cuenta de API Perú debe estar activa y tener acceso. Sin token, no funcionara una consulta real (HTTP 503).
 - No se graban DNIs ni nombres en tu BD. Se usa un DTO como en la PPT.
 - Esta implementacion comprueba la coincidencia de los nombres devueltos; no verifica posesion del documento ni identidad biometrica.
 - En produccion usa HTTPS, limites de consultas y manejo adecuado de datos personales; no uses DNIs de terceros sin autorizacion.
@@ -82,7 +82,7 @@ No se incluyeron **jQuery/AJAX** ni **Docker** porque son temas aparte que no so
 1. En Postman, **GET /api/identidad/estado -> 200** tras autenticarte (demuestra API protegida).
 2. **Sin credenciales -> 401**.
 3. **POST /api/identidad/consultar** con DNI invalido -> 400 (validacion).
-4. Con token sandbox y un DNI permitido, **POST /api/identidad/consultar** -> JSON con los datos devueltos por el proveedor.
+4. Con una clave de API Perú y un DNI autorizado, **POST /api/identidad/consultar** -> JSON con los datos devueltos por el proveedor.
 5. **POST /api/identidad/validar** -> JSON con `coincide`.
 
 Si no tienen token, solo pueden demostrar localmente seguridad, REST y validacion de formato; **no deben afirmar que se verifico el DNI con RENIEC**.

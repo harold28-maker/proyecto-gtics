@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Interfaz de consulta DNI para Administrador y Resource Manager.
- * IMPORTANTE: consume VerificaID, NO la API oficial de RENIEC.
+ * Consume API Perú como proveedor externo de identidad.
  * Nunca almacena el DNI consultado o la respuesta en la base.
  */
 @Controller

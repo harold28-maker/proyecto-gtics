@@ -6,8 +6,8 @@
 <div class="content"><section class="page-intro"><div><h2>Consulta de DNI</h2>
 <p>Verifica nombres y apellidos utilizando un proveedor externo autorizado.</p></div></section>
 <section class="card" style="max-width:800px"><div class="card-title"><h2>Consulta individual</h2></div>
-<p class="sb-dni-note"><strong>Importante:</strong> esta funcionalidad utiliza VerificaID, no la base de datos oficial de RENIEC.
-Para acceder al servicio es necesario configurar un token del proveedor en el servidor. No se almacena el DNI consultado.</p>
+<p class="sb-dni-note">La consulta se realiza a través de API Perú y requiere un token configurado en el servidor.
+SkillBridge no almacena el DNI consultado.</p>
 <form method="post" th:action="${accion}" autocomplete="off">
 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
 <div class="form-group"><label for="dni">DNI (8 dígitos)</label>

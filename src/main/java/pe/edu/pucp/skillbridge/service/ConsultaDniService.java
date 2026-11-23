@@ -9,8 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -27,7 +25,7 @@ import java.util.Map;
 
 /**
  * PPT Clases 10.1: consumir Web Service REST con RestTemplateBuilder y DTO.
- * NOTA: VerificaID es un proveedor externo, NO una API oficial de RENIEC.
+ * Consulta a API Perú como proveedor externo de identidad.
  * Solo consulta; NO guarda datos personales en tablas de SkillBridge.
  */
 @Service
@@ -47,8 +45,8 @@ public class ConsultaDniService {
      */
     public ConsultaDniService(
             RestTemplateBuilder builder,
-            @Value("${skillbridge.dni.token:${VERIFICAID_TOKEN:}}") String token,
-            @Value("${skillbridge.dni.url:${VERIFICAID_URL:https://sandbox-api.verifica.id/v2/consulta/personas}}") String apiUrl) {
+            @Value("${skillbridge.dni.token:${APIPERU_TOKEN:}}") String token,
+            @Value("${skillbridge.dni.url:${APIPERU_URL:https://api.apiperu.pe/dni}}") String apiUrl) {
         this.restTemplate = builder
                 .connectTimeout(Duration.ofSeconds(5))
                 .readTimeout(Duration.ofSeconds(12))
@@ -74,19 +72,15 @@ public class ConsultaDniService {
         }
         if (token == null || token.isBlank()) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Consulta DNI no configurada: falta VERIFICAID_TOKEN");
+                    "Consulta DNI no configurada: falta APIPERU_TOKEN");
         }
 
-        // La documentacion del proveedor requiere POST multipart/form-data,
-        // con el campo dni y Authorization: Bearer <token>.
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(token);
         headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
-        MultiValueMap<String, Object> form = new LinkedMultiValueMap<>();
-        form.add("dni", dni);
-        HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(form, headers);
+        HttpEntity<Map<String, String>> request = new HttpEntity<>(Map.of("dni", dni), headers);
 
         ResponseEntity<Map> respuesta;
         try {
@@ -95,44 +89,40 @@ public class ConsultaDniService {
             int status = ex.getStatusCode().value();
             if (status == 401) {
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                        "VerificaID rechazó el token. Comprueba que sea válido para el entorno configurado.");
+                        "API Perú rechazó el token. Revisa APIPERU_TOKEN en el servidor.");
             }
             if (status == 402) {
                 throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                        "VerificaID requiere pago para esta consulta. Revisa el saldo o el plan de la cuenta del proveedor.");
+                        "API Perú requiere pago para esta consulta. Revisa el plan de la cuenta.");
             }
             if (status == 403) {
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                        "VerificaID denegó el acceso. Solicita la habilitación de Consulta DNI para la cuenta del proveedor.");
+                        "API Perú denegó el acceso. Revisa los permisos de Consulta DNI en la cuenta.");
             }
             if (status == 404) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "El proveedor no encontro datos para el DNI");
+                        "API Perú no encontró el DNI o rechazó las credenciales de la consulta.");
             }
             if (status == 429) {
                 throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                        "Limite de consultas del proveedor alcanzado");
+                        "Se alcanzó el límite de consultas de API Perú.");
             }
             // No exponer el cuerpo externo ni el token en el error.
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "La API externa rechazo la consulta; revisar token o acceso");
+                    "API Perú rechazó la consulta.");
         } catch (RestClientException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "No se pudo conectar con la API externa de identidad");
+                    "No se pudo completar la conexión o leer la respuesta de API Perú.");
         }
 
         Map<?, ?> cuerpo = respuesta.getBody();
-        if (cuerpo == null || !(cuerpo.get("data") instanceof Map<?, ?> datos)) {
+        if (cuerpo == null || !Boolean.TRUE.equals(cuerpo.get("success"))
+                || !(cuerpo.get("data") instanceof Map<?, ?> datos)) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "La API externa devolvio un JSON inesperado");
-        }
-        Object status = cuerpo.get("status");
-        if (status != null && !"200".equals(status.toString())) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "La API externa indico que la consulta no fue exitosa");
+                    "API Perú no devolvió una consulta exitosa con datos de identidad.");
         }
 
-        String dniRecibido = leer(datos, "dni");
+        String dniRecibido = leer(datos, "numero");
         String nombres = leer(datos, "nombres");
         String paterno = leer(datos, "apellido_paterno");
         String materno = leer(datos, "apellido_materno");

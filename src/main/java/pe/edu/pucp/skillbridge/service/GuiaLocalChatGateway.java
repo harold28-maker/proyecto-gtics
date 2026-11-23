@@ -33,7 +33,7 @@ public class GuiaLocalChatGateway implements AiChatGateway {
         }
         if (texto.contains("dni") || texto.contains("reniec") || texto.contains("identidad")) {
             return inicio + "Los roles Administrador y Resource Manager tienen la pantalla Consulta DNI. "
-                   + "Necesita token de un proveedor autorizado; no es una conexión directa a RENIEC.";
+                   + "La consulta usa API Perú y requiere un token configurado en el servidor.";
         }
         return inicio + "Puedo orientarte sobre Proyectos, Asignaciones, Habilidades, Reportes, "
                + "Chat por proyecto y Consulta DNI. Para respuestas personalizadas habilita Gemini.";

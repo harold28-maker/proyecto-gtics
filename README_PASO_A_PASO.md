@@ -23,10 +23,10 @@ probar Gemini en local, configura `SKILLBRIDGE_CHATBOT_PROVIDER=gemini`,
 ### Consulta DNI
 
 Administración y Resource Management pueden abrir **Consulta DNI** desde el menú.
-Configura `VERIFICAID_TOKEN` con un token del entorno configurado en
-`VERIFICAID_URL`. La URL predeterminada apunta al sandbox. Si VerificaID
-responde 403, el administrador de la cuenta debe solicitar la habilitación
-de Consulta DNI al proveedor.
+Define `APIPERU_TOKEN` con la clave de tu cuenta de API Perú. En IntelliJ,
+agrégala a las variables de entorno de la configuración de ejecución. Con
+Docker Compose puedes ponerla en el `.env` local. La URL predeterminada es
+`https://api.apiperu.pe/dni`. Consulta la [documentación de API Perú](https://docs.apiperu.pe/).
 
 ## 3. Base de datos
 ### Si crearás la BD desde cero

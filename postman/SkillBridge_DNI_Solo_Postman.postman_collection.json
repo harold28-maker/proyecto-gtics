@@ -2,7 +2,7 @@
   "info": {
     "name": "SkillBridge | DNI - REST y Postman (PPT GTICS)",
     "_postman_id": "3bc74bc7-b347-41e4-a874-b4a2ad49bede",
-    "description": "Pruebas de la API nueva de SkillBridge. HTTP Basic con credenciales de tu cuenta de SkillBridge. La API del proveedor se consulta desde Spring Boot y requiere VERIFICAID_TOKEN en el servidor. No usar DNI real ajeno.",
+    "description": "Pruebas de la API nueva de SkillBridge. HTTP Basic con credenciales de tu cuenta de SkillBridge. La API del proveedor se consulta desde Spring Boot y requiere APIPERU_TOKEN en el servidor. No usar DNI real ajeno.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -72,7 +72,7 @@
       ]
     },
     {
-      "name": "2 - Consultar DNI (necesita token sandbox)",
+      "name": "2 - Consultar DNI (requiere token de API Perú)",
       "request": {
         "method": "POST",
         "header": [
@@ -82,7 +82,7 @@
           }
         ],
         "url": "{{base_url}}/api/identidad/consultar",
-        "description": "POST JSON a SkillBridge. Spring consulta POST multipart/form-data con Bearer a VerificaID. Sin VERIFICAID_TOKEN: 503. Con token y DNI disponible: 200. DNI de ejemplo no garantiza respuesta.",
+        "description": "POST JSON a SkillBridge. Spring consulta POST JSON con Bearer a API Perú. Sin APIPERU_TOKEN: 503. Con token y DNI disponible: 200. DNI de ejemplo no garantiza respuesta.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"dni\": \"{{dni_prueba}}\"\n}",
@@ -185,7 +185,7 @@
           }
         ],
         "url": "{{base_url}}/api/identidad/consultar",
-        "description": "Ejecutar solo si la variable VERIFICAID_TOKEN esta sin configurar. Debe responder 503.",
+        "description": "Ejecutar solo si la variable APIPERU_TOKEN esta sin configurar. Debe responder 503.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"dni\": \"{{dni_prueba}}\"\n}",

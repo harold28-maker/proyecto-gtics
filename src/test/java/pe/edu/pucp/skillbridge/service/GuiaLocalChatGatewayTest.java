@@ -12,9 +12,9 @@ class GuiaLocalChatGatewayTest {
         assertTrue(resultado.contains("Proyectos"));
     }
 
-    @Test void ayudaSobreIdentidadNoPrometeReniec() {
+    @Test void ayudaSobreIdentidadIndicaElProveedorYElToken() {
         String resultado = guia.generar("Contexto", "¿Dónde consulto mi DNI?");
-        assertTrue(resultado.contains("VerificaID") || resultado.contains("proveedor autorizado"));
-        assertTrue(resultado.contains("no es una conexión directa a RENIEC"));
+        assertTrue(resultado.contains("API Perú"));
+        assertTrue(resultado.contains("token configurado en el servidor"));
     }
 }

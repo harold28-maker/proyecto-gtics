@@ -26,14 +26,14 @@
 | REST / JSON | `IdentidadRestController.java` | `@RestController`: devuelve JSON, no HTML. |
 | Validar parámetros | `DniConsultaRequest.java` | `@NotBlank`, `@Pattern`, `@Valid`: ocho dígitos. |
 | Transporte de datos | `Dni*Response.java` | DTO: pasa datos sin usar una entidad JPA. |
-| Consumo externo | `ConsultaDniService.java` | `RestTemplateBuilder` + `exchange`, HTTP POST y Bearer token a VerificaID. |
+| Consumo externo | `ConsultaDniService.java` | `RestTemplateBuilder` + `exchange`, HTTP POST y Bearer token a API Perú. |
 | Seguridad API | `ApiDniSecurityConfig.java` | HTTP Basic + STATELESS; solo ADMINISTRADOR / RESOURCE_MANAGER. |
 | Probar servicio | `postman/*.json` | GET estado y POST consultar/validar, pruebas de error. |
 
 ## Las rutas nuevas
 
 - `GET /api/identidad/estado` → estado API.
-- `POST /api/identidad/consultar` → consulta un DNI en VerificaID.
+- `POST /api/identidad/consultar` → consulta un DNI en API Perú.
 - `POST /api/identidad/validar` → compara nombres y apellidos.
 
 ## Cinco diferencias fundamentales
@@ -41,12 +41,12 @@
 1. **MVC + Thymeleaf**: devuelve HTML, mientras que **REST** devuelve JSON.
 2. **`@Controller`**: pantallas; **`@RestController`**: datos de una API.
 3. **Sesión web**: navegación de usuario; **Basic STATELESS**: cada llamada API autentica por separado.
-4. **Basic Auth**: Postman → SkillBridge; **Bearer**: SkillBridge → VerificaID.
+4. **Basic Auth**: Postman → SkillBridge; **Bearer**: SkillBridge → API Perú.
 5. **Postman**: herramienta para probar APIs; no es una parte de la interfaz de usuario final.
 
 ## Estado que hay que comunicar sin exagerar
 
 - Conservado: CRUD, dashboard, reportes, chat, roles, Spring Security web.
-- Añadido: API DNI, protección HTTP Basic, DTO, consumo de VerificaID y Postman.
-- Por probar: compilación Maven, MySQL, token sandbox y respuesta externa real.
+- Añadido: API DNI, protección HTTP Basic, DTO, consumo de API Perú y Postman.
+- La consulta externa requiere una clave de API Perú y un DNI de prueba autorizado.
 - Aún no se añadió: chatbot, chat AJAX, Docker, API directa oficial de RENIEC.

@@ -30,8 +30,8 @@ services:
       SKILLBRIDGE_CHATBOT_PROVIDER: ${SKILLBRIDGE_CHATBOT_PROVIDER:-local}
       SPRING_AI_MODEL_CHAT: ${SPRING_AI_MODEL_CHAT:-none}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
-      VERIFICAID_TOKEN: ${VERIFICAID_TOKEN:-}
-      VERIFICAID_URL: ${VERIFICAID_URL:-https://sandbox-api.verifica.id/v2/consulta/personas}
+      APIPERU_TOKEN: ${APIPERU_TOKEN:-}
+      APIPERU_URL: ${APIPERU_URL:-https://api.apiperu.pe/dni}
       UPLOAD_DIR: /app/uploads
     volumes:
       - sb_uploads:/app/uploads
