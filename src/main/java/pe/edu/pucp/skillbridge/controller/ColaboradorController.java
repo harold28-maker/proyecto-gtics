@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -791,6 +792,7 @@ public class ColaboradorController {
      * @return nombre de la vista de habilidades
      */
     @PostMapping("/habilidades/guardar")
+    @Transactional
     public String guardarHabilidad(@RequestParam("idHabilidad") Integer idHabilidad,
                                    @RequestParam("nivel") String nivel,
                                    @RequestParam("aniosExperiencia") BigDecimal aniosExperiencia,
@@ -804,6 +806,11 @@ public class ColaboradorController {
         if (error != null) {
             cargarHabilidades(model, null);
             model.addAttribute("mensajeError", error);
+            return "colaborador/habilidades";
+        }
+        if (!habilidadRepository.buscarParaActualizar(idHabilidad).map(Habilidad::getEstado).orElse(false)) {
+            cargarHabilidades(model, null);
+            model.addAttribute("mensajeError", "La habilidad seleccionada ya no está disponible. Si necesitas agregarla, contacta al administrador.");
             return "colaborador/habilidades";
         }
         boolean yaExiste = habilidades(c.getIdColaborador()).stream().anyMatch(h -> h.getIdHabilidad().equals(idHabilidad));
@@ -845,7 +852,7 @@ public class ColaboradorController {
             model.addAttribute("mensajeError", "La habilidad que deseas editar ya no está asociada a tu perfil.");
             return "colaborador/habilidades";
         }
-        colaboradorRepository.guardarHabilidad(c.getIdColaborador(), idHabilidad, nivel, aniosExperiencia);
+        colaboradorRepository.actualizarHabilidad(c.getIdColaborador(), idHabilidad, nivel, aniosExperiencia);
         cargarHabilidades(model, null);
         model.addAttribute("mensajeExito", "Habilidad actualizada correctamente.");
         return "colaborador/habilidades";

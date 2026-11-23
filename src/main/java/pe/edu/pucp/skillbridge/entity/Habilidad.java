@@ -21,7 +21,6 @@ public class Habilidad {
 
     @Column(length = 80)
     @NotBlank(message = "{validation.habilidad.categoria.required}")
-    @Size(max = 30, message = "{validation.habilidad.categoria.size}")
     private String categoria;
 
     @Column(length = 250)

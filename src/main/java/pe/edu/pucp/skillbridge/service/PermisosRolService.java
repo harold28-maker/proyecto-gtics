@@ -35,7 +35,7 @@ public class PermisosRolService {
                             List.of("/admin/roles")),
                     new Permiso("habilidades", "Catálogo", "Gestionar habilidades", "Catálogo de habilidades", true,
                             List.of("/admin/habilidades")),
-                    new Permiso("categorias", "Catálogo", "Consultar categorías", "Categorías del catálogo", true,
+                    new Permiso("categorias", "Catálogo", "Gestionar categorías", "Categorías del catálogo", true,
                             List.of("/admin/categorias")),
                     new Permiso("auditoria", "Auditoría", "Consultar auditoría", "Registro de acciones del sistema", true,
                             List.of("/admin/auditoria")),

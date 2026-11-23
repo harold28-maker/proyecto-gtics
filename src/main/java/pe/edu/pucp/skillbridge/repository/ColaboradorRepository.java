@@ -80,6 +80,23 @@ public interface ColaboradorRepository extends JpaRepository<Colaborador, Intege
     int guardarHabilidad(Integer idColaborador, Integer idHabilidad, String nivel, BigDecimal aniosExperiencia);
 
     /**
+     * Actualiza el nivel y la experiencia de una habilidad ya registrada en el perfil.
+     *
+     * @param idColaborador identificador del colaborador
+     * @param idHabilidad identificador de la habilidad
+     * @param nivel nuevo nivel de dominio
+     * @param aniosExperiencia años de experiencia
+     */
+    @Modifying
+    @Transactional
+    @Query(value = """
+            UPDATE colaborador_habilidad
+            SET nivel = ?3, anios_experiencia = ?4
+            WHERE id_colaborador = ?1 AND id_habilidad = ?2
+            """, nativeQuery = true)
+    void actualizarHabilidad(Integer idColaborador, Integer idHabilidad, String nivel, BigDecimal aniosExperiencia);
+
+    /**
      * Elimina la relación entre un colaborador y una habilidad.
      *
      * @param idColaborador identificador del colaborador

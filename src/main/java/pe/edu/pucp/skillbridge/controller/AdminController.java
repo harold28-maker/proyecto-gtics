@@ -11,6 +11,7 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -21,6 +22,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import pe.edu.pucp.skillbridge.entity.*;
 import pe.edu.pucp.skillbridge.repository.*;
+import pe.edu.pucp.skillbridge.repository.CategoriaHabilidadRepository.ResumenCategoria;
+import pe.edu.pucp.skillbridge.repository.HabilidadRepository.UsoHabilidad;
 import pe.edu.pucp.skillbridge.service.CorreoCuentaService;
 import pe.edu.pucp.skillbridge.service.FotoPerfilService;
 import pe.edu.pucp.skillbridge.service.ReporteAdministrativoService;
@@ -33,6 +36,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -48,6 +53,7 @@ public class AdminController {
     private final RolRepository rolRepository;
     private final ColaboradorRepository colaboradorRepository;
     private final HabilidadRepository habilidadRepository;
+    private final CategoriaHabilidadRepository categoriaHabilidadRepository;
     private final AuditoriaRepository auditoriaRepository;
     private final ReporteAdministrativoService reporteAdministrativoService;
 
@@ -67,6 +73,7 @@ public class AdminController {
      * @param rolRepository repositorio de roles
      * @param colaboradorRepository repositorio de colaboradores
      * @param habilidadRepository repositorio de habilidades
+     * @param categoriaHabilidadRepository repositorio del catálogo de categorías
      * @param auditoriaRepository repositorio de registros de auditoría
      * @param reporteAdministrativoService servicio de reportes y exportación a Excel
      * @param correoCuentaService servicio de envío del correo de bienvenida
@@ -79,6 +86,7 @@ public class AdminController {
             RolRepository rolRepository,
             ColaboradorRepository colaboradorRepository,
             HabilidadRepository habilidadRepository,
+            CategoriaHabilidadRepository categoriaHabilidadRepository,
             AuditoriaRepository auditoriaRepository,
             ReporteAdministrativoService reporteAdministrativoService,
             CorreoCuentaService correoCuentaService,
@@ -91,6 +99,7 @@ public class AdminController {
         this.rolRepository = rolRepository;
         this.colaboradorRepository = colaboradorRepository;
         this.habilidadRepository = habilidadRepository;
+        this.categoriaHabilidadRepository = categoriaHabilidadRepository;
         this.auditoriaRepository = auditoriaRepository;
         this.reporteAdministrativoService = reporteAdministrativoService;
         this.correoCuentaService = correoCuentaService;
@@ -1046,376 +1055,224 @@ public class AdminController {
        ========================================================= */
 
     /**
-     * Obtiene el catálogo de habilidades y permite filtrarlo por nombre.
+     * Filtros que se conservan al volver al catálogo después de una operación.
      *
-     * @param q texto opcional utilizado para buscar habilidades
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la lista de habilidades
-     * @return la vista del catálogo o una redirección al inicio de sesión
+     * @param q texto buscado en el nombre
+     * @param categoriaFiltro categoría seleccionada
+     * @param estadoFiltro estado seleccionado, o {@code null} para mostrar todos
+     */
+    public record FiltrosHabilidades(String q, String categoriaFiltro, Boolean estadoFiltro) {
+        public FiltrosHabilidades {
+            q = q == null ? "" : q.strip();
+            categoriaFiltro = categoriaFiltro == null ? "" : categoriaFiltro;
+        }
+    }
+
+    /**
+     * Muestra el catálogo, el uso de las habilidades y la confirmación de desactivación cuando se solicita.
      */
     @GetMapping("/habilidades")
     public String habilidades(
-            @RequestParam(
-                    value = "q",
-                    required = false
-            )
-            String q,
-
+            @ModelAttribute("filtros") FiltrosHabilidades filtros,
+            @RequestParam(value = "desactivar", required = false) Integer desactivar,
             HttpSession session,
             Model model
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
+        List<Habilidad> catalogo = habilidadRepository.findAll();
+        List<CategoriaHabilidad> categorias = categoriaHabilidadRepository.findAllByOrderByNombreAsc();
+        List<Habilidad> buscadas = filtros.q().isEmpty()
+                ? catalogo : habilidadRepository.findByNombreContainingIgnoreCase(filtros.q());
+        List<Habilidad> habilidades = buscadas.stream()
+                .filter(h -> filtros.categoriaFiltro().isEmpty()
+                        || filtros.categoriaFiltro().equals(h.getCategoria()))
+                .filter(h -> filtros.estadoFiltro() == null
+                        || filtros.estadoFiltro().equals(Boolean.TRUE.equals(h.getEstado())))
+                .toList();
+        Map<Integer, UsoHabilidad> usos = habilidades.isEmpty()
+                ? Map.of()
+                : habilidadRepository.obtenerUsos(habilidades.stream().map(Habilidad::getIdHabilidad).toList())
+                        .stream().collect(Collectors.toMap(UsoHabilidad::getIdHabilidad, Function.identity()));
 
-        List<Habilidad> habilidades =
+        model.addAttribute("titulo", "Catálogo de habilidades");
+        model.addAttribute("habilidades", habilidades);
+        model.addAttribute("usos", usos);
+        model.addAttribute("totalHabilidades", catalogo.size());
+        model.addAttribute("activas", catalogo.stream().filter(h -> Boolean.TRUE.equals(h.getEstado())).count());
+        model.addAttribute("categorias", categorias);
 
-                (
-                        q == null
-                                ||
-                                q.isBlank()
-                )
-
-                        ? habilidadRepository.findAll()
-
-                        : habilidadRepository
-                          .findByNombreContainingIgnoreCase(q);
-
-
-        cargarHabilidades(
-                model,
-                habilidades,
-                q
-        );
-
-
+        if (desactivar != null) {
+            habilidades.stream()
+                    .filter(h -> desactivar.equals(h.getIdHabilidad()) && Boolean.TRUE.equals(h.getEstado()))
+                    .findFirst().ifPresent(h -> model.addAttribute("habilidadConfirmar", h));
+        }
         return "admin/habilidades";
     }
-
-    /**
-     * Agrega al modelo el catálogo de habilidades y sus indicadores de estado y categorías.
-     *
-     * @param model modelo al que se agregan los datos de la vista
-     * @param habilidades habilidades que se muestran
-     * @param q texto utilizado actualmente como filtro
-     */
-    private void cargarHabilidades(
-            Model model,
-            List<Habilidad> habilidades,
-            String q
-    ) {
-
-        model.addAttribute(
-                "titulo",
-                "Catálogo de habilidades"
-        );
-
-
-        model.addAttribute(
-                "habilidades",
-                habilidades
-        );
-
-
-        model.addAttribute(
-                "q",
-                q
-        );
-
-
-        model.addAttribute(
-                "activas",
-                habilidades.stream()
-                        .filter(
-                                h ->
-                                        Boolean.TRUE.equals(
-                                                h.getEstado()
-                                        )
-                        )
-                        .count()
-        );
-
-
-        model.addAttribute(
-                "categorias",
-                habilidades.stream()
-                        .map(
-                                Habilidad::getCategoria
-                        )
-                        .filter(
-                                c ->
-                                        c != null
-                                                &&
-                                                !c.isBlank()
-                        )
-                        .distinct()
-                        .count()
-        );
-    }
-
-
-    /* =========================================================
-       NUEVA HABILIDAD
-       ========================================================= */
 
     /**
      * Prepara el formulario para registrar una habilidad nueva con estado activo.
-     *
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la habilidad nueva
-     * @return la vista del formulario o una redirección al inicio de sesión
      */
     @GetMapping("/habilidades/nueva")
     public String nuevaHabilidad(
+            @ModelAttribute("filtros") FiltrosHabilidades filtros,
             HttpSession session,
             Model model
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
-
-
-        Habilidad habilidad =
-                new Habilidad();
-
-
-        habilidad.setEstado(
-                true
-        );
-
-
-        model.addAttribute(
-                "titulo",
-                "Nueva habilidad"
-        );
-
-
-        model.addAttribute(
-                "habilidad",
-                habilidad
-        );
-
-
-        return "admin/habilidad-form";
+        Habilidad habilidad = new Habilidad();
+        habilidad.setCategoria(filtros.categoriaFiltro());
+        return formularioHabilidad(habilidad, model);
     }
-
-
-    /* =========================================================
-       EDITAR HABILIDAD
-       ========================================================= */
 
     /**
      * Carga los datos de una habilidad existente para modificarla.
-     *
-     * @param idTexto identificador textual de la habilidad recibido en la ruta
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la habilidad encontrada
-     * @return la vista del formulario o una redirección al catálogo
      */
     @GetMapping("/habilidades/editar/{id}")
     public String editarHabilidad(
-            @PathVariable("id") String idTexto,
+            @PathVariable("id") Integer id,
+            @ModelAttribute("filtros") FiltrosHabilidades filtros,
             HttpSession session,
-            Model model
+            Model model,
+            RedirectAttributes redirect
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
-
-        Integer id;
-
-        try {
-            id = Integer.valueOf(idTexto);
-        } catch (Exception e) {
-            return "redirect:/admin/habilidades";
+        Habilidad habilidad = habilidadRepository.findById(id).orElse(null);
+        if (habilidad == null) {
+            redirect.addFlashAttribute("mensajeError", "La habilidad ya no está en el catálogo.");
+            return redirigirCatalogoHabilidades(filtros, redirect);
         }
-
-
-        Optional<Habilidad> encontrada =
-                habilidadRepository.findById(id);
-
-
-        if (encontrada.isEmpty()) {
-            return "redirect:/admin/habilidades";
-        }
-
-
-        model.addAttribute(
-                "titulo",
-                "Editar habilidad"
-        );
-
-
-        model.addAttribute(
-                "habilidad",
-                encontrada.get()
-        );
-
-
-        return "admin/habilidad-form";
+        model.addAttribute("estadoOriginal", habilidad.getEstado());
+        return formularioHabilidad(habilidad, model);
     }
 
-
-    /* =========================================================
-       GUARDAR HABILIDAD
-       ========================================================= */
-
     /**
-     * Valida y guarda una habilidad nueva o actualiza una existente en el catálogo.
-     *
-     * @param habilidad habilidad recibida y validada desde el formulario
-     * @param bindingResult resultados de las validaciones realizadas sobre la habilidad
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan los errores o la lista actualizada
-     * @return la vista del formulario ante un error o la vista del catálogo al guardar
+     * Valida y guarda la habilidad. Solicita confirmación si una edición la desactiva.
      */
     @PostMapping("/habilidades/guardar")
+    @Transactional
     public String guardarHabilidad(
             @Valid @ModelAttribute("habilidad") Habilidad habilidad,
             BindingResult bindingResult,
+            @ModelAttribute("filtros") FiltrosHabilidades filtros,
+            @RequestParam(value = "estadoOriginal", required = false) Boolean estadoOriginal,
+            @RequestParam(value = "confirmarDesactivacion", defaultValue = "false") boolean confirmarDesactivacion,
             HttpSession session,
-            Model model
+            Model model,
+            RedirectAttributes redirect
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
-
+        model.addAttribute("estadoOriginal", estadoOriginal);
         if (bindingResult.hasErrors()) {
-            model.addAttribute("titulo", habilidad.getIdHabilidad() == null
-                    ? "Nueva habilidad" : "Editar habilidad");
             model.addAttribute("error", bindingResult.getAllErrors().get(0).getDefaultMessage());
-            return "admin/habilidad-form";
+            return formularioHabilidad(habilidad, model);
+        }
+
+        CategoriaHabilidad categoria = categoriaHabilidadRepository.buscarParaAsignar(habilidad.getCategoria()).orElse(null);
+        if (categoria == null) {
+            bindingResult.rejectValue("categoria", "validation.habilidad.categoria.catalogo");
+            return formularioHabilidad(habilidad, model);
         }
 
         String nombreLimpio = habilidad.getNombre().trim();
-        boolean nombreRepetido = habilidadRepository.findAll().stream()
-                .anyMatch(registrada -> registrada.getNombre() != null
-                        && registrada.getNombre().equalsIgnoreCase(nombreLimpio)
-                        && (habilidad.getIdHabilidad() == null
-                        || !registrada.getIdHabilidad().equals(habilidad.getIdHabilidad())));
+        Integer id = habilidad.getIdHabilidad();
+        Habilidad registrada = id == null ? null : habilidadRepository.buscarParaActualizar(id).orElse(null);
+        if (id != null && registrada == null) {
+            redirect.addFlashAttribute("mensajeError", "La habilidad ya no está en el catálogo.");
+            return redirigirCatalogoHabilidades(filtros, redirect);
+        }
 
+        boolean nombreRepetido = habilidadRepository.findAll().stream()
+                .anyMatch(h -> h.getNombre() != null
+                        && h.getNombre().equalsIgnoreCase(nombreLimpio)
+                        && !h.getIdHabilidad().equals(id));
         if (nombreRepetido) {
             bindingResult.rejectValue("nombre", "validation.habilidad.nombre.unique");
-            model.addAttribute("titulo", habilidad.getIdHabilidad() == null
-                    ? "Nueva habilidad" : "Editar habilidad");
-            model.addAttribute("error", bindingResult.getFieldError("nombre").getDefaultMessage());
-            return "admin/habilidad-form";
+            return formularioHabilidad(habilidad, model);
+        }
+
+        if (registrada != null) {
+            boolean estadoActual = Boolean.TRUE.equals(registrada.getEstado());
+            if (habilidad.getEstado().equals(estadoOriginal)) {
+                habilidad.setEstado(estadoActual);
+            }
+            if (estadoActual && !habilidad.getEstado() && !confirmarDesactivacion) {
+                model.addAttribute("estadoOriginal", true);
+                model.addAttribute("usoConfirmar", habilidadRepository.obtenerUsos(List.of(id)).get(0));
+                return formularioHabilidad(habilidad, model);
+            }
         }
 
         habilidad.setNombre(nombreLimpio);
-        habilidad.setCategoria(habilidad.getCategoria().trim());
+        habilidad.setCategoria(categoria.getNombre());
         habilidad.setDescripcion(habilidad.getDescripcion().trim());
+        habilidadRepository.save(habilidad);
+        registrarAuditoria("Guardar habilidad", "Habilidades",
+                "Se actualizó el catálogo: " + habilidad.getNombre());
 
-
-        habilidadRepository.save(
-                habilidad
-        );
-
-
-        registrarAuditoria(
-                "Guardar habilidad",
-                "Habilidades",
-                "Se actualizó el catálogo: "
-                        + habilidad.getNombre()
-        );
-
-
-        cargarHabilidades(
-                model,
-                habilidadRepository.findAll(),
-                null
-        );
-
-
-        model.addAttribute(
-                "mensajeExito",
-                "Habilidad guardada correctamente."
-        );
-
-
-        return "admin/habilidades";
+        redirect.addFlashAttribute("mensajeExito", "Habilidad guardada correctamente.");
+        return redirigirCatalogoHabilidades(filtros, redirect);
     }
 
-
-    /* =========================================================
-       CAMBIAR ESTADO HABILIDAD
-       ========================================================= */
-
     /**
-     * Invierte el estado de una habilidad y actualiza el catálogo mostrado.
-     *
-     * @param idTexto identificador textual de la habilidad recibido en la ruta
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agrega la lista actualizada de habilidades
-     * @return la vista del catálogo o una redirección según la validación realizada
+     * Aplica el estado solicitado, conservando las asociaciones ya registradas.
      */
     @PostMapping("/habilidades/{id}/estado")
+    @Transactional
     public String cambiarEstadoHabilidad(
-            @PathVariable("id") String idTexto,
+            @PathVariable("id") Integer id,
+            @RequestParam("estado") boolean estado,
+            @ModelAttribute("filtros") FiltrosHabilidades filtros,
             HttpSession session,
-            Model model
+            RedirectAttributes redirect
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
-
-        Integer id;
-
-        try {
-            id = Integer.valueOf(idTexto);
-        } catch (Exception e) {
-            return "redirect:/admin/habilidades";
+        Habilidad habilidad = habilidadRepository.buscarParaActualizar(id).orElse(null);
+        if (habilidad == null) {
+            redirect.addFlashAttribute("mensajeError", "La habilidad ya no está en el catálogo.");
+            return redirigirCatalogoHabilidades(filtros, redirect);
         }
 
-
-        Optional<Habilidad> encontrada =
-                habilidadRepository.findById(id);
-
-
-        if (encontrada.isEmpty()) {
-            return "redirect:/admin/habilidades";
+        if (estado != Boolean.TRUE.equals(habilidad.getEstado())) {
+            habilidad.setEstado(estado);
+            habilidadRepository.save(habilidad);
+            registrarAuditoria(estado ? "Activar habilidad" : "Desactivar habilidad", "Habilidades", habilidad.getNombre());
         }
+        redirect.addFlashAttribute("mensajeExito", estado ? "Habilidad activada." : "Habilidad desactivada.");
+        return redirigirCatalogoHabilidades(filtros, redirect);
+    }
 
+    private String formularioHabilidad(Habilidad habilidad, Model model) {
+        model.addAttribute("titulo", habilidad.getIdHabilidad() == null ? "Nueva habilidad" : "Editar habilidad");
+        model.addAttribute("habilidad", habilidad);
+        model.addAttribute("categorias", categoriaHabilidadRepository.findAllByOrderByNombreAsc());
+        return "admin/habilidad-form";
+    }
 
-        Habilidad habilidad =
-                encontrada.get();
-
-
-        habilidad.setEstado(
-                !Boolean.TRUE.equals(
-                        habilidad.getEstado()
-                )
-        );
-
-
-        habilidadRepository.save(
-                habilidad
-        );
-
-
-        cargarHabilidades(
-                model,
-                habilidadRepository.findAll(),
-                null
-        );
-
-
-        model.addAttribute(
-                "mensajeExito",
-                "Estado de la habilidad actualizado."
-        );
-
-
-        return "admin/habilidades";
+    private String redirigirCatalogoHabilidades(FiltrosHabilidades filtros, RedirectAttributes redirect) {
+        if (!filtros.q().isEmpty()) {
+            redirect.addAttribute("q", filtros.q());
+        }
+        if (!filtros.categoriaFiltro().isEmpty()) {
+            redirect.addAttribute("categoriaFiltro", filtros.categoriaFiltro());
+        }
+        if (filtros.estadoFiltro() != null) {
+            redirect.addAttribute("estadoFiltro", filtros.estadoFiltro());
+        }
+        return "redirect:/admin/habilidades";
     }
 
 
@@ -1424,80 +1281,133 @@ public class AdminController {
        ========================================================= */
 
     /**
-     * Agrupa las habilidades existentes por categoría y muestra los totales asociados.
-     *
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan las categorías y sus cantidades
-     * @return la vista de categorías o una redirección al inicio de sesión
+     * Muestra las categorías y el estado de las habilidades vinculadas a cada una.
      */
     @GetMapping("/categorias")
     public String categorias(
+            @RequestParam(value = "q", defaultValue = "") String q,
             HttpSession session,
             Model model
     ) {
-
         if (!esAdmin(session)) {
             return "redirect:/login";
         }
 
+        String texto = normalizar(q);
+        List<ResumenCategoria> catalogo = categoriaHabilidadRepository.resumirCatalogo();
+        List<ResumenCategoria> categorias = catalogo.stream()
+                .filter(c -> normalizar(c.getNombre()).contains(texto))
+                .toList();
 
-        Map<String, Long> categorias =
-                new LinkedHashMap<>();
+        model.addAttribute("titulo", "Categorías de habilidades");
+        model.addAttribute("q", q);
+        model.addAttribute("categorias", categorias);
+        model.addAttribute("totalCategorias", catalogo.size());
+        model.addAttribute("totalHabilidades", habilidadRepository.count());
+        return "admin/categorias";
+    }
 
+    /**
+     * Prepara el formulario para registrar una categoría.
+     */
+    @GetMapping("/categorias/nueva")
+    public String nuevaCategoria(
+            @RequestParam(value = "q", defaultValue = "") String q,
+            HttpSession session,
+            Model model
+    ) {
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+        return formularioCategoria(null, "", q, model);
+    }
 
-        for (
-                Habilidad h :
-                habilidadRepository.findAll()
-        ) {
+    /**
+     * Carga la categoría que el administrador quiere renombrar.
+     */
+    @GetMapping("/categorias/editar/{id}")
+    public String editarCategoria(
+            @PathVariable("id") Integer id,
+            @RequestParam(value = "q", defaultValue = "") String q,
+            HttpSession session,
+            Model model,
+            RedirectAttributes redirect
+    ) {
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+        CategoriaHabilidad categoria = categoriaHabilidadRepository.findById(id).orElse(null);
+        if (categoria == null) {
+            redirect.addAttribute("q", q);
+            redirect.addFlashAttribute("mensajeError", "La categoría ya no está en el catálogo.");
+            return "redirect:/admin/categorias";
+        }
+        return formularioCategoria(id, categoria.getNombre(), q, model);
+    }
 
-            String categoria =
-
-                    (
-                            h.getCategoria() == null
-                                    ||
-                                    h.getCategoria().isBlank()
-                    )
-
-                            ? "Sin categoría"
-
-                            : h.getCategoria();
-
-
-            categorias.put(
-                    categoria,
-                    categorias.getOrDefault(
-                            categoria,
-                            0L
-                    ) + 1
-            );
+    /**
+     * Registra una categoría o actualiza su nombre y sus habilidades en la misma transacción.
+     */
+    @PostMapping("/categorias/guardar")
+    public String guardarCategoria(
+            @RequestParam(value = "idCategoria", required = false) Integer id,
+            @RequestParam(value = "nombre", defaultValue = "") String nombre,
+            @RequestParam(value = "q", defaultValue = "") String q,
+            HttpSession session,
+            Model model,
+            RedirectAttributes redirect
+    ) {
+        if (!esAdmin(session)) {
+            return "redirect:/login";
         }
 
+        String nombreLimpio = nombre.replaceAll("(?U)\\s+", " ").trim();
+        if (nombreLimpio.isEmpty() || nombreLimpio.length() > 30) {
+            model.addAttribute("errorNombre", nombreLimpio.isEmpty()
+                    ? "Ingresa un nombre para la categoría."
+                    : "El nombre no puede superar 30 caracteres.");
+            return formularioCategoria(id, nombre, q, model);
+        }
 
-        model.addAttribute(
-                "titulo",
-                "Categorías de habilidades"
-        );
+        boolean guardada;
+        try {
+            guardada = Boolean.TRUE.equals(transacciones.execute(status -> {
+                CategoriaHabilidad categoria = id == null
+                        ? new CategoriaHabilidad() : categoriaHabilidadRepository.buscarParaRenombrar(id).orElse(null);
+                if (categoria == null) {
+                    return false;
+                }
 
+                String anterior = categoria.getNombre();
+                categoria.setNombre(nombreLimpio);
+                categoriaHabilidadRepository.saveAndFlush(categoria);
+                if (id != null && !nombreLimpio.equals(anterior)) {
+                    habilidadRepository.renombrarCategoria(anterior, nombreLimpio);
+                }
+                registrarAuditoria(id == null ? "Crear categoría" : "Renombrar categoría", "Categorías",
+                        id == null ? nombreLimpio : anterior + " → " + nombreLimpio);
+                return true;
+            }));
+        } catch (DataIntegrityViolationException e) {
+            model.addAttribute("errorNombre", "Ya existe una categoría con ese nombre.");
+            return formularioCategoria(id, nombre, q, model);
+        }
 
-        model.addAttribute(
-                "categorias",
-                categorias
-        );
+        redirect.addAttribute("q", q);
+        if (guardada) {
+            redirect.addFlashAttribute("mensajeExito", id == null ? "Categoría registrada." : "Nombre actualizado.");
+        } else {
+            redirect.addFlashAttribute("mensajeError", "La categoría ya no está en el catálogo.");
+        }
+        return "redirect:/admin/categorias";
+    }
 
-
-        model.addAttribute(
-                "totalCategorias",
-                categorias.size()
-        );
-
-
-        model.addAttribute(
-                "totalHabilidades",
-                habilidadRepository.count()
-        );
-
-
-        return "admin/categorias";
+    private String formularioCategoria(Integer id, String nombre, String q, Model model) {
+        model.addAttribute("titulo", id == null ? "Nueva categoría" : "Renombrar categoría");
+        model.addAttribute("idCategoria", id);
+        model.addAttribute("nombreCategoria", nombre);
+        model.addAttribute("q", q);
+        return "admin/categoria-form";
     }
 
 

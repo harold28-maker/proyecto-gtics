@@ -36,7 +36,17 @@
         </header>
 
 
-        <div class="content">
+        <div class="content categories-management">
+
+            <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+
+            <div class="page-intro">
+                <h2>Categorías de habilidades</h2>
+                <a class="btn btn-primary" th:href="@{/admin/categorias/nueva(q=${q})}">
+                    ＋ Nueva categoría
+                </a>
+            </div>
 
 
             <!-- =========================================
@@ -93,87 +103,56 @@
                  CATEGORÍAS
                  ========================================= -->
 
-            <section class="card section">
+            <section class="card section" aria-label="Categorías registradas">
+                <form class="filters categories-filters" method="get" th:action="@{/admin/categorias}">
+                    <label>
+                        Buscar categoría
+                        <input class="input" type="search" name="q" th:value="${q}" placeholder="Ej. Backend">
+                    </label>
+                    <button class="btn btn-light" type="submit">Buscar</button>
+                    <a class="btn btn-light" th:href="@{/admin/categorias}">Limpiar</a>
+                </form>
 
-
-                <!-- CABECERA -->
-
-                <div class="categories-card-header">
-
-
-                    <div>
-
-                        <h2>
-                            Categorías registradas
-                        </h2>
-
-                        <p class="muted mb-0">
-                            Organiza las habilidades registradas según su categoría.
-                        </p>
-
-                    </div>
-
-
-                    <a class="btn btn-primary"
-                       th:href="@{/admin/habilidades/nueva}">
-
-                        ＋ Agregar habilidad
-
-                    </a>
-
-
+                <div class="table-wrap" th:unless="${#lists.isEmpty(categorias)}">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th scope="col">Categoría</th>
+                            <th scope="col">Habilidades</th>
+                            <th scope="col">Activas</th>
+                            <th scope="col">Inactivas</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="categoria : ${categorias}">
+                            <td><strong th:text="${categoria.nombre}"></strong></td>
+                            <td class="category-count" th:text="${categoria.totalHabilidades}">0</td>
+                            <td class="category-count category-active" th:text="${categoria.activas}">0</td>
+                            <td class="category-count muted" th:text="${categoria.totalHabilidades - categoria.activas}">0</td>
+                            <td>
+                                <div class="action-row">
+                                    <a class="btn btn-light btn-sm category-link"
+                                       th:unless="${permisosBloqueados.contains('habilidades')}"
+                                       th:href="@{/admin/habilidades(categoriaFiltro=${categoria.nombre})}">
+                                        Ver habilidades
+                                    </a>
+                                    <a class="btn btn-light btn-sm"
+                                       th:href="@{/admin/categorias/editar/{id}(id=${categoria.idCategoria}, q=${q})}">
+                                        Renombrar
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
                 </div>
-
-
-                <!-- =========================================
-                     LISTADO DE CATEGORÍAS
-                     ========================================= -->
-
-                <div class="categories-grid">
-
-
-                    <article class="category-card"
-                             th:each="entry : ${categorias}">
-
-
-                        <h3 th:text="${entry.key}">
-                            Backend
-                        </h3>
-
-
-                        <p class="muted">
-
-                            <strong th:text="${entry.value}">
-                                3
-                            </strong>
-
-                            <span th:text="${entry.value == 1
-                                ? ' habilidad'
-                                : ' habilidades'}">
-
-                                habilidades
-
-                            </span>
-
-                        </p>
-
-
-                    </article>
-
-
-                </div>
-
-
-                <!-- SIN RESULTADOS -->
 
                 <div class="empty"
-                     th:if="${#maps.isEmpty(categorias)}">
-
-                    No hay categorías registradas.
-
+                     th:if="${#lists.isEmpty(categorias)}"
+                     th:text="${totalCategorias == 0 ? 'Aún no hay categorías registradas.' : 'No se encontraron categorías.'}">
+                    No se encontraron categorías.
                 </div>
-
-
             </section>
 
 

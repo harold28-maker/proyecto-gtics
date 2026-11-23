@@ -3,6 +3,7 @@ package pe.edu.pucp.skillbridge.controller;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -300,11 +301,16 @@ public class ProjectManagerController {
      * @return plantilla de habilidades requeridas
      */
     @PostMapping("/proyectos/{id}/habilidades/guardar")
+    @Transactional
     public String guardarHabilidadProyecto(@PathVariable Integer id,
                                             @RequestParam("idHabilidad") Integer idHabilidad,
                                             @RequestParam("nivel") String nivel,
                                             @RequestParam("vacantes") Integer vacantes,
                                             Model model) {
+        if (!habilidadRepository.buscarParaActualizar(idHabilidad).map(Habilidad::getEstado).orElse(false)) {
+            model.addAttribute("mensajeError", "La habilidad seleccionada ya no está disponible. Si necesitas agregarla, contacta al administrador.");
+            return habilidadesRequeridas(id, model);
+        }
         proyectoRepository.guardarHabilidadRequerida(id, idHabilidad, nivel, vacantes);
         model.addAttribute("mensajeExito", "Requerimiento técnico actualizado.");
         return habilidadesRequeridas(id, model);

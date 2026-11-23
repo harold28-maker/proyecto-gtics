@@ -42,7 +42,7 @@
         </header>
 
 
-        <div class="content">
+        <div class="content skills-catalog">
 
 
             <!-- =========================================
@@ -52,6 +52,16 @@
             <div class="alert-success"
                  th:if="${mensajeExito}"
                  th:text="${mensajeExito}">
+            </div>
+
+            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+
+            <div class="page-intro">
+                <h2>Catálogo de habilidades</h2>
+                <a class="btn btn-primary"
+                   th:href="@{/admin/habilidades/nueva(q=${filtros.q()}, categoriaFiltro=${filtros.categoriaFiltro()}, estadoFiltro=${filtros.estadoFiltro()})}">
+                    ＋ Nueva habilidad
+                </a>
             </div>
 
 
@@ -71,12 +81,12 @@
                     </div>
 
                     <div class="value"
-                         th:text="${#lists.size(habilidades)}">
+                         th:text="${totalHabilidades}">
                         0
                     </div>
 
                     <div class="hint">
-                        Resultados actuales
+                        Registradas
                     </div>
 
                 </div>
@@ -111,7 +121,7 @@
                     </div>
 
                     <div class="value"
-                         th:text="${categorias}">
+                         th:text="${#lists.size(categorias)}">
                         0
                     </div>
 
@@ -129,52 +139,55 @@
                  CATÁLOGO DE HABILIDADES
                  ========================================= -->
 
-            <section class="card section">
-
-
-                <!-- CABECERA -->
-
-                <div class="skills-card-header">
-
-
-                    <div>
-
-                        <h2>
-                            Habilidades registradas
-                        </h2>
-
-                        <p class="muted mb-0">
-                            Administra las habilidades disponibles en el sistema.
-                        </p>
-
-                    </div>
-
-
-                    <a class="btn btn-primary"
-                       th:href="@{/admin/habilidades/nueva}">
-
-                        ＋ Nueva habilidad
-
-                    </a>
-
-
+            <section class="card section skills-confirmation"
+                     th:if="${habilidadConfirmar != null}"
+                     th:with="uso=${usos[habilidadConfirmar.idHabilidad]}"
+                     aria-labelledby="titulo-desactivar">
+                <div>
+                    <h2 id="titulo-desactivar" th:text="|¿Desactivar ${habilidadConfirmar.nombre}?|">¿Desactivar habilidad?</h2>
+                    <p th:text="|${uso.colaboradores} ${uso.colaboradores == 1 ? 'colaborador' : 'colaboradores'} · ${uso.proyectos} ${uso.proyectos == 1 ? 'proyecto' : 'proyectos'}|">0 colaboradores · 0 proyectos</p>
+                    <p>Las asociaciones existentes se conservan. La habilidad dejará de estar disponible para nuevas asociaciones.</p>
                 </div>
+                <div class="action-row">
+                    <a class="btn btn-light" th:href="@{/admin/habilidades(q=${filtros.q()}, categoriaFiltro=${filtros.categoriaFiltro()}, estadoFiltro=${filtros.estadoFiltro()})}">Cancelar</a>
+                    <form th:action="@{/admin/habilidades/{id}/estado(id=${habilidadConfirmar.idHabilidad}, q=${filtros.q()}, categoriaFiltro=${filtros.categoriaFiltro()}, estadoFiltro=${filtros.estadoFiltro()})}" method="post">
+                        <input type="hidden" name="estado" value="false">
+                        <button class="btn btn-danger-soft" type="submit">Confirmar desactivación</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="card section" aria-label="Habilidades registradas">
 
 
-                <!-- =========================================
-                     BUSCADOR
-                     ========================================= -->
+                <!-- BUSCADOR Y FILTROS -->
+                <form class="filters skills-filters" th:action="@{/admin/habilidades}" method="get">
+                    <label class="skills-search">
+                        Buscar habilidades
+                        <input class="input" type="search" name="q" th:value="${filtros.q()}"
+                               placeholder="Ej. Java o Docker">
+                    </label>
 
-                <form class="filters"
-                      method="get">
+                    <label>
+                        Categoría
+                        <select name="categoriaFiltro">
+                            <option value="">Todas las categorías</option>
+                            <option th:each="categoria : ${categorias}"
+                                    th:value="${categoria.nombre}"
+                                    th:text="${categoria.nombre}"
+                                    th:selected="${categoria.nombre == filtros.categoriaFiltro()}">
+                            </option>
+                        </select>
+                    </label>
 
-
-                    <input class="search"
-                           type="text"
-                           name="q"
-                           th:value="${q}"
-                           placeholder="Buscar habilidad">
-
+                    <label>
+                        Estado
+                        <select name="estadoFiltro">
+                            <option value="">Todos los estados</option>
+                            <option value="true" th:selected="${filtros.estadoFiltro() == true}">Activa</option>
+                            <option value="false" th:selected="${filtros.estadoFiltro() == false}">Inactiva</option>
+                        </select>
+                    </label>
 
                     <button class="btn btn-light"
                             type="submit">
@@ -218,7 +231,7 @@
                             </th>
 
                             <th>
-                                Descripción
+                                Uso
                             </th>
 
                             <th>
@@ -237,7 +250,7 @@
                         <tbody>
 
 
-                        <tr th:each="h : ${habilidades}">
+                        <tr th:each="h : ${habilidades}" th:with="uso=${usos[h.idHabilidad]}">
 
 
                             <!-- HABILIDAD -->
@@ -247,6 +260,7 @@
                                 <strong th:text="${h.nombre}">
                                     Java
                                 </strong>
+                                <small class="skills-description" th:text="${h.descripcion}"></small>
 
                             </td>
 
@@ -265,12 +279,10 @@
                             </td>
 
 
-                            <!-- DESCRIPCIÓN -->
+                            <!-- USO -->
 
-                            <td th:text="${h.descripcion}">
-
-                                Programación backend con Java
-
+                            <td class="skills-usage" th:text="|${uso.colaboradores} ${uso.colaboradores == 1 ? 'colaborador' : 'colaboradores'} · ${uso.proyectos} ${uso.proyectos == 1 ? 'proyecto' : 'proyectos'}|">
+                                0 colaboradores · 0 proyectos
                             </td>
 
 
@@ -302,44 +314,17 @@
                                 <div class="action-row">
 
 
-                                    <!-- EDITAR -->
+                                    <a class="btn btn-light btn-sm" th:href="@{/admin/habilidades/editar/{id}(id=${h.idHabilidad}, q=${filtros.q()}, categoriaFiltro=${filtros.categoriaFiltro()}, estadoFiltro=${filtros.estadoFiltro()})}">Editar</a>
 
-                                    <a class="btn btn-light btn-sm"
-
-                                       th:href="@{/admin/habilidades/editar/{id}(
-                                           id=${h.idHabilidad}
-                                       )}">
-
-                                        Editar
-
+                                    <a class="btn btn-danger-soft btn-sm" th:if="${h.estado}"
+                                       th:href="@{/admin/habilidades(desactivar=${h.idHabilidad}, q=${filtros.q()}, categoriaFiltro=${filtros.categoriaFiltro()}, estadoFiltro=${filtros.estadoFiltro()})}">
+                                        Desactivar
                                     </a>
 
-
-                                    <!-- ACTIVAR / DESACTIVAR -->
-
-                                    <form th:action="@{/admin/habilidades/{id}/estado(
-                                              id=${h.idHabilidad}
-                                          )}"
-                                          method="post">
-
-
-                                        <button class="btn btn-sm"
-
-                                                th:classappend="${h.estado}
-                                                    ? ' btn-danger-soft'
-                                                    : ' btn-success-soft'"
-
-                                                th:text="${h.estado
-                                                    ? 'Desactivar'
-                                                    : 'Activar'}">
-
-                                            Desactivar
-
-                                        </button>
-
-
+                                    <form th:unless="${h.estado}" th:action="@{/admin/habilidades/{id}/estado(id=${h.idHabilidad}, q=${filtros.q()}, categoriaFiltro=${filtros.categoriaFiltro()}, estadoFiltro=${filtros.estadoFiltro()})}" method="post">
+                                        <input type="hidden" name="estado" value="true">
+                                        <button class="btn btn-success-soft btn-sm" type="submit">Activar</button>
                                     </form>
-
 
                                 </div>
 
