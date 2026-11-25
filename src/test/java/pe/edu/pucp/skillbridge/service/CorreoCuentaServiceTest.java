@@ -47,8 +47,24 @@ class CorreoCuentaServiceTest {
         mensaje.saveChanges();
         String texto = textoPlano(mensaje);
         assertTrue(texto.contains("Contraseña temporal: Temporal42"));
+        assertTrue(texto.contains("http://skillbridge.example.test:8080/login"));
         assertTrue(texto.contains("Este correo es automático."));
         verify(smtp).send(mensaje);
+    }
+
+    @Test
+    void enviaEnlaceDeRecuperacionConUrlPublicaHttp() throws Exception {
+        var smtp = mock(JavaMailSender.class);
+        var mensaje = new JavaMailSenderImpl().createMimeMessage();
+        when(smtp.createMimeMessage()).thenReturn(mensaje);
+
+        var correo = crearServicio(smtp, REMITENTE);
+        assertTrue(correo.enviarRecuperacion("prueba@example.test", "Ana Prueba", "token-de-prueba"));
+
+        verify(smtp).send(mensaje);
+        mensaje.saveChanges();
+        assertTrue(textoPlano(mensaje).contains(
+                "http://skillbridge.example.test:8080/restablecer-contrasena?token=token-de-prueba"));
     }
 
     @Test
@@ -77,7 +93,7 @@ class CorreoCuentaServiceTest {
         var plantillas = new SpringTemplateEngine();
         plantillas.setTemplateResolver(resolver);
         return new CorreoCuentaService(beans.getBeanProvider(JavaMailSender.class), plantillas, remitente,
-                "http://localhost:8080");
+                "http://skillbridge.example.test:8080/");
     }
 
     private String textoPlano(Part parte) throws Exception {

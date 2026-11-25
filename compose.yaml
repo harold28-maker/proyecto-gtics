@@ -32,6 +32,12 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       APIPERU_TOKEN: ${APIPERU_TOKEN:-}
       APIPERU_URL: ${APIPERU_URL:-https://api.apiperu.pe/dni}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST:-smtp.gmail.com}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
+      SKILLBRIDGE_MAIL_FROM: ${SKILLBRIDGE_MAIL_FROM:-${SPRING_MAIL_USERNAME:-}}
+      SKILLBRIDGE_PUBLIC_URL: ${SKILLBRIDGE_PUBLIC_URL:-http://localhost:8080}
       UPLOAD_DIR: /app/uploads
     volumes:
       - sb_uploads:/app/uploads

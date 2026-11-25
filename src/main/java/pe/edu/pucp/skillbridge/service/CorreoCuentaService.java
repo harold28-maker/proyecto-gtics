@@ -156,8 +156,7 @@ public class CorreoCuentaService {
             if (host == null || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null) {
                 return null;
             }
-            boolean local = "localhost".equalsIgnoreCase(host) || "127.0.0.1".equals(host) || "[::1]".equals(host);
-            return "https".equalsIgnoreCase(esquema) || (local && "http".equalsIgnoreCase(esquema))
+            return "https".equalsIgnoreCase(esquema) || "http".equalsIgnoreCase(esquema)
                     ? uri.toASCIIString().replaceAll("/+$", "") : null;
         } catch (IllegalArgumentException ex) {
             return null;

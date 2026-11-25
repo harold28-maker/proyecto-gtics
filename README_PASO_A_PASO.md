@@ -85,7 +85,7 @@ Configura estas variables de entorno en la configuración de ejecución de Intel
 | SPRING_MAIL_USERNAME | Usuario SMTP que entrega el proveedor. |
 | SPRING_MAIL_PASSWORD | Credencial SMTP del proveedor. |
 | SKILLBRIDGE_MAIL_FROM | Dirección verificada que aparecerá como remitente. Configúrala si el usuario SMTP es un identificador distinto de esa dirección. |
-| SKILLBRIDGE_PUBLIC_URL | URL base HTTPS que pueden abrir los destinatarios. En pruebas locales se usa http://localhost:8080 por defecto. |
+| SKILLBRIDGE_PUBLIC_URL | URL base HTTP o HTTPS que pueden abrir los destinatarios. Para un despliegue público usa HTTPS cuando esté disponible. El valor predeterminado local es http://localhost:8080. |
 
 Al iniciar, Spring crea la tabla de recuperación si todavía no existe. El script de actualización es src/main/resources/database/actualizacion_recuperacion_contrasena.sql. La cuenta de MySQL necesita permiso CREATE para ejecutar el script. Si la tabla ya fue creada por separado, se puede ejecutar la aplicación con SPRING_SQL_INIT_MODE=never.
 
@@ -95,7 +95,7 @@ El enlace de recuperación vence a los 30 minutos y se consume al guardar la nue
 
 Puedes dedicar una cuenta Gmail normal a los avisos de SkillBridge AI. Activa la verificación en dos pasos de esa cuenta y genera una contraseña de aplicación. [Crear una cuenta Gmail](https://support.google.com/mail/answer/56256?hl=es) · [Contraseñas de aplicación](https://support.google.com/accounts/answer/185833?hl=es)
 
-Activa el perfil gmail con SPRING_PROFILES_ACTIVE=gmail. Ese perfil conecta con smtp.gmail.com en el puerto 587 mediante STARTTLS. En Run → Edit Configurations → SkillbridgeAiApplication → Environment variables, registra los siguientes valores. [Configuración SMTP de Gmail](https://support.google.com/mail/answer/7104828?hl=es)
+SkillBridge usa smtp.gmail.com en el puerto 587 mediante STARTTLS de forma predeterminada. En Run → Edit Configurations → SkillbridgeAiApplication → Environment variables, o en el entorno del servidor, registra los siguientes valores. [Configuración SMTP de Gmail](https://support.google.com/mail/answer/7104828?hl=es)
 
 | Variable | Valor |
 | --- | --- |
