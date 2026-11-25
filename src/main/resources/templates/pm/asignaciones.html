@@ -74,19 +74,7 @@
                                       th:classappend="${a.estado.name() == 'ACTIVA'} ? ' badge-success' : (${a.estado.name() == 'CANCELADA'} ? ' badge-danger' : ' badge-warning')"
                                       th:text="${a.estado}"></span></td>
                             <td>
-                                <div class="action-row"><a class="btn btn-light btn-sm"
-                                                           th:href="@{/pm/asignaciones/editar/{id}(id=${a.idAsignacion})}">Editar</a>
-                                    <form th:if="${a.estado.name() != 'FINALIZADA' and a.estado.name() != 'CANCELADA'}"
-                                          th:action="@{/pm/asignaciones/{id}/estado(id=${a.idAsignacion})}"
-                                          method="post"><input type="hidden" name="estado" value="FINALIZADA">
-                                        <button class="btn btn-success-soft btn-sm">Finalizar</button>
-                                    </form>
-                                    <form th:if="${a.estado.name() != 'CANCELADA' and a.estado.name() != 'FINALIZADA'}"
-                                          th:action="@{/pm/asignaciones/{id}/estado(id=${a.idAsignacion})}"
-                                          method="post"><input type="hidden" name="estado" value="CANCELADA">
-                                        <button class="btn btn-danger-soft btn-sm">Cancelar</button>
-                                    </form>
-                                </div>
+                                <div th:replace="~{fragments/asignacion-acciones :: acciones(${a}, '/pm/asignaciones')}"></div>
                             </td>
                         </tr>
                         </tbody>

@@ -35,7 +35,6 @@ public class ProjectManagerController {
     private final ProyectoRepository proyectoRepository;
     private final AsignacionRepository asignacionRepository;
     private final ColaboradorRepository colaboradorRepository;
-    private final RecomendacionIARepository recomendacionIARepository;
     private final HabilidadRepository habilidadRepository;
     private final CapacidadColaboradorService capacidadColaboradorService;
 
@@ -46,7 +45,6 @@ public class ProjectManagerController {
      * @param proyectoRepository repositorio de proyectos
      * @param asignacionRepository repositorio de asignaciones
      * @param colaboradorRepository repositorio de colaboradores
-     * @param recomendacionIARepository repositorio de recomendaciones de IA
      * @param habilidadRepository repositorio de habilidades
      * @param capacidadColaboradorService servicio de carga vigente
      */
@@ -54,14 +52,12 @@ public class ProjectManagerController {
                                     ProyectoRepository proyectoRepository,
                                     AsignacionRepository asignacionRepository,
                                     ColaboradorRepository colaboradorRepository,
-                                    RecomendacionIARepository recomendacionIARepository,
                                     HabilidadRepository habilidadRepository,
                                     CapacidadColaboradorService capacidadColaboradorService) {
         this.usuarioRepository = usuarioRepository;
         this.proyectoRepository = proyectoRepository;
         this.asignacionRepository = asignacionRepository;
         this.colaboradorRepository = colaboradorRepository;
-        this.recomendacionIARepository = recomendacionIARepository;
         this.habilidadRepository = habilidadRepository;
         this.capacidadColaboradorService = capacidadColaboradorService;
     }
@@ -383,29 +379,6 @@ public class ProjectManagerController {
         model.addAttribute("sinDisponibilidad", lista.stream()
                 .filter(c -> c.getClasificacion() == Clasificacion.SIN_DISPONIBILIDAD).count());
         return "pm/disponibilidad";
-    }
-
-    /**
-     * Presenta las recomendaciones de talento y permite filtrarlas por proyecto.
-     *
-     * @param idProyecto identificador opcional del proyecto
-     * @param model modelo utilizado para cargar recomendaciones y proyectos
-     * @return nombre de la plantilla de recomendaciones
-     */
-    @GetMapping("/recomendaciones")
-    public String recomendaciones(@RequestParam(value = "proyecto", required = false) Integer idProyecto,
-                                  Model model) {
-        var recomendaciones = recomendacionIARepository.findAllByOrderByPorcentajeMatchDesc();
-        if (idProyecto != null) {
-            recomendaciones = recomendaciones.stream()
-                    .filter(r -> r.getProyecto() != null && idProyecto.equals(r.getProyecto().getIdProyecto()))
-                    .toList();
-        }
-        model.addAttribute("titulo", "Recomendaciones IA");
-        model.addAttribute("recomendaciones", recomendaciones);
-        model.addAttribute("proyectos", proyectoRepository.findAll());
-        model.addAttribute("proyectoSeleccionado", idProyecto);
-        return "pm/recomendaciones";
     }
 
     /**

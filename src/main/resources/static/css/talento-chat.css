@@ -1,0 +1,60 @@
+.talento-rm { max-width: 84rem; padding-bottom: 2rem; }
+.talento-rm .page-intro { align-items: center; flex-wrap: wrap; }
+.talento-rm .page-intro h2 { margin: 0 0 .3rem; }
+.talento-rm .page-intro p { margin: 0; }
+.talento-contexto { display: grid; grid-template-columns: minmax(14rem, 1fr) 10rem 10rem 14.5rem; gap: .7rem; }
+.talento-contexto .form-group { min-width: 0; }
+.talento-contexto label { display: block; margin-bottom: .25rem; font-size: var(--text-xs); font-weight: 650; color: var(--color-ink); }
+.talento-contexto label small { font-weight: 400; color: var(--color-muted); }
+.talento-contexto input, .talento-contexto select {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: var(--space-2xs) var(--space-xs);
+    border: 1px solid var(--color-rule-2);
+    border-radius: var(--radius-input);
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-size: var(--text-sm);
+}
+.chat-talento { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-rule); }
+.mensaje-talento { display: flex; flex-direction: column; gap: .3rem; margin: 0 0 .8rem; }
+.mensaje-talento.usuario { align-items: flex-end; }
+.mensaje-talento.asistente { align-items: flex-start; }
+.mensaje-talento header { color: var(--color-muted); font-size: var(--text-xs); font-weight: 700; }
+.mensaje-talento p { max-width: 58rem; padding: .7rem .85rem; margin: 0; border-radius: var(--radius-input); line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
+.mensaje-talento.usuario p { background: var(--color-accent-soft); color: var(--color-ink); }
+.mensaje-talento.asistente p { background: var(--color-paper-2); border: 1px solid var(--color-rule); color: var(--color-ink-2); }
+.criterios { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; margin: .1rem 0 1rem; }
+.criterios strong { margin-right: .35rem; font-size: var(--text-xs); }
+.criterios .badge { background: var(--color-paper-2); color: var(--color-ink-2); }
+.resultados-encabezado { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: .6rem; }
+.resultados-encabezado h3 { font-size: var(--text-md); margin: 0; }
+.resultados-encabezado p { font-size: var(--text-xs); margin: 0; }
+.candidatos { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .85rem; }
+.candidato { padding: .95rem 1rem; border: 1px solid var(--color-rule); border-radius: var(--radius-card); background: var(--color-paper); }
+.candidato-encabezado { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+.candidato-encabezado h4 { font-size: var(--text-md); margin: 0 0 .12rem; }
+.candidato-encabezado p { font-size: var(--text-xs); margin: 0; }
+.evidencia { margin: .7rem 0; }
+.evidencia > div { display: grid; grid-template-columns: minmax(0,8.5rem) minmax(0,1fr); gap: .6rem; padding: .32rem 0; border-bottom: 1px solid var(--color-rule); font-size: var(--text-xs); }
+.evidencia dt { font-weight: 650; color: var(--color-ink); }
+.evidencia dd { margin: 0; color: var(--color-ink-2); }
+.evidencia .pendiente { color: var(--color-warning); }
+.capacidad { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .45rem .65rem; border-radius: var(--radius-xs); background: var(--color-success-soft); color: var(--color-success); font-size: var(--text-xs); }
+.capacidad strong { font-size: var(--text-sm); }
+.acciones-candidato { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .4rem; margin-top: .75rem; }
+.entrada-chat { display: flex; align-items: flex-start; gap: .6rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-rule); }
+.entrada-chat .campo-mensaje { flex: 1; min-width: 0; }
+.entrada-chat textarea { display: block; width: 100%; min-height: 2.75rem; resize: vertical; }
+.talento-rm .is-invalid { border-color: var(--color-danger); }
+.candidato .evidencia dd { overflow-wrap: anywhere; }
+
+@media (max-width: 1160px) {
+    .talento-contexto { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+    .talento-contexto, .candidatos { grid-template-columns: minmax(0, 1fr); }
+    .resultados-encabezado, .candidato-encabezado { flex-wrap: wrap; }
+    .evidencia > div { grid-template-columns: minmax(0, 1fr); gap: .2rem; }
+    .acciones-candidato { justify-content: flex-start; }
+}

@@ -1,5 +1,6 @@
 package pe.edu.pucp.skillbridge.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +13,11 @@ import java.util.List;
  * Define las operaciones de acceso y modificación de datos para los proyectos.
  */
 public interface ProyectoRepository extends JpaRepository<Proyecto, Integer> {
+    long countByEstado(Proyecto.EstadoProyecto estado);
+
+    @EntityGraph(attributePaths = "projectManager")
+    List<Proyecto> findByEstadoInOrderByFechaFinDescIdProyectoDesc(List<Proyecto.EstadoProyecto> estados);
+
     /**
      * Busca los proyectos administrados por un usuario y los ordena por fecha de creación descendente.
      *

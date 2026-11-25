@@ -5,99 +5,159 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Asignaciones | SkillBridge AI</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/resource-gestion.css}">
 </head>
 <body>
 <div class="app-shell">
     <aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside>
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
+        <div class="content asignaciones-rm">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
             <p class="alert-success" role="status" th:if="${mensajeExito}" th:text="${mensajeExito}"></p>
             <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
-            <div class="grid-4">
+
+            <section class="page-intro">
+                <div>
+                    <h2>Asignaciones</h2>
+                    <p>Consulta quién participa en cada proyecto y su dedicación asignada.</p>
+                </div>
+                <a class="btn btn-primary" th:href="@{/resource/asignaciones/nueva}">+ Nueva asignación</a>
+            </section>
+
+            <section class="grid-4" aria-label="Resumen de asignaciones">
                 <div class="metric">
-                    <div class="metric-icon">☷</div>
                     <div class="label">Asignaciones</div>
-                    <div class="value" th:text="${#lists.size(asignaciones)}"></div>
+                    <div class="value" th:text="${totalAsignaciones}"></div>
                     <div class="hint">Total registrado</div>
                 </div>
                 <div class="metric green">
-                    <div class="metric-icon">✓</div>
-                    <div class="label">Activas</div>
-                    <div class="value" th:text="${activas}"></div>
-                    <div class="hint">En curso</div>
+                    <div class="label">Vigentes hoy</div>
+                    <div class="value" th:text="${vigentes}"></div>
+                    <div class="hint" th:unless="${activasVencidas > 0}">Activas dentro de sus fechas</div>
+                    <div class="hint nota-estado" th:if="${activasVencidas > 0}"
+                         th:text="${activasVencidas == 1 ? '1 activa con fecha de fin vencida'
+                             : activasVencidas + ' activas con fecha de fin vencida'}"></div>
                 </div>
                 <div class="metric blue">
-                    <div class="metric-icon">◷</div>
                     <div class="label">Planificadas</div>
                     <div class="value" th:text="${planificadas}"></div>
-                    <div class="hint">Próximas</div>
+                    <div class="hint">Pendientes de activar</div>
                 </div>
                 <div class="metric orange">
-                    <div class="metric-icon">◆</div>
-                    <div class="label">Finalizadas</div>
-                    <div class="value" th:text="${finalizadas}"></div>
-                    <div class="hint">Históricas</div>
+                    <div class="label">Cerradas</div>
+                    <div class="value" th:text="${cerradas}"></div>
+                    <div class="hint">Finalizadas o canceladas</div>
                 </div>
-            </div>
-            <div class="page-actions section">
-                <a class="btn btn-primary" th:href="@{/resource/asignaciones/nueva}">＋ Nueva asignación</a>
-            </div>
-            <section class="card section">
-                <div class="filters"><input class="search" placeholder="Buscar asignación"><select class="compact">
-                    <option>Todos los proyectos</option>
-                </select><select class="compact">
-                    <option>Todos los estados</option>
-                </select>
-                    <button class="btn btn-light">Filtros</button>
-                </div>
-                <div class="table-wrap">
-                    <table>
+            </section>
+
+            <section class="card section" aria-label="Asignaciones registradas">
+                <form class="filtros-asignaciones" role="search" method="get" th:action="@{/resource/asignaciones}" novalidate>
+                    <div class="form-group">
+                        <label for="busqueda">Buscar asignaciones</label>
+                        <input id="busqueda" name="q" type="text" th:value="${q}"
+                               placeholder="Ej. María González, Plataforma Web o Backend"
+                               th:attr="aria-invalid=${erroresFiltros.containsKey('q')},
+                                        aria-describedby=${erroresFiltros.containsKey('q') ? 'error-busqueda' : null}">
+                        <p class="field-error" id="error-busqueda" role="alert" th:if="${erroresFiltros.containsKey('q')}"
+                           th:text="${erroresFiltros.get('q')}"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="proyecto">Proyecto</label>
+                        <select id="proyecto" name="proyecto"
+                                th:attr="aria-invalid=${erroresFiltros.containsKey('proyecto')},
+                                         aria-describedby=${erroresFiltros.containsKey('proyecto') ? 'error-proyecto' : null}">
+                            <option value="">Todos los proyectos</option>
+                            <option th:each="p : ${proyectos}" th:value="${p.idProyecto}"
+                                    th:selected="${p.idProyecto == proyectoSeleccionado}" th:text="${p.nombre}"></option>
+                        </select>
+                        <p class="field-error" id="error-proyecto" role="alert" th:if="${erroresFiltros.containsKey('proyecto')}"
+                           th:text="${erroresFiltros.get('proyecto')}"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="estado">Estado</label>
+                        <select id="estado" name="estado"
+                                th:attr="aria-invalid=${erroresFiltros.containsKey('estado')},
+                                         aria-describedby=${erroresFiltros.containsKey('estado') ? 'error-estado' : null}">
+                            <option value="TODOS">Todos los estados</option>
+                            <option th:each="e : ${estados}" th:value="${e.name()}"
+                                    th:selected="${e == estadoSeleccionado}" th:text="${e.etiqueta}"></option>
+                        </select>
+                        <p class="field-error" id="error-estado" role="alert" th:if="${erroresFiltros.containsKey('estado')}"
+                           th:text="${erroresFiltros.get('estado')}"></p>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Buscar</button>
+                    <a class="btn btn-light" th:href="@{/resource/asignaciones}">Limpiar</a>
+                </form>
+
+                <div class="table-wrap" role="region" aria-label="Tabla de asignaciones" tabindex="0"
+                     th:if="${!asignaciones.isEmpty()}">
+                    <table class="asignaciones-tabla">
+                        <colgroup>
+                            <col class="colaborador"><col class="proyecto"><col class="rol">
+                            <col class="fecha"><col class="fecha"><col class="dedicacion">
+                            <col class="estado"><col class="acciones">
+                        </colgroup>
                         <thead>
                         <tr>
-                            <th>Colaborador</th>
-                            <th>Proyecto</th>
-                            <th>Rol</th>
-                            <th>Fecha inicio</th>
-                            <th>Fecha fin</th>
-                            <th>Carga</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
+                            <th scope="col">Colaborador</th>
+                            <th scope="col">Proyecto</th>
+                            <th scope="col">Rol en el proyecto</th>
+                            <th scope="col">Inicio</th>
+                            <th scope="col">Fin</th>
+                            <th scope="col">Dedicación</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Acciones</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:each="a : ${asignaciones}">
-                            <td><strong th:text="${a.colaborador.usuario.nombreCompleto}"></strong><br><small
-                                    class="muted" th:text="${a.colaborador.cargo}"></small></td>
+                        <tr th:each="a : ${asignaciones}"
+                            th:with="vencida=${a.estado != null and !a.estado.cerrada and a.tieneFinVencido(hoy)},
+                                     inicioPendiente=${a.estado?.name() == 'PLANIFICADA' and !a.esHistorica(hoy) and !a.fechaInicio.isAfter(hoy)}">
+                            <td>
+                                <strong class="persona-nombre" th:text="${a.colaborador.usuario.nombreCompleto}"></strong>
+                                <small class="persona-cargo muted" th:if="${a.colaborador.cargo != null}"
+                                       th:text="${a.colaborador.cargo}"></small>
+                            </td>
                             <td th:text="${a.proyecto.nombre}"></td>
                             <td th:text="${a.rolProyecto}"></td>
-                            <td th:text="${a.fechaInicio}"></td>
-                            <td th:text="${a.fechaFin ?: '-'}"></td>
+                            <td class="periodo">
+                                <time th:datetime="${a.fechaInicio}" th:text="${#temporals.format(a.fechaInicio, 'dd-MM-yyyy')}"></time>
+                            </td>
+                            <td class="periodo">
+                                <time th:if="${a.fechaFin != null}" th:datetime="${a.fechaFin}"
+                                      th:text="${#temporals.format(a.fechaFin, 'dd-MM-yyyy')}"></time>
+                                <span th:unless="${a.fechaFin != null}" class="muted">Sin fecha de fin</span>
+                            </td>
                             <td>
-                                <div class="progress"><span th:style="|width:${a.porcentajeDedicacion}%|"></span></div>
-                                <small th:text="|${a.porcentajeDedicacion}%|"></small></td>
-                            <td><span class="badge"
-                                      th:classappend="${a.estado.name() == 'ACTIVA'} ? ' badge-success' : ' badge-warning'"
-                                      th:text="${a.estado}"></span></td>
-                            <td>
-                                <div class="action-row"><a class="btn btn-light btn-sm"
-                                                           th:href="@{/resource/asignaciones/editar/{id}(id=${a.idAsignacion})}">Editar</a>
-                                    <form th:if="${a.estado.name() != 'FINALIZADA' and a.estado.name() != 'CANCELADA'}"
-                                          th:action="@{/resource/asignaciones/{id}/estado(id=${a.idAsignacion})}"
-                                          method="post"><input type="hidden" name="estado" value="FINALIZADA">
-                                        <button class="btn btn-success-soft btn-sm">Finalizar</button>
-                                    </form>
-                                    <form th:if="${a.estado.name() != 'CANCELADA' and a.estado.name() != 'FINALIZADA'}"
-                                          th:action="@{/resource/asignaciones/{id}/estado(id=${a.idAsignacion})}"
-                                          method="post"><input type="hidden" name="estado" value="CANCELADA">
-                                        <button class="btn btn-danger-soft btn-sm">Cancelar</button>
-                                    </form>
+                                <div class="valor-dedicacion">
+                                    <strong th:text="|${a.porcentajeDedicacion} %|"></strong>
+                                    <div class="progress" aria-hidden="true">
+                                        <span th:style="|width:${a.porcentajeDedicacion}%|"></span>
+                                    </div>
                                 </div>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${a.estado == null ? '' : (vencida ? 'badge-warning' : (a.estado.name() == 'PLANIFICADA'
+                                          ? 'badge-blue' : (a.estado.name() == 'CANCELADA' ? 'badge-danger' : 'badge-success')))}"
+                                      th:text="${a.estado?.etiqueta ?: 'Sin estado'}"></span>
+                                <small class="nota-estado" th:if="${vencida}">Fecha de fin vencida</small>
+                                <small class="nota-estado" th:if="${inicioPendiente}">Inicio pendiente</small>
+                            </td>
+                            <td>
+                                <div th:replace="~{fragments/asignacion-acciones :: acciones(${a}, '/resource/asignaciones')}"></div>
                             </td>
                         </tr>
                         </tbody>
                     </table>
                 </div>
+                <p class="empty" th:if="${asignaciones.isEmpty() and erroresFiltros.isEmpty()}"
+                   th:text="${totalAsignaciones == 0 ? 'Aún no hay asignaciones registradas.'
+                       : 'No hay asignaciones que coincidan con los filtros.'}"></p>
+                <p class="resultados muted" th:if="${!asignaciones.isEmpty()}"
+                   th:text="${asignaciones.size() == 1 ? '1 asignación encontrada'
+                       : asignaciones.size() + ' asignaciones encontradas'}"></p>
             </section>
         </div>
     </main>

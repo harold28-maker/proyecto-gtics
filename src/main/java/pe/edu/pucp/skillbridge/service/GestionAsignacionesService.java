@@ -45,6 +45,12 @@ public class GestionAsignacionesService {
         return List.of();
     }
 
+    public List<Proyecto> proyectosVigentes(Usuario gestor) {
+        return proyectosDisponibles(gestor).stream()
+                .filter(CapacidadColaboradorService::proyectoVigente)
+                .toList();
+    }
+
     public Asignacion consultarAsignacion(Integer id, Usuario gestor) {
         return asignaciones.findById(id).filter(a -> puedeGestionar(gestor, a.getProyecto()))
                 .orElseThrow(GestionAsignacionesService::noEncontrada);
@@ -52,7 +58,9 @@ public class GestionAsignacionesService {
 
     @Transactional(readOnly = true)
     public CapacidadPeriodo consultarPeriodo(AsignacionFormulario formulario, Usuario gestor) {
-        if (formulario.getIdAsignacion() != null) consultarAsignacion(formulario.getIdAsignacion(), gestor);
+        Asignacion registrada = formulario.getIdAsignacion() == null ? null
+                : consultarAsignacion(formulario.getIdAsignacion(), gestor);
+        validarEstadoFormulario(formulario.getEstado(), registrada);
         Proyecto proyecto = consultarProyecto(formulario.getIdProyecto(), gestor);
         Colaborador colaborador = colaboradores.findById(formulario.getIdColaborador())
                 .orElseThrow(GestionAsignacionesService::colaboradorInvalido);
@@ -64,7 +72,9 @@ public class GestionAsignacionesService {
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void guardar(AsignacionFormulario formulario, Usuario gestor) {
         Integer id = formulario.getIdAsignacion();
-        Asignacion asignacion = id == null ? new Asignacion() : buscarParaActualizar(id, gestor);
+        Asignacion registrada = id == null ? null : buscarParaActualizar(id, gestor);
+        validarEstadoFormulario(formulario.getEstado(), registrada);
+        Asignacion asignacion = registrada == null ? new Asignacion() : registrada;
         Proyecto proyecto = consultarProyecto(formulario.getIdProyecto(), gestor);
         Colaborador colaborador = colaboradores.buscarParaActualizar(formulario.getIdColaborador())
                 .orElseThrow(GestionAsignacionesService::colaboradorInvalido);
@@ -83,16 +93,39 @@ public class GestionAsignacionesService {
         asignaciones.save(asignacion);
     }
 
+    public Asignacion consultarCambioEstado(Integer id, EstadoAsignacion estado, Usuario gestor) {
+        Asignacion asignacion = consultarAsignacion(id, gestor);
+        validarCambioEstado(asignacion, estado);
+        return asignacion;
+    }
+
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void cambiarEstado(Integer id, EstadoAsignacion estado, Usuario gestor) {
         Asignacion asignacion = buscarParaActualizar(id, gestor);
-        if (CapacidadColaboradorService.ocupaCapacidad(estado)) {
+        validarCambioEstado(asignacion, estado);
+        if (estado == EstadoAsignacion.ACTIVA) {
             Colaborador colaborador = colaboradores.buscarParaActualizar(asignacion.getColaborador().getIdColaborador())
                     .orElseThrow(GestionAsignacionesService::colaboradorInvalido);
             validarDedicacion(asignacion.getProyecto(), colaborador, asignacion.getFechaInicio(),
                     asignacion.getFechaFin(), asignacion.getPorcentajeDedicacion(), id);
         }
         asignacion.setEstado(estado);
+    }
+
+    private void validarEstadoFormulario(EstadoAsignacion estado, Asignacion registrada) {
+        if (registrada == null && !CapacidadColaboradorService.ocupaCapacidad(estado)) {
+            throw new CampoInvalido("estado", "Una nueva asignación debe estar planificada o activa.");
+        }
+        if (registrada != null && estado != registrada.getEstado()) {
+            throw new CampoInvalido("estado",
+                    "El estado se cambia desde Asignaciones. Vuelve a abrir el formulario para continuar.");
+        }
+    }
+
+    private void validarCambioEstado(Asignacion asignacion, EstadoAsignacion destino) {
+        if (asignacion.getEstado() == null || !asignacion.getEstado().permiteCambiarA(destino)) {
+            throw new CampoInvalido("estado", "El estado actual de la asignación no permite este cambio.");
+        }
     }
 
     private void validarDedicacion(Proyecto proyecto, Colaborador colaborador, LocalDate inicio, LocalDate fin,

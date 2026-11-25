@@ -1,92 +1,145 @@
 <!doctype html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Talent Matching IA | SkillBridge AI</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside>
-      <main class="main">
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:fragment="pantalla">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title th:text="${titulo + ' | SkillBridge AI'}"></title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/talento-chat.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar(${rolVista})}"></aside>
+    <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
-          <section class="card hero-card">
-            <p class="eyebrow">Solicitud de búsqueda</p>
-            <div class="page-intro">
-              <div>
-                <h2>Encuentra candidatos compatibles</h2>
-                <p>
-                  Selecciona un proyecto y revisa recomendaciones previamente
-                  calculadas y almacenadas en la base de datos.
-                </p>
-              </div>
-              <span class="badge badge-purple">AI Talent Matching</span>
-            </div>
-            <form class="form-grid" method="get" th:action="@{/resource/talent}">
-              <div class="form-group">
-                <label for="proyecto">Proyecto</label
-                ><select id="proyecto" name="proyecto">
-                  <option value="">Todos los proyectos</option>
-                  <option
-                    th:each="p : ${proyectos}"
-                    th:value="${p.idProyecto}"
-                    th:text="${p.nombre}"
-                    th:selected="${p.idProyecto == proyectoSeleccionado}"
-                  ></option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Necesidad</label
-                ><input value="Backend Java / Spring Boot / Docker" readonly />
-              </div>
-              <div class="form-actions">
-                <button class="btn btn-primary" type="submit">Buscar candidatos</button>
-                <a class="btn btn-light" th:href="@{/resource/talent}">Limpiar</a>
-              </div>
-            </form>
-            <div class="tags" style="margin-top: 14px">
-              <span class="tag">Java</span><span class="tag">Spring Boot</span
-              ><span class="tag">Docker</span
-              ><span class="tag">Disponibilidad</span>
-            </div>
-          </section>
-          <section class="card section">
-            <div class="card-title">
-              <h2>Candidatos recomendados</h2>
-              <span
-                class="badge badge-success"
-                th:text="|${#lists.size(recomendaciones)} candidatos|"
-              ></span>
-            </div>
-            <article class="talent-card" th:each="r : ${recomendaciones}">
-              <div class="match-score" th:text="|${r.porcentajeMatch}%|"></div>
-              <div>
-                <h3
-                  style="margin: 0 0 5px"
-                  th:text="${r.colaborador.usuario.nombreCompleto}"
-                ></h3>
-                <p
-                  class="muted"
-                  style="margin: 0"
-                  th:text="|${r.colaborador.cargo} · ${r.colaborador.seniority}|"
-                ></p>
-                <p class="muted" th:text="${r.justificacion}"></p>
-                <div class="tags">
-                  <span class="tag" th:text="${r.proyecto.nombre}"></span
-                  ><span
-                    class="tag"
-                    th:text="|Disponibilidad base ${r.colaborador.disponibilidadBase}%|"
-                  ></span>
+        <div class="content talento-rm">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <section class="page-intro">
+                <div>
+                    <h2 th:text="${titulo}"></h2>
+                    <p>Describe el perfil que necesita tu proyecto y consulta candidatos con el asistente de IA.</p>
                 </div>
-              </div>
-              <span class="badge badge-purple">Recomendado</span>
-            </article>
-            <div class="empty" th:if="${#lists.isEmpty(recomendaciones)}">No hay candidatos recomendados para el proyecto seleccionado.</div>
-          </section>
+                <form th:action="@{${rutaTalento + '/nueva'}}" method="post">
+                    <button type="submit" class="btn btn-light">Nueva consulta</button>
+                </form>
+            </section>
+
+            <section class="card" aria-label="Chat de asignación de talento">
+                <p class="alert-error" role="status" th:if="${!iaConfigurada and mensajeError == null}">
+                    Gemini está pendiente de configuración. Se requiere GEMINI_API_KEY en el entorno de la aplicación.
+                </p>
+                <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
+
+                <form id="consulta-talento" th:object="${consultaTalento}" th:action="@{${rutaTalento}}" method="post" novalidate>
+                    <div class="talento-contexto">
+                        <div class="form-group">
+                            <label for="idProyecto">Proyecto</label>
+                            <select th:field="*{idProyecto}" th:errorclass="is-invalid">
+                                <option value="">Selecciona un proyecto</option>
+                                <option th:each="p : ${proyectos}" th:value="${p.idProyecto}" th:text="${p.nombre}"></option>
+                            </select>
+                            <p class="field-error" role="alert" th:errors="*{idProyecto}"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="desde">Desde <small>· opcional</small></label>
+                            <input type="date" th:field="*{desde}" th:errorclass="is-invalid">
+                            <p class="field-error" role="alert" th:errors="*{desde}"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="hasta">Hasta <small>· opcional</small></label>
+                            <input type="date" th:field="*{hasta}" th:errorclass="is-invalid">
+                            <p class="field-error" role="alert" th:errors="*{hasta}"></p>
+                            <p class="field-error" role="alert" th:errors="*{periodoValido}"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="dedicacion">Dedicación (%) <small>· opcional</small></label>
+                            <input type="number" th:field="*{dedicacion}" th:errorclass="is-invalid">
+                            <p class="field-error" role="alert" th:errors="*{dedicacion}"></p>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="chat-talento" aria-label="Conversación">
+                    <article class="mensaje-talento asistente" th:if="${turnos.isEmpty()}">
+                        <header>Asistente de talento IA</header>
+                        <p th:if="${proyectos.isEmpty()}">El chat se habilita al seleccionar un proyecto vigente a tu cargo.</p>
+                        <p th:unless="${proyectos.isEmpty()}">
+                            Escribe qué perfil buscas. Por ejemplo, «Necesito dos desarrolladores Java con experiencia en
+                            Spring Boot, Docker y sistemas de salud».
+                        </p>
+                    </article>
+                    <th:block th:each="turno, orden : ${turnos}">
+                        <article class="mensaje-talento usuario">
+                            <header>Tú</header><p th:text="${turno.mensaje}"></p>
+                        </article>
+                        <article class="mensaje-talento asistente">
+                            <header>Asistente de talento IA</header>
+                            <p th:text="${orden.last and resultado != null ? resultado.respuesta : turno.respuesta}"></p>
+                        </article>
+                    </th:block>
+
+                    <th:block th:if="${resultado != null and !resultado.criterios.isEmpty()}">
+                        <div class="criterios">
+                            <strong>Criterios de la consulta</strong>
+                            <span class="badge" th:each="criterio : ${resultado.criterios}" th:text="${criterio}"></span>
+                        </div>
+                        <div class="resultados-encabezado">
+                            <h3>Candidatos para revisar</h3>
+                            <p class="muted" th:text="|${resultado.solicitados} solicitados · ${resultado.completos} coincidencias completas|"></p>
+                        </div>
+
+                        <div class="candidatos" th:if="${!resultado.candidatos.isEmpty()}">
+                            <article class="candidato" th:each="c : ${resultado.candidatos}">
+                                <div class="candidato-encabezado">
+                                    <div>
+                                        <h4 th:text="${c.nombre}"></h4>
+                                        <p class="muted" th:text="${(c.cargo ?: 'Cargo por definir') + (c.nivel.isEmpty() ? '' : ' · ' + c.nivel)}"></p>
+                                    </div>
+                                    <span class="badge" th:classappend="${c.completo ? 'badge-success' : 'badge-warning'}"
+                                          th:text="${c.completo ? 'Coincidencia completa' : 'Coincidencia parcial'}"></span>
+                                </div>
+                                <dl class="evidencia">
+                                    <div th:each="dato : ${c.evidencias}">
+                                        <dt th:text="${dato.etiqueta}"></dt>
+                                        <dd th:classappend="${dato.cumple ? '' : 'pendiente'}" th:text="${dato.motivo}"></dd>
+                                    </div>
+                                </dl>
+                                <div class="capacidad" th:if="${verCapacidad}">
+                                    <span th:text="${desdeConsultado == null ? 'Disponible hoy' : 'Disponible en el período'}"
+                                          th:title="${desdeConsultado == null ? null :
+                                           #temporals.format(desdeConsultado, 'dd-MM-yyyy') + ' al ' + #temporals.format(hastaConsultado, 'dd-MM-yyyy')}"></span>
+                                    <strong th:text="|${c.disponible} %|"></strong>
+                                </div>
+                                <div class="acciones-candidato">
+                                    <th:block th:if="${verColaboradores}">
+                                        <a class="btn btn-light btn-sm" th:if="${rolVista == 'RM'}"
+                                           th:href="@{/resource/colaboradores/{id}(id=${c.idColaborador})}">Ver perfil</a>
+                                        <a class="btn btn-light btn-sm" th:if="${rolVista == 'PM'}"
+                                           th:href="@{/pm/colaboradores(q=${c.nombre})}">Ver en colaboradores</a>
+                                    </th:block>
+                                    <form th:if="${puedeAsignar}" th:action="@{${rutaTalento + '/preparar'}}" method="post">
+                                        <input type="hidden" name="idColaborador" th:value="${c.idColaborador}">
+                                        <input type="hidden" name="consulta" th:value="${consultaActual}">
+                                        <button type="submit" class="btn btn-light btn-sm">Preparar asignación</button>
+                                    </form>
+                                </div>
+                            </article>
+                        </div>
+                    </th:block>
+                </div>
+
+                <div class="entrada-chat" th:object="${consultaTalento}">
+                    <div class="campo-mensaje">
+                        <textarea form="consulta-talento" th:field="*{mensaje}" th:errorclass="is-invalid" rows="1"
+                                  aria-label="Mensaje para el asistente"
+                                  placeholder="Escribe una consulta o ajusta los criterios…"></textarea>
+                        <p class="field-error" role="alert" th:errors="*{mensaje}"></p>
+                    </div>
+                    <button type="submit" form="consulta-talento" class="btn btn-primary">Enviar</button>
+                </div>
+            </section>
         </div>
-      </main>
-    </div>
-  </body>
+    </main>
+</div>
+</body>
 </html>

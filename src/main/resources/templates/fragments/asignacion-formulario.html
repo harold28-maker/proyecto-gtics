@@ -57,12 +57,15 @@
                     </div>
                     <div class="form-group">
                         <label for="estado">Estado</label>
-                        <select th:field="*{estado}" th:errorclass="is-invalid">
+                        <select th:if="${asignacion.idAsignacion == null}" th:field="*{estado}" th:errorclass="is-invalid">
                             <option value="PLANIFICADA">Planificada</option>
                             <option value="ACTIVA">Activa</option>
-                            <option value="FINALIZADA">Finalizada</option>
-                            <option value="CANCELADA">Cancelada</option>
                         </select>
+                        <th:block th:if="${asignacion.idAsignacion != null}">
+                            <input type="text" id="estado" th:value="${asignacion.estado?.etiqueta}" readonly>
+                            <input type="hidden" id="estadoRegistrado" name="estado" th:value="${asignacion.estado?.name()}">
+                            <p class="help">Puedes cambiar el estado desde la tabla de asignaciones.</p>
+                        </th:block>
                         <div class="field-error" role="alert" th:errors="*{estado}"></div>
                     </div>
                 </div>
@@ -77,32 +80,34 @@
             </form>
         </section>
 
-        <aside class="card" aria-labelledby="capacidad-asignacion-titulo">
-            <div class="card-title"><h3 id="capacidad-asignacion-titulo">Disponibilidad y carga</h3></div>
-            <p class="muted" th:if="${capacidadHoy == null}">Selecciona un colaborador y consulta su capacidad.</p>
-            <section class="capacidad-asignacion" th:if="${capacidadHoy != null}">
-                <h3 th:text="${capacidadHoy.colaborador}"></h3>
-                <dl>
-                    <div><dt>Capacidad base</dt><dd th:text="|${capacidadHoy.disponibilidadBase} %|"></dd></div>
-                    <div><dt>Carga actual</dt><dd th:text="|${capacidadHoy.carga} %|"></dd></div>
-                    <div><dt>Disponible hoy</dt><dd th:text="|${capacidadHoy.disponibilidad} %|"></dd></div>
-                </dl>
-            </section>
-            <section class="capacidad-asignacion" th:if="${capacidadPeriodo != null}" aria-live="polite">
-                <h3>Capacidad del período</h3>
-                <p class="muted">
-                    <time th:text="${#temporals.format(capacidadPeriodo.inicio, 'dd-MM-yyyy')}"></time>
-                    <span aria-hidden="true"> · </span>
-                    <span th:text="${capacidadPeriodo.fin != null ? #temporals.format(capacidadPeriodo.fin, 'dd-MM-yyyy') : 'Sin fecha de fin'}"></span>
-                </p>
-                <dl>
-                    <div><dt>Carga máxima comprometida</dt><dd th:text="|${capacidadPeriodo.cargaMaxima} %|"></dd></div>
-                    <div><dt>Disponible para asignar</dt><dd th:text="|${capacidadPeriodo.disponible} %|"></dd></div>
-                </dl>
-                <p class="help">Vuelve a consultar si cambias de colaborador o de fechas.</p>
-            </section>
-        </aside>
+        <aside th:replace="~{fragments/asignacion-formulario :: panelCapacidad(true)}"></aside>
     </div>
 </th:block>
+
+<aside class="card" th:fragment="panelCapacidad(enFormulario)" aria-labelledby="capacidad-asignacion-titulo">
+    <div class="card-title"><h3 id="capacidad-asignacion-titulo">Disponibilidad y carga</h3></div>
+    <p class="muted" th:if="${capacidadHoy == null}">Selecciona un colaborador y consulta su capacidad.</p>
+    <section class="capacidad-asignacion" th:if="${capacidadHoy != null}">
+        <h3 th:text="${capacidadHoy.colaborador}"></h3>
+        <dl>
+            <div><dt>Capacidad base</dt><dd th:text="|${capacidadHoy.disponibilidadBase} %|"></dd></div>
+            <div><dt>Carga actual</dt><dd th:text="|${capacidadHoy.carga} %|"></dd></div>
+            <div><dt>Disponible hoy</dt><dd th:text="|${capacidadHoy.disponibilidad} %|"></dd></div>
+        </dl>
+    </section>
+    <section class="capacidad-asignacion" th:if="${capacidadPeriodo != null}" aria-live="polite">
+        <h3>Capacidad del período</h3>
+        <p class="muted">
+            <time th:text="${#temporals.format(capacidadPeriodo.inicio, 'dd-MM-yyyy')}"></time>
+            <span aria-hidden="true"> · </span>
+            <span th:text="${capacidadPeriodo.fin != null ? #temporals.format(capacidadPeriodo.fin, 'dd-MM-yyyy') : 'Sin fecha de fin'}"></span>
+        </p>
+        <dl>
+            <div><dt>Carga máxima comprometida</dt><dd th:text="|${capacidadPeriodo.cargaMaxima} %|"></dd></div>
+            <div><dt>Disponible para asignar</dt><dd th:text="|${capacidadPeriodo.disponible} %|"></dd></div>
+        </dl>
+        <p class="help" th:if="${enFormulario}">Vuelve a consultar si cambias de colaborador o de fechas.</p>
+    </section>
+</aside>
 </body>
 </html>

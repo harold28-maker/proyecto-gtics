@@ -1,1 +1,182 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Proyectos anteriores | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content"><div class="grid-3"><div class="metric"><div class="metric-icon">◷</div><div class="label">Proyectos registrados</div><div class="value" th:text="${#lists.size(proyectos)}"></div><div class="hint">Histórico disponible</div></div><div class="metric green"><div class="metric-icon">✓</div><div class="label">Completados</div><div class="value" th:text="${completados}"></div><div class="hint">Finalizados con éxito</div></div><div class="metric orange"><div class="metric-icon">×</div><div class="label">Cancelados</div><div class="value" th:text="${cancelados}"></div><div class="hint">Registro histórico</div></div></div><section class="card section"><div class="table-wrap"><table><thead><tr><th>Proyecto</th><th>Project Manager</th><th>Periodo</th><th>Estado</th><th>Vacantes</th><th>Progreso</th></tr></thead><tbody><tr th:each="p : ${proyectos}"><td><strong th:text="${p.nombre}"></strong><br><small class="muted" th:text="${p.descripcion}"></small></td><td th:text="${p.projectManager.nombreCompleto}"></td><td><span th:text="${p.fechaInicio}"></span><br><small class="muted" th:text="${p.fechaFin ?: '-'}"></small></td><td><span class="badge" th:classappend="${p.estado.name() == 'COMPLETED'} ? ' badge-success' : ' badge-purple'" th:text="${p.estado}"></span></td><td th:text="${p.vacantes}"></td><td><div class="progress"><span th:style="|width:${p.progreso}%|"></span></div><small th:text="|${p.progreso}%|"></small></td></tr></tbody></table></div></section></div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Proyectos anteriores | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/resource-gestion.css}">
+    <link rel="stylesheet" th:href="@{/css/historial-recursos.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content historial-rm">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <section class="page-intro">
+                <div>
+                    <h2>Proyectos anteriores</h2>
+                    <p>Consulta los proyectos cerrados y las participaciones de cada equipo.</p>
+                </div>
+            </section>
+
+            <section class="grid-3 contador-historial" aria-label="Totales del historial">
+                <div class="metric">
+                    <div class="label">Proyectos cerrados</div>
+                    <div class="value" th:text="${totalCerrados}"></div>
+                    <div class="hint">Total del historial</div>
+                </div>
+                <div class="metric green">
+                    <div class="label">Completados</div>
+                    <div class="value" th:text="${completados}"></div>
+                </div>
+                <div class="metric orange">
+                    <div class="label">Cancelados</div>
+                    <div class="value" th:text="${cancelados}"></div>
+                </div>
+            </section>
+
+            <section class="card section" aria-labelledby="proyectos-cerrados">
+                <div class="card-title">
+                    <h2 id="proyectos-cerrados">Historial de proyectos</h2>
+                    <span class="total-listado" th:if="${erroresFiltros.isEmpty()}"
+                          th:text="|${resultados} ${resultados == 1 ? 'resultado' : 'resultados'}|"></span>
+                </div>
+                <form class="filtros-historial" method="get" th:action="@{/resource/historial}" novalidate>
+                    <div class="busqueda">
+                        <label for="busqueda">Buscar proyecto</label>
+                        <input id="busqueda" name="q" type="search" th:value="${q}"
+                               placeholder="Nombre del proyecto o Project Manager"
+                               th:attr="aria-invalid=${erroresFiltros.containsKey('q')}">
+                    </div>
+                    <div class="estado-filtro">
+                        <label for="estado">Estado</label>
+                        <select id="estado" name="estado" th:attr="aria-invalid=${erroresFiltros.containsKey('estado')}">
+                            <option value="TODOS">Todos los cerrados</option>
+                            <option value="COMPLETED" th:selected="${estadoSeleccionado?.name() == 'COMPLETED'}">Completados</option>
+                            <option value="CANCELLED" th:selected="${estadoSeleccionado?.name() == 'CANCELLED'}">Cancelados</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-light">Buscar</button>
+                    <a th:href="@{/resource/historial}" class="btn btn-light">Limpiar</a>
+                </form>
+
+                <div class="alert-error" role="alert" th:unless="${erroresFiltros.isEmpty()}">
+                    <p th:each="error : ${erroresFiltros.values()}" th:text="${error}"></p>
+                </div>
+                <p class="alert-error" role="alert" th:if="${errorDetalle != null}" th:text="${errorDetalle}"></p>
+                <p class="empty" th:if="${erroresFiltros.isEmpty() and proyectos.isEmpty()}"
+                   th:text="${totalCerrados == 0 ? 'Aún no hay proyectos cerrados.' : 'No hay proyectos cerrados que coincidan con los filtros.'}"></p>
+
+                <div class="table-wrap" th:unless="${proyectos.isEmpty()}">
+                    <table class="tabla-proyectos">
+                        <thead>
+                        <tr>
+                            <th scope="col">Proyecto</th><th scope="col">Project Manager</th><th scope="col">Período registrado</th>
+                            <th scope="col">Estado</th><th scope="col">Equipo</th><th scope="col">Avance</th><th scope="col">Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody><tr th:each="p : ${proyectos}"
+                                   th:with="personas=${integrantes.get(p.idProyecto) ?: 0},
+                                            completo=${p.estado.name() == 'COMPLETED'},
+                                            abierto=${detalleProyecto != null and detalleProyecto.idProyecto == p.idProyecto}">
+                            <td>
+                                <strong th:text="${p.nombre}"></strong>
+                                <small th:unless="${#strings.isEmpty(p.descripcion)}" th:text="${p.descripcion}"></small>
+                            </td>
+                            <td th:text="${p.projectManager.nombreCompleto}"></td>
+                            <td class="dato-periodo">
+                                <span th:text="${p.fechaInicio == null ? 'Sin fecha de inicio' : #temporals.format(p.fechaInicio, 'dd-MM-yyyy')}"></span>
+                                <span aria-hidden="true">–</span>
+                                <span th:text="${p.fechaFin == null ? 'Sin fecha de fin' : #temporals.format(p.fechaFin, 'dd-MM-yyyy')}"></span>
+                            </td>
+                            <td><span class="badge" th:classappend="${completo ? 'badge-success' : 'badge-danger'}"
+                                      th:text="${completo ? 'Completado' : 'Cancelado'}"></span></td>
+                            <td th:text="|${personas} ${personas == 1 ? 'persona' : 'personas'}|"></td>
+                            <td>
+                                <div class="avance-registro">
+                                    <div class="progress" aria-hidden="true"><span th:style="|width:${p.progreso}%|"></span></div>
+                                    <strong th:text="|${p.progreso} %|"></strong>
+                                </div>
+                            </td>
+                            <td class="acciones-historial">
+                                <a class="btn btn-light btn-sm" th:classappend="${abierto ? 'detalle-activo' : ''}"
+                                   th:attr="aria-label=|Ver detalle de ${p.nombre}|,aria-expanded=${abierto}"
+                                   th:href="@{/resource/historial(q=${q},estado=${estadoSeleccionado?.name()},page=${paginaActual},proyecto=${p.idProyecto})} + '#detalle-equipo'">Ver detalle</a>
+                            </td>
+                        </tr></tbody>
+                    </table>
+                </div>
+
+                <footer class="directorio-pie" th:if="${totalPaginas > 1}">
+                    <p class="muted" th:text="|Mostrando ${desde}–${hasta} de ${resultados} proyectos|"></p>
+                    <nav class="directorio-paginas" aria-label="Paginación del historial"
+                         th:with="primera=${paginaActual > 3 ? paginaActual - 2 : 1},
+                                  ultima=${paginaActual + 2 < totalPaginas ? paginaActual + 2 : totalPaginas}">
+                        <span class="btn btn-light btn-sm" th:if="${paginaActual == 1}" aria-disabled="true">Anterior</span>
+                        <a class="btn btn-light btn-sm" th:if="${paginaActual > 1}"
+                           th:href="@{/resource/historial(q=${q},estado=${estadoSeleccionado?.name()},page=${paginaActual - 1})}">Anterior</a>
+                        <a class="btn btn-sm" th:each="numero : ${#numbers.sequence(primera, ultima)}"
+                           th:classappend="${numero == paginaActual ? 'btn-primary' : 'btn-light'}"
+                           th:attr="aria-current=${numero == paginaActual ? 'page' : null}"
+                           th:href="@{/resource/historial(q=${q},estado=${estadoSeleccionado?.name()},page=${numero})}"
+                           th:text="${numero}"></a>
+                        <a class="btn btn-light btn-sm" th:if="${paginaActual < totalPaginas}"
+                           th:href="@{/resource/historial(q=${q},estado=${estadoSeleccionado?.name()},page=${paginaActual + 1})}">Siguiente</a>
+                        <span class="btn btn-light btn-sm" th:if="${paginaActual == totalPaginas}" aria-disabled="true">Siguiente</span>
+                    </nav>
+                </footer>
+            </section>
+
+            <section class="card section detalle-historial" id="detalle-equipo" th:if="${detalleProyecto != null}" aria-labelledby="titulo-equipo">
+                <div class="encabezado-equipo">
+                    <div>
+                        <h2 id="titulo-equipo" th:text="|Equipo de ${detalleProyecto.nombre}|"></h2>
+                        <p>Participaciones registradas en el proyecto.</p>
+                    </div>
+                    <a class="btn btn-light btn-sm"
+                       th:href="@{/resource/historial(q=${q},estado=${estadoSeleccionado?.name()},page=${paginaActual})} + '#proyectos-cerrados'">Cerrar detalle</a>
+                </div>
+                <p class="empty" th:if="${equipo.isEmpty()}">Aún no hay participaciones registradas para este proyecto.</p>
+                <div class="table-wrap" th:unless="${equipo.isEmpty()}">
+                    <table class="tabla-equipo">
+                        <thead>
+                        <tr><th scope="col">Colaborador</th><th scope="col">Rol en el proyecto</th><th scope="col">Período de asignación</th>
+                            <th scope="col">Dedicación</th><th scope="col">Estado</th><th scope="col" class="equipo-perfil" th:if="${verPerfil}">Perfil</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="fila : ${equipo}" th:with="a=${fila.asignacion},c=${a.colaborador}">
+                            <td>
+                                <div class="persona-equipo">
+                                    <th:block th:if="${verPerfil}">
+                                        <span th:replace="~{fragments/perfil :: avatar(${c.usuario}, @{/resource/colaboradores/fotos/{id}(id=${c.idColaborador})}, 'mini-avatar')}"></span>
+                                    </th:block>
+                                    <span th:unless="${verPerfil}" class="mini-avatar" aria-hidden="true" th:text="${c.usuario.iniciales}"></span>
+                                    <strong th:text="${c.usuario.nombreCompleto}"></strong>
+                                </div>
+                            </td>
+                            <td th:text="${a.rolProyecto ?: 'Sin rol registrado'}"></td>
+                            <td class="dato-periodo">
+                                <span th:text="${#temporals.format(a.fechaInicio, 'dd-MM-yyyy')}"></span>
+                                <span aria-hidden="true">–</span>
+                                <span th:text="${a.fechaFin == null ? 'Sin fecha de fin' : #temporals.format(a.fechaFin, 'dd-MM-yyyy')}"></span>
+                            </td>
+                            <td th:text="|${a.porcentajeDedicacion} %|"></td>
+                            <td><span class="badge" th:classappend="${fila.estado.estilo}" th:text="${fila.estado.etiqueta}"></span></td>
+                            <td class="equipo-perfil" th:if="${verPerfil}">
+                                <a class="btn btn-light btn-sm"
+                                   th:href="@{/resource/colaboradores/{id}(id=${c.idColaborador})}"
+                                   th:attr="aria-label=|Ver perfil de ${c.usuario.nombreCompleto}|">Ver perfil</a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

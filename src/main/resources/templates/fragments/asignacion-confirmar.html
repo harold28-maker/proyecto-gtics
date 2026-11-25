@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title th:text="${titulo + ' | SkillBridge AI'}"></title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/resource-gestion.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar(${rolVista})}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content" th:with="activando=${destino.name() == 'ACTIVA'},
+                                    excede=${activando and asignacion.porcentajeDedicacion > capacidadPeriodo.disponible}">
+            <section class="page-intro"><h2 th:text="${titulo}"></h2></section>
+            <div class="confirmar-asignacion" th:classappend="${activando ? 'form-asignacion' : ''}">
+                <section class="card">
+                    <div th:switch="${destino.name()}">
+                        <p th:case="'ACTIVA'">Revisa la carga y la disponibilidad antes de activar la asignación.</p>
+                        <p th:case="'FINALIZADA'">La asignación quedará registrada como finalizada y dejará de ocupar capacidad.</p>
+                        <p th:case="'CANCELADA'">La asignación quedará registrada como cancelada y dejará de ocupar capacidad.</p>
+                    </div>
+                    <dl class="confirmar-datos">
+                        <div><dt>Colaborador</dt><dd th:text="${asignacion.colaborador.usuario.nombreCompleto}"></dd></div>
+                        <div><dt>Proyecto</dt><dd th:text="${asignacion.proyecto.nombre}"></dd></div>
+                        <div><dt>Rol en el proyecto</dt><dd th:text="${asignacion.rolProyecto}"></dd></div>
+                        <div><dt>Dedicación</dt><dd th:text="|${asignacion.porcentajeDedicacion} %|"></dd></div>
+                        <div><dt>Inicio</dt><dd th:text="${#temporals.format(asignacion.fechaInicio, 'dd-MM-yyyy')}"></dd></div>
+                        <div><dt>Fin</dt><dd th:text="${asignacion.fechaFin != null
+                            ? #temporals.format(asignacion.fechaFin, 'dd-MM-yyyy') : 'Sin fecha de fin'}"></dd></div>
+                    </dl>
+                    <p class="alert-error" role="alert" th:if="${excede}"
+                       th:text="|La dedicación supera el ${capacidadPeriodo.disponible} % disponible para ese período.|"></p>
+                    <form class="form-actions" method="post"
+                          th:action="@{${rutaAsignaciones + '/' + asignacion.idAsignacion + '/estado'}}">
+                        <a class="btn btn-light" th:href="@{${rutaAsignaciones}}">Volver a asignaciones</a>
+                        <a class="btn btn-primary" th:if="${excede}"
+                           th:href="@{${rutaAsignaciones + '/editar/' + asignacion.idAsignacion}}">Editar asignación</a>
+                        <input type="hidden" name="estado" th:value="${destino.name()}">
+                        <button class="btn" th:unless="${excede}" type="submit"
+                                th:classappend="${destino.name() == 'CANCELADA' ? 'btn-danger-soft' : 'btn-primary'}"
+                                th:text="${titulo}"></button>
+                    </form>
+                </section>
+                <th:block th:if="${activando}">
+                    <aside th:replace="~{fragments/asignacion-formulario :: panelCapacidad(false)}"></aside>
+                </th:block>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

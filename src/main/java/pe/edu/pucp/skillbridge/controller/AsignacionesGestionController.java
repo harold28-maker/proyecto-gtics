@@ -10,6 +10,7 @@ import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import pe.edu.pucp.skillbridge.dto.AsignacionFormulario;
+import pe.edu.pucp.skillbridge.entity.Asignacion;
 import pe.edu.pucp.skillbridge.entity.Asignacion.EstadoAsignacion;
 import pe.edu.pucp.skillbridge.entity.Colaborador;
 import pe.edu.pucp.skillbridge.entity.Usuario;
@@ -43,8 +44,9 @@ public class AsignacionesGestionController {
     @GetMapping("/nueva")
     public String nueva(@RequestParam(value = "idColaborador", defaultValue = "") String idColaborador,
                         @RequestAttribute("usuarioVerificado") Usuario gestor, Model model) {
-        AsignacionFormulario valores = new AsignacionFormulario();
-        if (!idColaborador.isBlank()) {
+        AsignacionFormulario valores = model.getAttribute("asignacion") instanceof AsignacionFormulario preparada
+                ? preparada : new AsignacionFormulario();
+        if (valores.getIdColaborador() == null && !idColaborador.isBlank()) {
             try {
                 int id = Integer.parseInt(idColaborador);
                 if (id > 0 && colaboradores.existsById(id)) valores.setIdColaborador(id);
@@ -86,6 +88,37 @@ public class AsignacionesGestionController {
             }
         }
         return vistaFormulario(formulario, errores, gestor, model);
+    }
+
+    @GetMapping("/{id}/estado")
+    public String confirmarEstado(@PathVariable Integer id, @RequestParam(defaultValue = "") String estado,
+                                  @RequestAttribute("usuarioVerificado") Usuario gestor, Model model,
+                                  RedirectAttributes redirect) {
+        try {
+            EstadoAsignacion destino = EstadoAsignacion.valueOf(estado);
+            Asignacion asignacion = gestion.consultarCambioEstado(id, destino, gestor);
+            String titulo = switch (destino) {
+                case ACTIVA -> "Activar asignación";
+                case FINALIZADA -> "Finalizar asignación";
+                case CANCELADA -> "Cancelar asignación";
+                case PLANIFICADA -> throw new IllegalArgumentException();
+            };
+            if (destino == EstadoAsignacion.ACTIVA) {
+                model.addAttribute("capacidadHoy", capacidad.consultarActual(asignacion.getColaborador()));
+                model.addAttribute("capacidadPeriodo", gestion.consultarPeriodo(AsignacionFormulario.desde(asignacion), gestor));
+            }
+            model.addAttribute("asignacion", asignacion);
+            model.addAttribute("titulo", titulo);
+            model.addAttribute("destino", destino);
+            model.addAttribute("rolVista", esResourceManager(gestor) ? "RM" : "PM");
+            model.addAttribute("rutaAsignaciones", ruta(gestor));
+            return "fragments/asignacion-confirmar";
+        } catch (IllegalArgumentException ex) {
+            redirect.addFlashAttribute("mensajeError", "Selecciona un estado de asignación válido.");
+        } catch (CampoInvalido ex) {
+            redirect.addFlashAttribute("mensajeError", ex.getMessage());
+        }
+        return "redirect:" + ruta(gestor);
     }
 
     @PostMapping("/{id}/estado")
@@ -131,7 +164,7 @@ public class AsignacionesGestionController {
                 && formulario.getFechaInicio() != null && formulario.isPeriodoValido()
                 && (errores == null || !(errores.hasFieldErrors("idAsignacion") || errores.hasFieldErrors("idProyecto")
                         || errores.hasFieldErrors("idColaborador") || errores.hasFieldErrors("fechaInicio")
-                        || errores.hasFieldErrors("fechaFin")));
+                        || errores.hasFieldErrors("fechaFin") || errores.hasFieldErrors("estado")));
     }
 
     private String ruta(Usuario gestor) {

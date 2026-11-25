@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div class="action-row" th:fragment="acciones(asignacion, ruta)"
+     th:with="actual=${asignacion.estado}">
+    <a class="btn btn-light btn-sm" th:href="@{${ruta + '/editar/' + asignacion.idAsignacion}}">Editar</a>
+    <a class="btn btn-blue-soft btn-sm" th:if="${actual?.activable}"
+       th:href="@{${ruta + '/' + asignacion.idAsignacion + '/estado'}(estado='ACTIVA')}">Activar</a>
+    <a class="btn btn-success-soft btn-sm" th:if="${actual?.finalizable}"
+       th:href="@{${ruta + '/' + asignacion.idAsignacion + '/estado'}(estado='FINALIZADA')}">Finalizar</a>
+    <a class="btn btn-danger-soft btn-sm" th:if="${actual?.cancelable}"
+       th:href="@{${ruta + '/' + asignacion.idAsignacion + '/estado'}(estado='CANCELADA')}">Cancelar</a>
+</div>
+</body>
+</html>

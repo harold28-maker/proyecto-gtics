@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import pe.edu.pucp.skillbridge.entity.Asignacion;
 import pe.edu.pucp.skillbridge.entity.Colaborador;
+import pe.edu.pucp.skillbridge.entity.Usuario;
 import pe.edu.pucp.skillbridge.repository.AsignacionRepository;
 import pe.edu.pucp.skillbridge.repository.ColaboradorRepository;
 
@@ -79,8 +80,34 @@ class CapacidadPeriodoTest {
         assertEquals(50, periodo.disponible());
     }
 
+    @Test
+    void calculaLaCargaMaximaDeCadaColaboradorSinMezclarSusAsignaciones() {
+        colaborador.setUsuario(new Usuario());
+        Colaborador otro = new Colaborador();
+        otro.setIdColaborador(8);
+        otro.setDisponibilidadBase(100);
+        otro.setUsuario(new Usuario());
+
+        Asignacion activa = asignacion(1, INICIO, FIN, 40);
+        activa.setColaborador(colaborador);
+        Asignacion planificada = asignacion(2, INICIO.plusDays(3), FIN, 30);
+        planificada.setColaborador(colaborador);
+        Asignacion compromisoOtro = asignacion(3, INICIO, FIN, 20);
+        compromisoOtro.setColaborador(otro);
+        when(asignaciones.buscarCompromisosEnPeriodo(eq(List.of(7, 8)),
+                eq(List.of(Asignacion.EstadoAsignacion.ACTIVA, Asignacion.EstadoAsignacion.PLANIFICADA)),
+                anyList(), eq(INICIO), eq(FIN))).thenReturn(List.of(activa, planificada, compromisoOtro));
+
+        var equipo = servicio.consultarCapacidadesPeriodo(List.of(colaborador, otro), INICIO, FIN);
+
+        assertEquals(70, equipo.get(7).getCarga());
+        assertEquals(10, equipo.get(7).getDisponibilidad());
+        assertEquals(20, equipo.get(8).getCarga());
+        assertEquals(80, equipo.get(8).getDisponibilidad());
+    }
+
     private void compromisos(LocalDate fin, Asignacion... valores) {
-        when(asignaciones.buscarCompromisosEnPeriodo(eq(7),
+        when(asignaciones.buscarCompromisosEnPeriodo(eq(List.of(7)),
                 eq(List.of(Asignacion.EstadoAsignacion.ACTIVA, Asignacion.EstadoAsignacion.PLANIFICADA)),
                 anyList(), eq(INICIO), eq(fin))).thenReturn(List.of(valores));
     }

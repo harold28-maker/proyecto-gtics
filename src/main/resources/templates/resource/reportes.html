@@ -5,60 +5,224 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reportes de recursos | SkillBridge AI</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/reportes-recursos.css}">
 </head>
 <body>
 <div class="app-shell">
     <aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside>
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
+        <div class="content reportes-rm">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
             <section class="page-intro">
-                <div><h2>Reportes de talento y capacidad</h2><p>Resume disponibilidad, carga, asignaciones y recomendaciones para apoyar decisiones de recursos.</p></div>
-                <a class="btn btn-light" th:href="@{/resource/inicio}">Volver al dashboard</a>
+                <div>
+                    <h2>Reportes de recursos</h2>
+                    <p>Consulta la carga vigente y la capacidad libre del equipo.</p>
+                </div>
+                <div class="corte-hoy">Corte de hoy
+                    <time th:attr="datetime=${hoy}" th:text="${#temporals.format(hoy, 'dd/MM/yyyy')}"></time>
+                </div>
             </section>
+            <p th:if="${errorReporte}" class="alert-error" role="alert" th:text="${errorReporte}"></p>
 
-            <div class="grid-4" th:unless="${permisosBloqueados.contains('capacidad')}">
-                <div class="metric"><div class="metric-icon">♙</div><div class="label">Colaboradores</div><div class="value" th:text="${totalColaboradores}">0</div><div class="hint">Perfiles analizados</div></div>
-                <div class="metric green"><div class="metric-icon">✓</div><div class="label">Disponibles</div><div class="value" th:text="${disponibles}">0</div><div class="hint">50% o más</div></div>
-                <div class="metric orange"><div class="metric-icon">!</div><div class="label">Sobrecargados</div><div class="value" th:text="${sobrecargados}">0</div><div class="hint">Carga sobre disponibilidad base</div></div>
-                <div class="metric blue"><div class="metric-icon">▤</div><div class="label">Carga promedio</div><div class="value" th:text="|${cargaPromedio}%|">0%</div><div class="hint">Del equipo</div></div>
-            </div>
-
-            <div class="grid-2 section">
-                <section class="card" th:unless="${permisosBloqueados.contains('capacidad')}">
-                    <div class="card-title"><h2>Capacidad del equipo</h2></div>
-                    <div class="bar-list">
-                        <div class="bar-item" th:each="c : ${cargas}">
-                            <span th:text="${c.colaborador}"></span>
-                            <div class="bar-track"><span th:style="|width:${c.disponibilidad > 100 ? 100 : c.disponibilidad}%|"></span></div>
-                            <strong th:text="|${c.disponibilidad}%|"></strong>
-                        </div>
-                    </div>
-                </section>
-                <section class="card">
-                    <div class="card-title"><h2>Resumen operativo</h2></div>
-                    <div class="list-row" th:unless="${permisosBloqueados.contains('asignaciones')}"><span>Asignaciones activas</span><strong th:text="${asignacionesActivas}">0</strong></div>
-                    <div class="list-row" th:unless="${permisosBloqueados.contains('historial')}"><span>Proyectos activos</span><strong th:text="${proyectosActivos}">0</strong></div>
-                    <div class="list-row" th:unless="${permisosBloqueados.contains('capacidad')}"><span>Sin disponibilidad</span><strong th:text="${sinDisponibilidad}">0</strong></div>
-                </section>
-            </div>
-
-            <section class="card section">
-                <div class="card-title"><h2>Reportes disponibles</h2></div>
-                <div class="grid-2">
-                    <div class="soft-panel" th:unless="${permisosBloqueados.contains('capacidad')}"><strong>Capacidad y carga</strong><p class="muted">Disponibilidad base, carga acumulada y capacidad restante.</p><div class="actions"><a class="btn btn-light btn-sm" th:href="@{/resource/reportes(reporte='capacidad')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/resource/reportes/exportar(tipo='capacidad')}">Descargar CSV</a></div></div>
-                    <div class="soft-panel" th:unless="${permisosBloqueados.contains('asignaciones')}"><strong>Asignaciones</strong><p class="muted">Proyecto, colaborador, rol, dedicación y estado.</p><div class="actions"><a class="btn btn-light btn-sm" th:href="@{/resource/reportes(reporte='asignaciones')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/resource/reportes/exportar(tipo='asignaciones')}">Descargar CSV</a></div></div>
-                    <div class="soft-panel" th:unless="${permisosBloqueados.contains('talento')}"><strong>Talent Matching</strong><p class="muted">Recomendaciones ordenadas por porcentaje de compatibilidad.</p><div class="actions"><a class="btn btn-light btn-sm" th:href="@{/resource/reportes(reporte='talento')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/resource/reportes/exportar(tipo='talento')}">Descargar CSV</a></div></div>
-                    <div class="soft-panel" th:unless="${permisosBloqueados.contains('historial')}"><strong>Proyectos</strong><p class="muted">Estado, prioridad, progreso y periodo de proyectos.</p><div class="actions"><a class="btn btn-light btn-sm" th:href="@{/resource/reportes(reporte='proyectos')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/resource/reportes/exportar(tipo='proyectos')}">Descargar CSV</a></div></div>
+            <section class="grid-4 metricas-reportes" th:if="${verCapacidad}" aria-label="Indicadores de recursos">
+                <div class="metric">
+                    <div class="label">Colaboradores</div>
+                    <div class="value" th:text="${resumen.cargas.size()}"></div>
+                    <div class="hint">Perfiles activos evaluados</div>
+                </div>
+                <div class="metric green">
+                    <div class="label">Disponibles</div>
+                    <div class="value" th:text="${resumen.disponibles}"></div>
+                    <div class="hint">Con 50 % o más de capacidad libre</div>
+                </div>
+                <div class="metric orange">
+                    <div class="label">Sobrecargados</div>
+                    <div class="value" th:text="${resumen.sobrecargados}"></div>
+                    <div class="hint">Con carga superior a su capacidad base</div>
+                </div>
+                <div class="metric blue">
+                    <div class="label">Carga promedio</div>
+                    <div class="value" th:text="|${resumen.cargaPromedio} %|"></div>
+                    <div class="hint">Dedicación media del equipo</div>
                 </div>
             </section>
 
-            <section class="card section" id="vista-previa" th:if="${reporteSeleccionado != null}">
-                <div class="card-title"><h2>Vista previa</h2><a class="btn btn-light btn-sm" th:href="@{/resource/reportes}">Cerrar</a></div>
-                <div class="table-wrap" th:if="${reporteSeleccionado == 'capacidad'}"><table><thead><tr><th>Colaborador</th><th>Cargo</th><th>Área</th><th>Base</th><th>Carga</th><th>Disponible</th></tr></thead><tbody><tr th:each="c : ${cargas}"><td th:text="${c.colaborador}"></td><td th:text="${c.cargo}"></td><td th:text="${c.area}"></td><td th:text="|${c.disponibilidadBase}%|"></td><td th:text="|${c.carga}%|"></td><td th:text="|${c.disponibilidad}%|"></td></tr></tbody></table></div>
-                <div class="table-wrap" th:if="${reporteSeleccionado == 'asignaciones'}"><table><thead><tr><th>Proyecto</th><th>Colaborador</th><th>Rol</th><th>Dedicación</th><th>Estado</th></tr></thead><tbody><tr th:each="a : ${asignaciones}"><td th:text="${a.proyecto.nombre}"></td><td th:text="${a.colaborador.usuario.nombreCompleto}"></td><td th:text="${a.rolProyecto}"></td><td th:text="|${a.porcentajeDedicacion}%|"></td><td th:text="${a.estado}"></td></tr></tbody></table></div>
-                <div class="table-wrap" th:if="${reporteSeleccionado == 'talento'}"><table><thead><tr><th>Proyecto</th><th>Colaborador</th><th>Match</th><th>Justificación</th></tr></thead><tbody><tr th:each="r : ${recomendaciones}"><td th:text="${r.proyecto.nombre}"></td><td th:text="${r.colaborador.usuario.nombreCompleto}"></td><td th:text="|${r.porcentajeMatch}%|"></td><td th:text="${r.justificacion}"></td></tr></tbody></table></div>
-                <div class="table-wrap" th:if="${reporteSeleccionado == 'proyectos'}"><table><thead><tr><th>Proyecto</th><th>Estado</th><th>Prioridad</th><th>Progreso</th><th>Inicio</th><th>Fin</th></tr></thead><tbody><tr th:each="p : ${proyectos}"><td th:text="${p.nombre}"></td><td th:text="${p.estado}"></td><td th:text="${p.prioridad}"></td><td th:text="|${p.progreso}%|"></td><td th:text="${p.fechaInicio}"></td><td th:text="${p.fechaFin ?: '-'}"></td></tr></tbody></table></div>
+            <div class="graficos-reportes" th:if="${verCapacidad or verAsignaciones or verProyectos}"
+                 th:with="grafico=${resumen.grafico}" th:classappend="${grafico == null ? 'solo-resumen' : ''}">
+                <section class="card" id="dedicacion-recursos" th:if="${grafico != null}" aria-labelledby="dedicacion-titulo">
+                    <div class="encabezado-grafico">
+                        <h2 id="dedicacion-titulo">Dedicación por colaborador y proyecto</h2>
+                        <nav class="vista-grafico" th:unless="${grafico.proyectos.isEmpty()}" aria-label="Vista de dedicación">
+                            <a th:href="@{/resource/reportes(vista='barras',reporte=${reporteActivo})} + '#dedicacion-recursos'"
+                               th:classappend="${modo == 'barras' ? 'seleccionada' : ''}"
+                               th:attr="aria-current=${modo == 'barras' ? 'page' : null}">Barras</a>
+                            <a th:href="@{/resource/reportes(vista='matriz',reporte=${reporteActivo})} + '#dedicacion-recursos'"
+                               th:classappend="${modo == 'matriz' ? 'seleccionada' : ''}"
+                               th:attr="aria-current=${modo == 'matriz' ? 'page' : null}">Matriz</a>
+                        </nav>
+                    </div>
+                    <p class="subtitulo-grafico">Asignaciones activas dentro de sus fechas.</p>
+                    <p class="empty" th:if="${grafico.proyectos.isEmpty()}">No hay asignaciones vigentes en este corte.</p>
+
+                    <th:block th:unless="${grafico.proyectos.isEmpty()}">
+                        <figure class="figura-carga" th:if="${modo == 'barras'}">
+                            <figcaption class="unidad-carga">Dedicación asignada</figcaption>
+                            <div class="desplazamiento-carga" tabindex="0" role="region" aria-label="Barras de dedicación">
+                                <div class="grafico-carga"
+                                     th:style="|--columnas:${grafico.columnas.size()}; min-width:${grafico.anchoMinimo}px|">
+                                    <div class="escala-carga" aria-hidden="true">
+                                        <span th:each="marca : ${grafico.marcas}" th:style="|top:${marca.posicion}%|"
+                                              th:text="|${marca.valor} %|"></span>
+                                    </div>
+                                    <div>
+                                        <div class="zona-barras">
+                                            <i th:each="marca : ${grafico.marcas}" th:if="${marca.valor > 0}"
+                                               class="linea-carga" th:style="|top:${marca.posicion}%|" aria-hidden="true"></i>
+                                            <div class="columnas-carga">
+                                                <div class="columna" th:each="columna : ${grafico.columnas}" role="img"
+                                                     th:attr="aria-label=|${columna.colaborador} · ${columna.total} % asignado|"
+                                                     th:style="|--carga:${columna.altura}%|">
+                                                    <span class="dedicacion-total" th:classappend="${columna.total == 0 ? 'valor-cero' : ''}"
+                                                          th:text="|${columna.total} %|"></span>
+                                                    <span class="barra-dedicacion">
+                                                        <span th:each="segmento : ${columna.segmentos}"
+                                                              th:style="|height:${segmento.altura}%; background:${segmento.color}|"
+                                                              th:title="|${segmento.proyecto} · ${segmento.valor} %|"
+                                                              th:text="${columna.segmentos.size() > 1 and segmento.valor >= 9
+                                                                    ? segmento.valor + ' %' : ''}"></span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="nombres-carga" aria-hidden="true">
+                                            <span th:each="columna : ${grafico.columnas}" th:text="${columna.colaborador}"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <ul class="leyenda-proyectos" aria-label="Proyectos">
+                                <li th:each="proyecto : ${grafico.proyectos}">
+                                    <span class="color-serie" th:style="|background:${proyecto.color}|" aria-hidden="true"></span>
+                                    <span th:text="${proyecto.nombre}"></span>
+                                </li>
+                            </ul>
+                        </figure>
+
+                        <div class="table-wrap matriz-recursos" th:if="${modo == 'matriz'}" tabindex="0"
+                             role="region" aria-label="Matriz de dedicación">
+                            <table>
+                                <thead>
+                                <tr><th scope="col">Proyecto</th>
+                                    <th scope="col" th:each="columna : ${grafico.columnas}" th:text="${columna.colaborador}"></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="proyecto : ${grafico.proyectos}">
+                                    <th scope="row" th:text="${proyecto.nombre}"></th>
+                                    <td th:each="columna : ${grafico.columnas}"
+                                        th:with="valor=${proyecto.porcentajes.get(columna.idColaborador)}"
+                                        th:text="${valor == null ? '—' : valor + ' %'}"></td>
+                                </tr>
+                                </tbody>
+                                <tfoot><tr>
+                                    <th scope="row">Dedicación total</th>
+                                    <td th:each="columna : ${grafico.columnas}" th:text="|${columna.total} %|"></td>
+                                </tr></tfoot>
+                            </table>
+                        </div>
+                    </th:block>
+                </section>
+
+                <section class="card resumen-grafico" aria-labelledby="disponibilidad-titulo">
+                    <div class="encabezado-grafico">
+                        <h2 id="disponibilidad-titulo" th:text="${verCapacidad ? 'Disponibilidad del equipo' : 'Resumen operativo'}"></h2>
+                    </div>
+                    <th:block th:if="${verCapacidad}">
+                        <p class="subtitulo-grafico">Colaboradores agrupados por capacidad libre.</p>
+                        <p class="empty" th:if="${resumen.cargas.isEmpty()}">No hay perfiles activos para evaluar.</p>
+                        <div class="contenido-disponibilidad" th:unless="${resumen.cargas.isEmpty()}">
+                            <div class="anillo-disponibilidad" aria-hidden="true"
+                                 th:style="|--fin-disponible:${resumen.finDisponibles}%; --fin-parcial:${resumen.finParciales}%|">
+                                <div class="centro-anillo">
+                                    <strong th:text="${resumen.cargas.size()}"></strong>
+                                    <span>colaboradores</span>
+                                </div>
+                            </div>
+                            <div class="leyenda-disponibilidad">
+                                <div class="clase-cupo">
+                                    <i class="color-serie disponible" aria-hidden="true"></i>
+                                    <div><b>Disponibles</b><small>50 % o más libre</small></div>
+                                    <strong th:text="${resumen.disponibles}"></strong>
+                                </div>
+                                <div class="clase-cupo">
+                                    <i class="color-serie parcial" aria-hidden="true"></i>
+                                    <div><b>Parciales</b><small>1 % a 49 % libre</small></div>
+                                    <strong th:text="${resumen.parciales}"></strong>
+                                </div>
+                                <div class="clase-cupo">
+                                    <i class="color-serie sin-disponibilidad" aria-hidden="true"></i>
+                                    <div><b>Sin disponibilidad</b><small>0 % libre</small></div>
+                                    <strong th:text="${resumen.sinDisponibilidad}"></strong>
+                                </div>
+                            </div>
+                        </div>
+                    </th:block>
+                    <dl class="resumen-operativo" th:if="${verAsignaciones or verProyectos}">
+                        <div th:if="${verAsignaciones}">
+                            <dt>Asignaciones vigentes</dt><dd th:text="${resumen.asignacionesVigentes}"></dd>
+                        </div>
+                        <div th:if="${verProyectos}">
+                            <dt>Proyectos en curso</dt><dd th:text="${resumen.proyectosActivos}"></dd>
+                        </div>
+                    </dl>
+                </section>
+            </div>
+
+            <section class="card reportes-disponibles" aria-labelledby="reportes-disponibles">
+                <div class="card-title"><h2 id="reportes-disponibles">Reportes disponibles</h2></div>
+                <p class="empty" th:if="${reportes.isEmpty()}">Tu rol no tiene reportes habilitados.</p>
+                <div class="grid-2" th:unless="${reportes.isEmpty()}">
+                    <article class="soft-panel ficha-reporte" th:each="r : ${reportes}">
+                        <div>
+                            <h3 th:text="${r.titulo}"></h3>
+                            <p th:text="${r.descripcion}"></p>
+                        </div>
+                        <div class="acciones-reporte">
+                            <a class="btn btn-light btn-sm"
+                               th:href="@{/resource/reportes(reporte=${r.clave},vista=${modo})} + '#vista-previa'">Vista previa</a>
+                            <a class="btn btn-primary btn-sm"
+                               th:href="@{/resource/reportes/excel(tipo=${r.clave})}">Descargar Excel</a>
+                            <a class="btn btn-light btn-sm"
+                               th:href="@{/resource/reportes/exportar(tipo=${r.clave})}">Descargar CSV</a>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <section class="card section" id="vista-previa" th:if="${vistaPrevia != null}" aria-labelledby="titulo-vista-previa">
+                <div class="card-title">
+                    <h2 id="titulo-vista-previa" th:text="|Vista previa · ${vistaPrevia.nombre}|"></h2>
+                    <a class="btn btn-light btn-sm" th:href="@{/resource/reportes(vista=${modo})} + '#reportes-disponibles'">Cerrar</a>
+                </div>
+                <th:block th:if="${vistaPrevia.filas.isEmpty()}">
+                    <p class="muted" th:unless="${reporteActivo == 'talento'}">No hay registros en este reporte.</p>
+                    <div th:if="${reporteActivo == 'talento'}" class="sin-resultados-talento">
+                        <p class="muted">No hay candidatos disponibles en la última consulta de esta sesión.</p>
+                        <a class="btn btn-light btn-sm" th:href="@{/resource/talent}">Abrir Asignación de talento</a>
+                    </div>
+                </th:block>
+                <div class="table-wrap" th:unless="${vistaPrevia.filas.isEmpty()}">
+                    <table>
+                        <thead><tr><th scope="col" th:each="titulo : ${vistaPrevia.columnas}" th:text="${titulo}"></th></tr></thead>
+                        <tbody><tr th:each="fila : ${vistaPrevia.filas}">
+                            <td th:each="celda : ${fila}" class="celda-reporte"
+                                th:text="${celda instanceof T(java.time.LocalDate) ? #temporals.format(celda, 'dd/MM/yyyy')
+                                    : (celda instanceof T(java.lang.Double) ? #numbers.formatPercent(celda, 1, 0)
+                                    : (#strings.isEmpty(celda) ? '—' : celda))}"></td>
+                        </tr></tbody>
+                    </table>
+                </div>
             </section>
         </div>
     </main>

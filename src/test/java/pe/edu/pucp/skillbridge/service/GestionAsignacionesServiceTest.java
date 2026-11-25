@@ -3,6 +3,8 @@ package pe.edu.pucp.skillbridge.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import pe.edu.pucp.skillbridge.dto.AsignacionFormulario;
+import pe.edu.pucp.skillbridge.entity.Asignacion;
+import pe.edu.pucp.skillbridge.entity.Asignacion.EstadoAsignacion;
 import pe.edu.pucp.skillbridge.entity.Colaborador;
 import pe.edu.pucp.skillbridge.entity.Proyecto;
 import pe.edu.pucp.skillbridge.entity.Rol;
@@ -34,6 +36,7 @@ class GestionAsignacionesServiceTest {
 
     private final Usuario gestor = new Usuario();
     private final Colaborador colaborador = new Colaborador();
+    private final Proyecto proyecto = new Proyecto();
 
     @BeforeEach
     void prepararAsignacion() {
@@ -42,8 +45,8 @@ class GestionAsignacionesServiceTest {
         gestor.setRol(rol);
         Usuario cuenta = new Usuario();
         cuenta.setEstado(Usuario.EstadoUsuario.ACTIVO);
+        colaborador.setIdColaborador(7);
         colaborador.setUsuario(cuenta);
-        Proyecto proyecto = new Proyecto();
         proyecto.setEstado(Proyecto.EstadoProyecto.ACTIVE);
         when(proyectos.findById(5)).thenReturn(Optional.of(proyecto));
         when(colaboradores.buscarParaActualizar(7)).thenReturn(Optional.of(colaborador));
@@ -66,6 +69,68 @@ class GestionAsignacionesServiceTest {
 
         assertEquals("porcentajeDedicacion", error.getCampo());
         verifyNoInteractions(asignaciones);
+    }
+
+    @Test
+    void rechazaCrearUnaAsignacionCerrada() {
+        AsignacionFormulario formulario = formulario(40);
+        formulario.setEstado(EstadoAsignacion.FINALIZADA);
+
+        var error = assertThrows(GestionAsignacionesService.CampoInvalido.class,
+                () -> servicio.guardar(formulario, gestor));
+
+        assertEquals("estado", error.getCampo());
+        verifyNoInteractions(asignaciones);
+    }
+
+    @Test
+    void rechazaFinalizarUnaAsignacionPlanificada() {
+        Asignacion asignacion = asignacionPlanificada();
+
+        var error = assertThrows(GestionAsignacionesService.CampoInvalido.class,
+                () -> servicio.cambiarEstado(9, EstadoAsignacion.FINALIZADA, gestor));
+
+        assertEquals("estado", error.getCampo());
+        assertEquals(EstadoAsignacion.PLANIFICADA, asignacion.getEstado());
+    }
+
+    @Test
+    void compruebaLaCapacidadVigenteAntesDeActivarUnaPlanificada() {
+        Asignacion asignacion = asignacionPlanificada();
+        when(capacidad.consultarPeriodo(colaborador, INICIO, null, 9))
+                .thenReturn(new CapacidadColaboradorService.CapacidadPeriodo(INICIO, null, 60, 20));
+
+        var error = assertThrows(GestionAsignacionesService.CampoInvalido.class,
+                () -> servicio.cambiarEstado(9, EstadoAsignacion.ACTIVA, gestor));
+
+        assertEquals("porcentajeDedicacion", error.getCampo());
+        assertEquals(EstadoAsignacion.PLANIFICADA, asignacion.getEstado());
+        verify(capacidad).consultarPeriodo(colaborador, INICIO, null, 9);
+    }
+
+    @Test
+    void elFormularioDeEdicionConservaElEstadoRegistrado() {
+        Asignacion asignacion = asignacionPlanificada();
+        AsignacionFormulario formulario = formulario(40);
+        formulario.setIdAsignacion(9);
+        formulario.setEstado(EstadoAsignacion.CANCELADA);
+
+        var error = assertThrows(GestionAsignacionesService.CampoInvalido.class,
+                () -> servicio.guardar(formulario, gestor));
+
+        assertEquals("estado", error.getCampo());
+        assertEquals(EstadoAsignacion.PLANIFICADA, asignacion.getEstado());
+    }
+
+    private Asignacion asignacionPlanificada() {
+        Asignacion asignacion = new Asignacion();
+        asignacion.setIdAsignacion(9);
+        asignacion.setProyecto(proyecto);
+        asignacion.setColaborador(colaborador);
+        asignacion.setFechaInicio(INICIO);
+        asignacion.setPorcentajeDedicacion(40);
+        when(asignaciones.buscarParaActualizar(9)).thenReturn(Optional.of(asignacion));
+        return asignacion;
     }
 
     private AsignacionFormulario formulario(int dedicacion) {

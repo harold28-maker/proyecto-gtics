@@ -7,6 +7,7 @@ import pe.edu.pucp.skillbridge.dto.CargaColaboradorDTO;
 import pe.edu.pucp.skillbridge.entity.Asignacion;
 import pe.edu.pucp.skillbridge.entity.Colaborador;
 import pe.edu.pucp.skillbridge.entity.Proyecto;
+import pe.edu.pucp.skillbridge.entity.Usuario;
 import pe.edu.pucp.skillbridge.repository.AsignacionRepository;
 import pe.edu.pucp.skillbridge.repository.ColaboradorRepository;
 
@@ -55,6 +56,12 @@ public class CapacidadColaboradorService {
         return new ResumenPersonal(fecha, capacidad(colaborador, carga), vigentes.size(), principal, proxima);
     }
 
+    public List<Colaborador> listarPerfilesActivos() {
+        return colaboradores.listarConUsuario().stream()
+                .filter(c -> c.getUsuario().getEstado() == Usuario.EstadoUsuario.ACTIVO)
+                .toList();
+    }
+
     public List<CargaColaboradorDTO> consultarEquipo() {
         return consultarCapacidades(colaboradores.listarConUsuario()).values().stream()
                 .sorted(Comparator.comparingInt(CargaColaboradorDTO::getCarga).reversed()
@@ -64,15 +71,31 @@ public class CapacidadColaboradorService {
     }
 
     public Map<Integer, CargaColaboradorDTO> consultarCapacidades(List<Colaborador> perfiles) {
-        if (perfiles.isEmpty()) return Map.of();
+        return consultarCapacidades(perfiles, LocalDate.now(ZONA_HORARIA));
+    }
 
+    public Map<Integer, CargaColaboradorDTO> consultarCapacidades(List<Colaborador> perfiles, LocalDate fecha) {
+        return consultarCargaEquipo(perfiles, fecha).capacidades();
+    }
+
+    public record CargaEquipo(Map<Integer, CargaColaboradorDTO> capacidades, List<Asignacion> asignacionesVigentes) {}
+
+    public CargaEquipo consultarCargaEquipo(List<Colaborador> perfiles, LocalDate fecha) {
+        if (perfiles.isEmpty()) return new CargaEquipo(Map.of(), List.of());
+
+        List<Asignacion> vigentes = vigentesEn(fecha, null);
         Map<Integer, Integer> cargaPorColaborador = new HashMap<>();
-        for (Asignacion asignacion : vigentesHoy()) {
+        for (Asignacion asignacion : vigentes) {
             cargaPorColaborador.merge(asignacion.getColaborador().getIdColaborador(),
                     dedicacion(asignacion), Integer::sum);
         }
-        return perfiles.stream().collect(Collectors.toMap(Colaborador::getIdColaborador,
+        Map<Integer, CargaColaboradorDTO> capacidades = perfiles.stream().collect(Collectors.toMap(
+                Colaborador::getIdColaborador,
                 c -> capacidad(c, cargaPorColaborador.getOrDefault(c.getIdColaborador(), 0))));
+        List<Asignacion> asignacionesEquipo = vigentes.stream()
+                .filter(a -> capacidades.containsKey(a.getColaborador().getIdColaborador()))
+                .toList();
+        return new CargaEquipo(capacidades, asignacionesEquipo);
     }
 
     public List<Asignacion> vigentesHoy() {
@@ -93,8 +116,27 @@ public class CapacidadColaboradorService {
 
     public CapacidadPeriodo consultarPeriodo(Colaborador colaborador, LocalDate inicio, LocalDate fin,
                                             Integer idAsignacionEditada) {
-        List<Asignacion> compromisos = asignaciones.buscarCompromisosEnPeriodo(colaborador.getIdColaborador(),
+        List<Asignacion> compromisos = asignaciones.buscarCompromisosEnPeriodo(List.of(colaborador.getIdColaborador()),
                 ESTADOS_CON_DEDICACION, PROYECTOS_VIGENTES, inicio, fin);
+        int carga = calcularCargaMaxima(compromisos, inicio, fin, idAsignacionEditada);
+        return new CapacidadPeriodo(inicio, fin, carga, Math.max(capacidadBase(colaborador) - carga, 0));
+    }
+
+    public Map<Integer, CargaColaboradorDTO> consultarCapacidadesPeriodo(List<Colaborador> perfiles, LocalDate inicio,
+                                                                        LocalDate fin) {
+        if (perfiles.isEmpty()) return Map.of();
+
+        List<Integer> ids = perfiles.stream().map(Colaborador::getIdColaborador).toList();
+        Map<Integer, List<Asignacion>> compromisos = asignaciones.buscarCompromisosEnPeriodo(ids,
+                        ESTADOS_CON_DEDICACION, PROYECTOS_VIGENTES, inicio, fin).stream()
+                .collect(Collectors.groupingBy(a -> a.getColaborador().getIdColaborador()));
+
+        return perfiles.stream().collect(Collectors.toMap(Colaborador::getIdColaborador, c -> capacidad(c,
+                calcularCargaMaxima(compromisos.getOrDefault(c.getIdColaborador(), List.of()), inicio, fin, null))));
+    }
+
+    private int calcularCargaMaxima(List<Asignacion> compromisos, LocalDate inicio, LocalDate fin,
+                                    Integer idAsignacionEditada) {
         // El fin es inclusivo. La dedicación se libera al día siguiente.
         Map<LocalDate, Integer> cambios = new TreeMap<>();
         for (Asignacion asignacion : compromisos) {
@@ -113,7 +155,7 @@ public class CapacidadColaboradorService {
             carga += cambio;
             cargaMaxima = Math.max(cargaMaxima, carga);
         }
-        return new CapacidadPeriodo(inicio, fin, cargaMaxima, Math.max(capacidadBase(colaborador) - cargaMaxima, 0));
+        return cargaMaxima;
     }
 
     static boolean ocupaCapacidad(Asignacion.EstadoAsignacion estado) {
