@@ -16,6 +16,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Consulta la capacidad del día a partir de las asignaciones y su período de vigencia.
@@ -26,6 +28,9 @@ public class CapacidadColaboradorService {
     private static final ZoneId ZONA_HORARIA = ZoneId.of("America/Lima");
     private static final List<Proyecto.EstadoProyecto> PROYECTOS_VIGENTES = List.of(
             Proyecto.EstadoProyecto.PLANNING, Proyecto.EstadoProyecto.ACTIVE, Proyecto.EstadoProyecto.ON_HOLD);
+
+    private static final List<Asignacion.EstadoAsignacion> ESTADOS_CON_DEDICACION = List.of(
+            Asignacion.EstadoAsignacion.ACTIVA, Asignacion.EstadoAsignacion.PLANIFICADA);
 
     private final AsignacionRepository asignaciones;
     private final ColaboradorRepository colaboradores;
@@ -51,18 +56,23 @@ public class CapacidadColaboradorService {
     }
 
     public List<CargaColaboradorDTO> consultarEquipo() {
+        return consultarCapacidades(colaboradores.listarConUsuario()).values().stream()
+                .sorted(Comparator.comparingInt(CargaColaboradorDTO::getCarga).reversed()
+                        .thenComparing(CargaColaboradorDTO::getColaborador, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(CargaColaboradorDTO::getIdColaborador))
+                .toList();
+    }
+
+    public Map<Integer, CargaColaboradorDTO> consultarCapacidades(List<Colaborador> perfiles) {
+        if (perfiles.isEmpty()) return Map.of();
+
         Map<Integer, Integer> cargaPorColaborador = new HashMap<>();
         for (Asignacion asignacion : vigentesHoy()) {
             cargaPorColaborador.merge(asignacion.getColaborador().getIdColaborador(),
                     dedicacion(asignacion), Integer::sum);
         }
-
-        return colaboradores.listarConUsuario().stream()
-                .map(c -> capacidad(c, cargaPorColaborador.getOrDefault(c.getIdColaborador(), 0)))
-                .sorted(Comparator.comparingInt(CargaColaboradorDTO::getCarga).reversed()
-                        .thenComparing(CargaColaboradorDTO::getColaborador, String.CASE_INSENSITIVE_ORDER)
-                        .thenComparing(CargaColaboradorDTO::getIdColaborador))
-                .toList();
+        return perfiles.stream().collect(Collectors.toMap(Colaborador::getIdColaborador,
+                c -> capacidad(c, cargaPorColaborador.getOrDefault(c.getIdColaborador(), 0))));
     }
 
     public List<Asignacion> vigentesHoy() {
@@ -70,9 +80,48 @@ public class CapacidadColaboradorService {
     }
 
     public List<Asignacion> activasYPlanificadas() {
-        return asignaciones.findByEstadoInAndProyectoEstadoIn(
-                List.of(Asignacion.EstadoAsignacion.ACTIVA, Asignacion.EstadoAsignacion.PLANIFICADA),
-                PROYECTOS_VIGENTES);
+        return asignaciones.findByEstadoInAndProyectoEstadoIn(ESTADOS_CON_DEDICACION, PROYECTOS_VIGENTES);
+    }
+
+    public CargaColaboradorDTO consultarActual(Colaborador colaborador) {
+        int carga = vigentesEn(LocalDate.now(ZONA_HORARIA), colaborador.getIdColaborador())
+                .stream().mapToInt(this::dedicacion).sum();
+        return capacidad(colaborador, carga);
+    }
+
+    public record CapacidadPeriodo(LocalDate inicio, LocalDate fin, int cargaMaxima, int disponible) {}
+
+    public CapacidadPeriodo consultarPeriodo(Colaborador colaborador, LocalDate inicio, LocalDate fin,
+                                            Integer idAsignacionEditada) {
+        List<Asignacion> compromisos = asignaciones.buscarCompromisosEnPeriodo(colaborador.getIdColaborador(),
+                ESTADOS_CON_DEDICACION, PROYECTOS_VIGENTES, inicio, fin);
+        // El fin es inclusivo. La dedicación se libera al día siguiente.
+        Map<LocalDate, Integer> cambios = new TreeMap<>();
+        for (Asignacion asignacion : compromisos) {
+            if (idAsignacionEditada != null && idAsignacionEditada.equals(asignacion.getIdAsignacion())) continue;
+            LocalDate desde = asignacion.getFechaInicio().isBefore(inicio) ? inicio : asignacion.getFechaInicio();
+            int dedicacion = dedicacion(asignacion);
+            cambios.merge(desde, dedicacion, Integer::sum);
+            LocalDate hasta = asignacion.getFechaFin();
+            if (hasta != null && (fin == null || hasta.isBefore(fin))) {
+                cambios.merge(hasta.plusDays(1), -dedicacion, Integer::sum);
+            }
+        }
+        int carga = 0;
+        int cargaMaxima = 0;
+        for (int cambio : cambios.values()) {
+            carga += cambio;
+            cargaMaxima = Math.max(cargaMaxima, carga);
+        }
+        return new CapacidadPeriodo(inicio, fin, cargaMaxima, Math.max(capacidadBase(colaborador) - cargaMaxima, 0));
+    }
+
+    static boolean ocupaCapacidad(Asignacion.EstadoAsignacion estado) {
+        return estado != null && ESTADOS_CON_DEDICACION.contains(estado);
+    }
+
+    static boolean proyectoVigente(Proyecto proyecto) {
+        return proyecto.getEstado() != null && PROYECTOS_VIGENTES.contains(proyecto.getEstado());
     }
 
     private List<Asignacion> vigentesEn(LocalDate fecha, Integer idColaborador) {
@@ -84,8 +133,12 @@ public class CapacidadColaboradorService {
         return asignacion.getPorcentajeDedicacion() == null ? 0 : asignacion.getPorcentajeDedicacion();
     }
 
+    private int capacidadBase(Colaborador colaborador) {
+        return colaborador.getDisponibilidadBase() == null ? 0 : colaborador.getDisponibilidadBase();
+    }
+
     private CargaColaboradorDTO capacidad(Colaborador colaborador, int carga) {
-        int base = colaborador.getDisponibilidadBase() == null ? 0 : colaborador.getDisponibilidadBase();
+        int base = capacidadBase(colaborador);
         return new CargaColaboradorDTO(colaborador.getIdColaborador(), colaborador.getUsuario().getNombreCompleto(),
                 colaborador.getCargo() == null ? "-" : colaborador.getCargo(),
                 colaborador.getArea() == null ? "-" : colaborador.getArea(),

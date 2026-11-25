@@ -23,6 +23,8 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import pe.edu.pucp.skillbridge.dto.FilaAsignacionDTO;
+import pe.edu.pucp.skillbridge.dto.FilaAsignacionDTO.EstadoParticipacion;
 import pe.edu.pucp.skillbridge.dto.HabilidadColaboradorDTO;
 import pe.edu.pucp.skillbridge.dto.HabilidadPerfilForm;
 import pe.edu.pucp.skillbridge.entity.*;
@@ -40,7 +42,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -126,17 +127,8 @@ public class ColaboradorController {
      * @return lista de habilidades del colaborador
      */
     private List<HabilidadColaboradorDTO> habilidades(Integer idColaborador) {
-        List<HabilidadColaboradorDTO> lista = new ArrayList<>();
-        for (Object[] fila : colaboradorRepository.obtenerHabilidades(idColaborador)) {
-            lista.add(new HabilidadColaboradorDTO(
-                    ((Number) fila[0]).intValue(),
-                    String.valueOf(fila[1]),
-                    String.valueOf(fila[2]),
-                    String.valueOf(fila[3]),
-                    fila[4] == null ? BigDecimal.ZERO : new BigDecimal(fila[4].toString())
-            ));
-        }
-        return lista;
+        return colaboradorRepository.obtenerHabilidades(idColaborador).stream()
+                .map(HabilidadColaboradorDTO::desdeFila).toList();
     }
 
     /**
@@ -1041,10 +1033,10 @@ public class ColaboradorController {
     @GetMapping("/historial")
     public String historial(@RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
         LocalDate hoy = LocalDate.now(ZONA_HORARIA);
-        List<FilaAsignacion> filas = participaciones().stream()
+        List<FilaAsignacionDTO> filas = participaciones().stream()
                 .filter(a -> a.esHistorica(hoy))
-                .map(a -> new FilaAsignacion(a, estadoParticipacion(a, hoy)))
-                .sorted(Comparator.comparing(FilaAsignacion::fechaOrden, Comparator.reverseOrder())
+                .map(a -> FilaAsignacionDTO.desde(a, hoy))
+                .sorted(Comparator.comparing(FilaAsignacionDTO::fechaOrden, Comparator.reverseOrder())
                         .thenComparing(fila -> fila.asignacion().getIdAsignacion(), Comparator.reverseOrder()))
                 .toList();
         model.addAttribute("titulo", "Historial de proyectos");
@@ -1072,7 +1064,7 @@ public class ColaboradorController {
         }
         if (busqueda.length() > 150) model.addAttribute("errorBusqueda", "La búsqueda admite hasta 150 caracteres.");
 
-        List<FilaAsignacion> filas = List.of();
+        List<FilaAsignacionDTO> filas = List.of();
         if (!model.containsAttribute("errorEstado") && !model.containsAttribute("errorBusqueda")) {
             String texto = busqueda.toLowerCase(Locale.ROOT);
             EstadoParticipacion estadoElegido = seleccionado;
@@ -1081,7 +1073,7 @@ public class ColaboradorController {
                     .filter(a -> puedeVerHistorial || !a.esHistorica(hoy))
                     .filter(a -> a.getProyecto().getNombre().toLowerCase(Locale.ROOT).contains(texto)
                             || (a.getRolProyecto() != null && a.getRolProyecto().toLowerCase(Locale.ROOT).contains(texto)))
-                    .map(a -> new FilaAsignacion(a, estadoParticipacion(a, hoy)))
+                    .map(a -> FilaAsignacionDTO.desde(a, hoy))
                     .filter(fila -> estadoElegido == null || fila.estado() == estadoElegido)
                     .toList();
         }
@@ -1099,45 +1091,6 @@ public class ColaboradorController {
                 .findByColaboradorIdColaboradorOrderByFechaInicioDesc(colaborador.getIdColaborador());
     }
 
-    private EstadoParticipacion estadoParticipacion(Asignacion asignacion, LocalDate hoy) {
-        Asignacion.EstadoAsignacion estado = asignacion.getEstado();
-        if (estado == Asignacion.EstadoAsignacion.CANCELADA) return EstadoParticipacion.CANCELADA;
-        if (estado == Asignacion.EstadoAsignacion.FINALIZADA) return EstadoParticipacion.FINALIZADA;
-        Proyecto.EstadoProyecto proyecto = asignacion.getProyecto().getEstado();
-        if (proyecto == Proyecto.EstadoProyecto.CANCELLED) return EstadoParticipacion.CANCELADA;
-        if (proyecto == Proyecto.EstadoProyecto.COMPLETED) return EstadoParticipacion.FINALIZADA;
-        if (asignacion.esHistorica(hoy)) return EstadoParticipacion.VENCIDA;
-        return asignacion.estaVigente(hoy) ? EstadoParticipacion.VIGENTE : EstadoParticipacion.PLANIFICADA;
-    }
 
-    public enum EstadoParticipacion {
-        VIGENTE("Vigente", "badge-success", false),
-        PLANIFICADA("Planificada", "badge-blue", false),
-        FINALIZADA("Finalizada", "badge-success", true),
-        CANCELADA("Cancelada", "badge-danger", true),
-        VENCIDA("Vencida", "badge-warning", true);
-
-        private final String etiqueta;
-        private final String estilo;
-        private final boolean historica;
-
-        EstadoParticipacion(String etiqueta, String estilo, boolean historica) {
-            this.etiqueta = etiqueta;
-            this.estilo = estilo;
-            this.historica = historica;
-        }
-
-        public String getEtiqueta() { return etiqueta; }
-        public String getEstilo() { return estilo; }
-        public boolean historica() { return historica; }
-    }
-
-    public record FilaAsignacion(Asignacion asignacion, EstadoParticipacion estado) {
-        public LocalDate fechaOrden() {
-            if (asignacion.getFechaFin() != null) return asignacion.getFechaFin();
-            if (asignacion.getProyecto().getFechaFin() != null) return asignacion.getProyecto().getFechaFin();
-            return asignacion.getFechaInicio();
-        }
-    }
 
 }

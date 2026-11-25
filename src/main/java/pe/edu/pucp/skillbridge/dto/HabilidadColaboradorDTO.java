@@ -81,6 +81,12 @@ public class HabilidadColaboradorDTO {
      */
     public BigDecimal getAniosExperiencia() { return aniosExperiencia; }
 
+    public static HabilidadColaboradorDTO desdeFila(Object[] fila) {
+        return new HabilidadColaboradorDTO(((Number) fila[0]).intValue(),
+                String.valueOf(fila[1]), String.valueOf(fila[2]), String.valueOf(fila[3]),
+                fila[4] == null ? BigDecimal.ZERO : new BigDecimal(fila[4].toString()));
+    }
+
     public Nivel getNivelHabilidad() {
         for (Nivel opcion : Nivel.values()) {
             if (opcion.name().equals(nivel)) return opcion;

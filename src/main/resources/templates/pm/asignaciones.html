@@ -12,7 +12,8 @@
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
         <div class="content">
-            <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+            <div class="alert-success" role="status" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
+            <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
             <div class="grid-3">
                 <div class="metric">
                     <div class="metric-icon">☷</div>

@@ -115,6 +115,10 @@
                                     <option value="BLOQUEADO">Bloqueado</option>
                                 </select>
                             </div>
+                            <div class="form-group" th:if="${editar and nivelProfesional != null}">
+                                <label for="nivelProfesional">Nivel profesional</label>
+                                <input id="nivelProfesional" type="text" th:value="${nivelProfesional.etiqueta}" readonly>
+                            </div>
                         </div>
                     </section>
 

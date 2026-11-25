@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Perfil del colaborador | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/resource-gestion.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content perfil-rm" th:with="usuario=${colaborador.usuario}">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <section class="page-intro">
+                <h2>Perfil del colaborador</h2>
+                <a class="btn btn-light" th:if="${desdeInicio}" th:href="@{/resource/inicio}">Volver a Inicio</a>
+                <a class="btn btn-light" th:unless="${desdeInicio}" th:href="@{/resource/colaboradores}">Volver a Colaboradores</a>
+            </section>
+            <section class="card identidad" aria-label="Datos del colaborador">
+                <span th:replace="~{fragments/perfil :: avatar(${usuario}, @{/resource/colaboradores/fotos/{id}(id=${colaborador.idColaborador})}, 'foto')}"></span>
+                <div class="identidad-nombre">
+                    <h3 th:text="${usuario.nombreCompleto}"></h3>
+                    <p class="muted" th:if="${colaborador.cargo != null or colaborador.area != null}">
+                        <span th:if="${colaborador.cargo}" th:text="${colaborador.cargo}"></span>
+                        <span th:if="${colaborador.cargo != null and colaborador.area != null}" aria-hidden="true"> · </span>
+                        <span th:if="${colaborador.area}" th:text="${colaborador.area}"></span>
+                    </p>
+                    <span class="badge badge-purple" th:if="${colaborador.seniority != null}"
+                          th:text="${colaborador.seniority.etiqueta}"></span>
+                </div>
+                <a class="btn btn-primary" th:if="${puedeAsignar}" th:href="@{/resource/asignaciones/nueva(idColaborador=${colaborador.idColaborador})}">+ Nueva asignación</a>
+            </section>
+            <section class="capacidad" th:if="${capacidad != null}" aria-labelledby="capacidad-titulo">
+                <h3 id="capacidad-titulo">Capacidad de hoy</h3>
+                <div class="grid-3">
+                    <div class="metric">
+                        <div class="label">Capacidad base</div>
+                        <div class="value" th:text="|${capacidad.disponibilidadBase} %|"></div>
+                    </div>
+                    <div class="metric orange">
+                        <div class="label">Carga actual</div>
+                        <div class="value" th:text="|${capacidad.carga} %|"></div>
+                    </div>
+                    <div class="metric green">
+                        <div class="label">Disponible hoy</div>
+                        <div class="value" th:text="|${capacidad.disponibilidad} %|"></div>
+                    </div>
+                </div>
+                <p class="formula" th:if="${capacidad.carga <= capacidad.disponibilidadBase}"
+                   th:text="|${capacidad.disponibilidadBase} % de capacidad base − ${capacidad.carga} % de carga actual = ${capacidad.disponibilidad} % disponible hoy.|"></p>
+                <p class="formula" th:if="${capacidad.carga > capacidad.disponibilidadBase}">La carga supera la capacidad base. La disponibilidad de hoy es de 0 %.</p>
+            </section>
+            <div class="detalle section" th:classappend="${asignacionesActuales == null and proyectosAnteriores == null ? 'un-panel' : ''}">
+                <section class="card">
+                    <div class="card-title"><h3>Habilidades y experiencia</h3></div>
+                    <p class="empty" th:if="${habilidades.isEmpty()}">Aún no tiene habilidades registradas.</p>
+                    <div class="table-wrap" th:unless="${habilidades.isEmpty()}">
+                        <table>
+                            <thead><tr><th scope="col">Habilidad</th><th scope="col">Nivel</th><th scope="col">Experiencia</th></tr></thead>
+                            <tbody>
+                                <tr th:each="h : ${habilidades}">
+                                    <td><strong th:text="${h.nombre}"></strong></td>
+                                    <td><span class="badge badge-purple" th:text="${h.nivelHabilidad != null ? h.nivelHabilidad.etiqueta : h.nivel}"></span></td>
+                                    <td th:text="|${h.aniosExperienciaLocal} ${h.aniosExperienciaLocal == '1' ? 'año' : 'años'}|"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <div class="proyectos" th:if="${asignacionesActuales != null or proyectosAnteriores != null}">
+                        <section class="card" th:if="${asignacionesActuales != null}">
+                            <div class="card-title"><h3>Asignaciones actuales</h3></div>
+                            <p class="empty" th:if="${asignacionesActuales.isEmpty()}">No tiene asignaciones vigentes.</p>
+                            <article class="proyecto" th:each="fila : ${asignacionesActuales}" th:with="a=${fila.asignacion}">
+                                <div class="ficha-proyecto">
+                                    <div>
+                                        <h4 class="proyecto-nombre" th:text="${a.proyecto.nombre}"></h4>
+                                        <p class="rol-proyecto" th:text="${a.rolProyecto ?: 'Sin rol registrado'}"></p>
+                                    </div>
+                                    <span class="badge" th:classappend="${fila.estado.estilo}" th:text="${fila.estado.etiqueta}"></span>
+                                </div>
+                                <dl class="fechas">
+                                    <div><dt>Inicio</dt><dd th:text="${#temporals.format(a.fechaInicio, 'dd-MM-yyyy')}"></dd></div>
+                                    <div><dt>Fin</dt><dd th:text="${a.fechaFin != null ? #temporals.format(a.fechaFin, 'dd-MM-yyyy') : 'Sin fecha de fin'}"></dd></div>
+                                    <div><dt>Dedicación</dt><dd th:text="|${a.porcentajeDedicacion} %|"></dd></div>
+                                </dl>
+                            </article>
+                        </section>
+                        <section class="card" th:if="${proyectosAnteriores != null}">
+                            <div class="card-title"><h3>Proyectos anteriores</h3></div>
+                            <p class="empty" th:if="${proyectosAnteriores.isEmpty()}">Aún no tiene participaciones anteriores.</p>
+                            <article class="proyecto" th:each="fila : ${proyectosAnteriores}" th:with="a=${fila.asignacion}">
+                                <div class="ficha-proyecto">
+                                    <div>
+                                        <h4 class="proyecto-nombre" th:text="${a.proyecto.nombre}"></h4>
+                                        <p class="rol-proyecto" th:text="${a.rolProyecto ?: 'Sin rol registrado'}"></p>
+                                    </div>
+                                    <span class="badge" th:classappend="${fila.estado.estilo}" th:text="${fila.estado.etiqueta}"></span>
+                                </div>
+                                <dl class="fechas">
+                                    <div><dt>Inicio</dt><dd th:text="${#temporals.format(a.fechaInicio, 'dd-MM-yyyy')}"></dd></div>
+                                    <div><dt>Fin</dt><dd th:text="${a.fechaFin != null ? #temporals.format(a.fechaFin, 'dd-MM-yyyy') : 'Sin fecha de fin'}"></dd></div>
+                                    <div><dt>Dedicación</dt><dd th:text="|${a.porcentajeDedicacion} %|"></dd></div>
+                                </dl>
+                            </article>
+                        </section>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

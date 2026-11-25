@@ -360,6 +360,7 @@ public class AdminController {
                 "usuario",
                 encontrado.get()
         );
+        cargarNivelProfesional(model, id);
 
 
         model.addAttribute(
@@ -940,6 +941,12 @@ public class AdminController {
     }
 
 
+    private void cargarNivelProfesional(Model model, Integer idUsuario) {
+        colaboradorRepository.findByUsuarioIdUsuario(idUsuario)
+                .map(Colaborador::getSeniority)
+                .ifPresent(nivel -> model.addAttribute("nivelProfesional", nivel));
+    }
+
     /**
      * Restablece la vista del formulario de usuario con los datos conservados
      * y el mensaje de error indicado.
@@ -957,6 +964,7 @@ public class AdminController {
         if (usuario.getIdUsuario() != null) {
             usuarioRepository.findById(usuario.getIdUsuario())
                     .ifPresent(cuenta -> usuario.setFotoUrl(cuenta.getFotoUrl()));
+            cargarNivelProfesional(model, usuario.getIdUsuario());
         }
 
         model.addAttribute(

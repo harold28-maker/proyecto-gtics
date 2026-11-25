@@ -1,18 +1,22 @@
 package pe.edu.pucp.skillbridge.controller;
 
-import jakarta.validation.Valid;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import pe.edu.pucp.skillbridge.dto.CargaColaboradorDTO;
 import pe.edu.pucp.skillbridge.dto.CargaColaboradorDTO.Clasificacion;
+import pe.edu.pucp.skillbridge.dto.FilaAsignacionDTO;
+import pe.edu.pucp.skillbridge.dto.HabilidadColaboradorDTO;
 import pe.edu.pucp.skillbridge.entity.Asignacion;
 import pe.edu.pucp.skillbridge.entity.Colaborador;
 import pe.edu.pucp.skillbridge.entity.Proyecto;
+import pe.edu.pucp.skillbridge.entity.RecomendacionIA;
 import pe.edu.pucp.skillbridge.entity.Usuario;
 import pe.edu.pucp.skillbridge.repository.AsignacionRepository;
 import pe.edu.pucp.skillbridge.repository.ColaboradorRepository;
@@ -20,8 +24,17 @@ import pe.edu.pucp.skillbridge.repository.ProyectoRepository;
 import pe.edu.pucp.skillbridge.repository.RecomendacionIARepository;
 import pe.edu.pucp.skillbridge.service.CapacidadColaboradorService;
 
-import java.util.List;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Controlador MVC que administra recursos, asignaciones, disponibilidad,
@@ -30,6 +43,8 @@ import java.nio.charset.StandardCharsets;
 @Controller
 @RequestMapping("/resource")
 public class ResourceManagerController {
+
+    private static final int COLABORADORES_POR_PAGINA = 6;
 
     private final ColaboradorRepository colaboradorRepository;
     private final RecomendacionIARepository recomendacionIARepository;
@@ -65,43 +80,163 @@ public class ResourceManagerController {
      * @return nombre de la plantilla del dashboard
      */
     @RequestMapping(value = {"/inicio", "/dashboard"}, method = {RequestMethod.GET, RequestMethod.POST})
-    public String inicio(Model model) {
-        List<CargaColaboradorDTO> cargas = capacidadColaboradorService.consultarEquipo();
+    public String inicio(@RequestParam(value = "proyecto", defaultValue = "") String proyecto,
+                         @RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
+        List<CargaColaboradorDTO> cargas = bloqueados.contains("capacidad")
+                ? List.of() : capacidadColaboradorService.consultarEquipo();
         model.addAttribute("titulo", "Inicio");
         model.addAttribute("totalColaboradores", cargas.size());
         model.addAttribute("disponibles", cargas.stream().filter(c -> c.getClasificacion() == Clasificacion.DISPONIBLE).count());
         model.addAttribute("sobrecargados", cargas.stream().filter(c -> c.getCarga() > c.getDisponibilidadBase()).count());
         model.addAttribute("cargaPromedio", cargas.isEmpty() ? 0 : Math.round(cargas.stream().mapToInt(CargaColaboradorDTO::getCarga).average().orElse(0)));
         model.addAttribute("cargas", cargas.stream().limit(6).toList());
-        model.addAttribute("recomendaciones", recomendacionIARepository.findAllByOrderByPorcentajeMatchDesc().stream().limit(3).toList());
+        model.addAttribute("capacidadPorColaborador", cargas.stream()
+                .collect(Collectors.toMap(CargaColaboradorDTO::getIdColaborador, Function.identity())));
+        if (!bloqueados.contains("talento")) cargarTalentoInicio(proyecto, model);
         return "resource/inicio";
     }
 
-    /**
-     * Lista los colaboradores aplicando filtros opcionales por texto y seniority.
-     *
-     * @param q texto de búsqueda opcional
-     * @param nivel seniority seleccionado opcionalmente
-     * @param model modelo utilizado para cargar los datos de la vista
-     * @return nombre de la plantilla de colaboradores
-     */
-    @GetMapping("/colaboradores")
-    public String colaboradores(@RequestParam(value = "q", required = false) String q,
-                                @RequestParam(value = "nivel", required = false) String nivel,
-                                Model model) {
-        List<Colaborador> lista = (q == null || q.isBlank())
-                ? colaboradorRepository.findAll()
-                : colaboradorRepository.buscar(q);
-        if (nivel != null && !nivel.isBlank() && !"TODOS".equals(nivel)) {
-            lista = lista.stream()
-                    .filter(c -> c.getSeniority() != null && nivel.equals(c.getSeniority().name()))
-                    .toList();
+    private void cargarTalentoInicio(String proyecto, Model model) {
+        List<Proyecto> opciones = proyectoRepository.findAll(Sort.by("nombre", "idProyecto"));
+        Integer id = proyecto.isBlank() ? recomendacionIARepository
+                .findFirstByProyectoIsNotNullOrderByPorcentajeMatchDescIdRecomendacionDesc()
+                .map(r -> r.getProyecto().getIdProyecto()).orElse(null) : leerId(proyecto);
+        Proyecto seleccionado = opciones.stream().filter(p -> p.getIdProyecto().equals(id)).findFirst().orElse(null);
+        if (seleccionado == null && proyecto.isBlank() && !opciones.isEmpty()) seleccionado = opciones.get(0);
+        if (seleccionado == null && !proyecto.isBlank()) {
+            model.addAttribute("errorProyecto", "Selecciona uno de los proyectos de la lista.");
         }
+        List<RecomendacionIA> candidatos = seleccionado == null ? List.of() : recomendacionIARepository
+                .findTop3ByProyectoIdProyectoOrderByPorcentajeMatchDescIdRecomendacionDesc(seleccionado.getIdProyecto());
+        model.addAttribute("proyectosTalento", opciones);
+        model.addAttribute("proyectoTalento", seleccionado);
+        model.addAttribute("candidatos", candidatos);
+    }
+
+    private Integer leerId(String valor) {
+        try {
+            int id = Integer.parseInt(valor);
+            return id > 0 ? id : null;
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    @GetMapping("/colaboradores")
+    public String colaboradores(@RequestParam(value = "q", defaultValue = "") String q,
+                                @RequestParam(value = "nivel", defaultValue = "TODOS") String nivel,
+                                @RequestParam(value = "disponibilidad", defaultValue = "TODOS") String disponibilidad,
+                                @RequestParam(value = "estado", defaultValue = "TODOS") String estado,
+                                @RequestParam(value = "page", defaultValue = "1") String pagina,
+                                @RequestAttribute("permisosBloqueados") Set<String> bloqueados,
+                                Model model) {
+        String texto = q.strip();
+        Map<String, String> errores = new LinkedHashMap<>();
+        if (texto.length() > 150) errores.put("q", "La búsqueda admite hasta 150 caracteres.");
+        Colaborador.Seniority nivelElegido = leerFiltro(nivel, Colaborador.Seniority.class,
+                "nivel", "Selecciona un nivel profesional de la lista.", errores);
+        Usuario.EstadoUsuario estadoElegido = leerFiltro(estado, Usuario.EstadoUsuario.class,
+                "estado", "Selecciona un estado de cuenta de la lista.", errores);
+        Clasificacion disponibilidadElegida = leerFiltro(disponibilidad, Clasificacion.class,
+                "disponibilidad", "Selecciona una opción de disponibilidad de la lista.", errores);
+        boolean verCapacidad = !bloqueados.contains("capacidad");
+        if (!verCapacidad && disponibilidadElegida != null) {
+            errores.put("disponibilidad", "La consulta de disponibilidad está deshabilitada para tu rol.");
+        }
+        Integer paginaPedida = leerId(pagina);
+        if (paginaPedida == null) errores.put("page", "Selecciona un número de página válido.");
+
+        List<Colaborador> lista = List.of();
+        Map<Integer, CargaColaboradorDTO> capacidades = Map.of();
+        if (errores.isEmpty()) {
+            List<Colaborador> encontrados = texto.isEmpty()
+                    ? colaboradorRepository.listarConUsuario() : colaboradorRepository.buscar(texto);
+            lista = encontrados.stream()
+                    .filter(c -> nivelElegido == null || c.getSeniority() == nivelElegido)
+                    .filter(c -> estadoElegido == null || c.getUsuario().getEstado() == estadoElegido)
+                    .sorted(Comparator.comparing(Colaborador::getIdColaborador))
+                    .toList();
+            if (verCapacidad) capacidades = capacidadColaboradorService.consultarCapacidades(lista);
+            if (disponibilidadElegida != null) {
+                Map<Integer, CargaColaboradorDTO> resumen = capacidades;
+                lista = lista.stream()
+                        .filter(c -> resumen.get(c.getIdColaborador()).getClasificacion() == disponibilidadElegida)
+                        .toList();
+            }
+        }
+        int resultados = lista.size();
+        int totalPaginas = Math.max(1, (resultados + COLABORADORES_POR_PAGINA - 1) / COLABORADORES_POR_PAGINA);
+        int paginaActual = paginaPedida == null ? 1 : Math.min(paginaPedida, totalPaginas);
+        int desde = (paginaActual - 1) * COLABORADORES_POR_PAGINA;
+        int hasta = Math.min(desde + COLABORADORES_POR_PAGINA, resultados);
+
         model.addAttribute("titulo", "Colaboradores");
-        model.addAttribute("colaboradores", lista);
-        model.addAttribute("q", q);
-        model.addAttribute("nivelSeleccionado", nivel);
+        model.addAttribute("colaboradores", lista.subList(desde, hasta));
+        model.addAttribute("verCapacidad", verCapacidad);
+        model.addAttribute("capacidades", capacidades);
+        model.addAttribute("q", texto);
+        model.addAttribute("niveles", Colaborador.Seniority.values());
+        model.addAttribute("nivelSeleccionado", nivelElegido);
+        model.addAttribute("estados", Usuario.EstadoUsuario.values());
+        model.addAttribute("estadoSeleccionado", estadoElegido);
+        model.addAttribute("disponibilidadSeleccionada", disponibilidadElegida);
+        model.addAttribute("erroresFiltros", errores);
+        model.addAttribute("paginaActual", paginaActual);
+        model.addAttribute("totalPaginas", totalPaginas);
+        model.addAttribute("resultados", resultados);
+        model.addAttribute("desde", desde + 1);
+        model.addAttribute("hasta", hasta);
         return "resource/colaboradores";
+    }
+
+    private <T extends Enum<T>> T leerFiltro(String valor, Class<T> tipo, String campo, String mensaje,
+                                             Map<String, String> errores) {
+        String codigo = valor.strip().toUpperCase(Locale.ROOT);
+        if (codigo.isEmpty() || "TODOS".equals(codigo)) return null;
+        try {
+            return Enum.valueOf(tipo, codigo);
+        } catch (IllegalArgumentException ex) {
+            errores.put(campo, mensaje);
+            return null;
+        }
+    }
+
+    @GetMapping("/colaboradores/{id}")
+    public String perfilColaborador(@PathVariable Integer id,
+                                    @RequestParam(value = "desde", defaultValue = "") String desde,
+                                    @RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
+        Colaborador colaborador = colaboradorRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El colaborador no está disponible."));
+        model.addAttribute("titulo", "Colaboradores");
+        model.addAttribute("colaborador", colaborador);
+        model.addAttribute("desdeInicio", "inicio".equals(desde));
+        model.addAttribute("puedeAsignar", !bloqueados.contains("asignaciones")
+                && colaborador.getUsuario().getEstado() == Usuario.EstadoUsuario.ACTIVO);
+        model.addAttribute("habilidades", colaboradorRepository.obtenerHabilidades(id).stream()
+                .map(HabilidadColaboradorDTO::desdeFila).toList());
+
+        if (!bloqueados.contains("capacidad")) {
+            model.addAttribute("capacidad", capacidadColaboradorService.consultarActual(colaborador));
+        }
+        boolean verActuales = !bloqueados.contains("asignaciones");
+        boolean verHistorial = !bloqueados.contains("historial");
+        if (verActuales || verHistorial) {
+            LocalDate hoy = LocalDate.now(ZoneId.of("America/Lima"));
+            List<Asignacion> asignaciones = asignacionRepository.findByColaboradorIdColaboradorOrderByFechaInicioDesc(id);
+            if (verActuales) {
+                model.addAttribute("asignacionesActuales", asignaciones.stream().filter(a -> a.estaVigente(hoy))
+                        .map(a -> FilaAsignacionDTO.desde(a, hoy)).toList());
+            }
+            if (verHistorial) {
+                model.addAttribute("proyectosAnteriores", asignaciones.stream()
+                        .filter(a -> !a.getFechaInicio().isAfter(hoy) && a.esHistorica(hoy))
+                        .map(a -> FilaAsignacionDTO.desde(a, hoy))
+                        .sorted(Comparator.comparing(FilaAsignacionDTO::fechaOrden, Comparator.reverseOrder())
+                                .thenComparing(fila -> fila.asignacion().getIdAsignacion(), Comparator.reverseOrder()))
+                        .toList());
+            }
+        }
+        return "resource/colaborador-perfil";
     }
 
     /**
@@ -129,99 +264,6 @@ public class ResourceManagerController {
         model.addAttribute("activas", lista.stream().filter(a -> a.getEstado() == Asignacion.EstadoAsignacion.ACTIVA).count());
         model.addAttribute("planificadas", lista.stream().filter(a -> a.getEstado() == Asignacion.EstadoAsignacion.PLANIFICADA).count());
         model.addAttribute("finalizadas", lista.stream().filter(a -> a.getEstado() == Asignacion.EstadoAsignacion.FINALIZADA).count());
-    }
-
-    /**
-     * Prepara el formulario vacío para crear una asignación.
-     *
-     * @param model modelo utilizado para cargar los datos del formulario
-     * @return nombre de la plantilla del formulario
-     */
-    @GetMapping("/asignaciones/nueva")
-    public String nuevaAsignacion(Model model) {
-        prepararFormularioAsignacion(new Asignacion(), "Nueva asignación", model);
-        return "resource/asignacion-form";
-    }
-
-    /**
-     * Carga una asignación existente en el formulario de edición.
-     *
-     * @param id identificador de la asignación
-     * @param model modelo utilizado para cargar la asignación
-     * @return nombre de la plantilla del formulario
-     * @throws java.util.NoSuchElementException si la asignación no existe
-     */
-    @GetMapping("/asignaciones/editar/{id}")
-    public String editarAsignacion(@PathVariable Integer id, Model model) {
-        prepararFormularioAsignacion(asignacionRepository.findById(id).orElseThrow(), "Editar asignación", model);
-        return "resource/asignacion-form";
-    }
-
-    /**
-     * Carga una asignación y las listas necesarias en el formulario.
-     *
-     * @param asignacion asignación que se editará o creará
-     * @param titulo título que se mostrará en el formulario
-     * @param model modelo utilizado para cargar los datos del formulario
-     */
-    private void prepararFormularioAsignacion(Asignacion asignacion, String titulo, Model model) {
-        model.addAttribute("titulo", titulo);
-        model.addAttribute("asignacion", asignacion);
-        model.addAttribute("proyectos", proyectoRepository.findAll());
-        model.addAttribute("colaboradores", colaboradorRepository.findAll());
-    }
-
-    /**
-     * Valida y guarda una asignación asociada a un proyecto y colaborador.
-     *
-     * @param asignacion asignación enviada por el formulario
-     * @param bindingResult resultado de validación de la asignación
-     * @param idProyecto identificador del proyecto seleccionado
-     * @param idColaborador identificador del colaborador seleccionado
-     * @param model modelo utilizado para cargar el resultado
-     * @return plantilla de asignaciones o del formulario si existen errores
-     * @throws java.util.NoSuchElementException si el proyecto o colaborador no existe
-     */
-    @PostMapping("/asignaciones/guardar")
-    public String guardarAsignacion(@Valid @ModelAttribute("asignacion") Asignacion asignacion,
-                                    BindingResult bindingResult,
-                                    @RequestParam("idProyecto") Integer idProyecto,
-                                    @RequestParam("idColaborador") Integer idColaborador,
-                                    Model model) {
-        asignacion.setProyecto(proyectoRepository.findById(idProyecto).orElseThrow());
-        asignacion.setColaborador(colaboradorRepository.findById(idColaborador).orElseThrow());
-        if (bindingResult.hasErrors()) {
-            prepararFormularioAsignacion(asignacion,
-                    asignacion.getIdAsignacion() == null ? "Nueva asignación" : "Editar asignación", model);
-            model.addAttribute("mensajeError", bindingResult.getAllErrors().get(0).getDefaultMessage());
-            return "resource/asignacion-form";
-        }
-        asignacionRepository.save(asignacion);
-        cargarAsignaciones(model, asignacionRepository.findAll());
-        model.addAttribute("mensajeExito", "Asignación guardada correctamente.");
-        return "resource/asignaciones";
-    }
-
-    /**
-     * Actualiza el estado de una asignación existente.
-     *
-     * @param id identificador de la asignación
-     * @param estado nuevo estado textual
-     * @param model modelo utilizado para cargar la lista actualizada
-     * @return nombre de la plantilla de asignaciones
-     * @throws java.util.NoSuchElementException si la asignación no existe
-     * @throws IllegalArgumentException si el estado no corresponde a un valor válido
-     */
-    @PostMapping("/asignaciones/{id}/estado")
-    public String cambiarEstadoAsignacion(@PathVariable Integer id,
-                                          @RequestParam("estado") String estado,
-                                          Model model) {
-        Asignacion asignacion = asignacionRepository.findById(id).orElseThrow();
-        asignacion.setEstado(Asignacion.EstadoAsignacion.valueOf(estado));
-        asignacionRepository.save(asignacion);
-        cargarAsignaciones(model, asignacionRepository.findAll());
-        model.addAttribute("mensajeExito", "Estado de la asignación actualizado.");
-        return "resource/asignaciones";
     }
 
     /**

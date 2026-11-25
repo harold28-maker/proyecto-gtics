@@ -1,8 +1,10 @@
 package pe.edu.pucp.skillbridge.repository;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pe.edu.pucp.skillbridge.entity.Asignacion;
@@ -10,11 +12,29 @@ import pe.edu.pucp.skillbridge.entity.Proyecto;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repositorio de acceso a datos para las asignaciones de colaboradores a proyectos.
  */
 public interface AsignacionRepository extends JpaRepository<Asignacion, Integer> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from Asignacion a where a.idAsignacion = :id")
+    Optional<Asignacion> buscarParaActualizar(@Param("id") Integer id);
+
+    @Query("""
+            select a from Asignacion a
+            where a.colaborador.idColaborador = :idColaborador
+              and a.estado in :estados and a.proyecto.estado in :proyectos
+              and (:fin is null or a.fechaInicio <= :fin)
+              and (a.fechaFin is null or a.fechaFin >= :inicio)
+            """)
+    List<Asignacion> buscarCompromisosEnPeriodo(
+            @Param("idColaborador") Integer idColaborador,
+            @Param("estados") List<Asignacion.EstadoAsignacion> estados,
+            @Param("proyectos") List<Proyecto.EstadoProyecto> proyectos,
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
     /**
      * Obtiene las asignaciones de un colaborador ordenadas desde la más reciente.
      *
