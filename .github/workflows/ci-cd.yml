@@ -1,0 +1,46 @@
+name: CI/CD - Compilación, Pruebas y Docker
+
+on:
+  push:
+    branches:
+      - main # Se ejecuta automáticamente con cada push a la rama main
+  pull_request:
+    branches:
+      - main # Se ejecuta automáticamente en cada Pull Request hacia main
+
+jobs:
+  build-and-test:
+    name: Compilación Maven y Pruebas Unitarias
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Obtener el código fuente
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: 3. Compilar el proyecto y ejecutar pruebas unitarias
+        # Ejecuta JUnit 5 y Mockito sin requerir conexión a MySQL
+        run: mvn clean test
+
+      - name: 4. Empaquetar la aplicación (.jar)
+        # Genera el JAR de Spring Boot verificando que el empaquetado sea correcto
+        run: mvn package -DskipTests
+
+  docker-build-check:
+    name: Verificación de imagen Docker (CD)
+    runs-on: ubuntu-latest
+    # Solo se ejecuta si la compilación y las pruebas unitarias pasaron correctamente
+    needs: build-and-test
+
+    steps:
+      - name: 1. Obtener el código fuente
+        uses: actions/checkout@v4
+
+      - name: 2. Validar construcción del contenedor Docker
+        run: docker build -t skillbridge-ai:ci-check .
