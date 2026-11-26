@@ -79,7 +79,7 @@
     font-size: var(--text-sm);
 }
 
-.habilidad-form .form-group select:not(.is-invalid) {
+.habilidad-form .form-group select {
     border-color: var(--color-rule-2);
     background: var(--color-paper);
 }

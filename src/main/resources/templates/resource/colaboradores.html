@@ -65,8 +65,8 @@
                     </div>
                 </form>
 
-                <p class="alert-error" role="alert" th:if="${erroresFiltros.containsKey('page')}" th:text="${erroresFiltros.get('page')}"></p>
-                <p class="alert-error" role="alert" th:if="${!verCapacidad and erroresFiltros.containsKey('disponibilidad')}" th:text="${erroresFiltros.get('disponibilidad')}"></p>
+                <p class="field-error" role="alert" th:if="${erroresFiltros.containsKey('page')}" th:text="${erroresFiltros.get('page')}"></p>
+                <p class="field-error" role="alert" th:if="${!verCapacidad and erroresFiltros.containsKey('disponibilidad')}" th:text="${erroresFiltros.get('disponibilidad')}"></p>
                 <p class="empty" th:if="${colaboradores.isEmpty() and erroresFiltros.isEmpty()}">No hay colaboradores que coincidan con los filtros.</p>
 
                 <div class="table-wrap" th:unless="${colaboradores.isEmpty()}">

@@ -167,10 +167,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--purple); }
 .form-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 14px; }
 .help, .field-caption { font-size: 11px; color: var(--muted); margin-top: 3px; }
 .field-caption { margin: 12px 0 4px; font-weight: 600; color: #202124; }
-.form-group .is-invalid { border-color: var(--red); background: #fff8f7; }
-.form-group .is-invalid:focus { border-color: var(--red); box-shadow: 0 0 0 2px rgba(217, 48, 37, .1); }
 .field-error { margin: 4px 1px 0; color: var(--red); font-size: 10px; line-height: 1.35; }
-.field-error.form-error { grid-column: 1 / -1; padding: 6px 8px; border-left: 2px solid var(--red); background: var(--red-soft); }
 
 /* ====== PROFILE ====== */
 .profile-hero { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
@@ -702,7 +699,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--purple); }
 }
 .usuario-password-button:hover { background: #f1f3f4; }
 .usuario-password-help { margin: 5px 1px 0; color: var(--muted); font-size: 10px; line-height: 1.4; }
-.usuario-form-error { margin-top: 6px; padding: 5px 8px; border: 1px solid #fad2cf; border-left: 2px solid var(--red); border-radius: 2px; background: #fce8e6; color: #d93025; font-size: 10px; font-weight: 500; }
 .usuario-form-actions { display: flex; justify-content: flex-end; align-items: center; gap: 6px; margin-top: 14px; }
 
 @media (max-width: 900px) {
@@ -1301,8 +1297,7 @@ input:hover, select:hover, textarea:hover { border-color: var(--color-accent); }
 input:focus, select:focus, textarea:focus { border-color: var(--color-focus); outline: 2px solid var(--color-focus); outline-offset: 1px; }
 input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-allowed; background: var(--color-paper-3); }
 .form-group label { color: var(--color-ink-2); font-size: var(--text-xs); letter-spacing: 0; text-transform: none; }
-.field-error, .form-group .is-invalid { color: var(--color-danger); }
-.form-group .is-invalid { border-color: var(--color-danger); background: var(--color-danger-soft); }
+.field-error { color: var(--color-danger); }
 .field-error, .help, .form-note { min-height: 1lh; }
 
 .logout-modal-overlay { background: var(--color-overlay); }

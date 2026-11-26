@@ -52,7 +52,7 @@
             </section>
 
             <section class="card section" aria-label="Consulta de disponibilidad">
-                <p class="alert-error" role="alert" th:if="${erroresFiltros.containsKey('modo')}"
+                <p class="field-error" role="alert" th:if="${erroresFiltros.containsKey('modo')}"
                    th:text="${erroresFiltros.get('modo')}"></p>
                 <form class="filtros-disponibilidad" th:classappend="${porPeriodo ? 'filtros-periodo' : ''}"
                       th:action="@{/resource/disponibilidad}" method="get" role="search" novalidate>

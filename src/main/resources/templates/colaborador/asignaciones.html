@@ -40,8 +40,8 @@
                         <a class="btn btn-light" th:href="@{/colaborador/asignaciones}">Limpiar</a>
                     </div>
                 </form>
-                <p class="alert-error" role="alert" id="error-busqueda" th:if="${errorBusqueda}" th:text="${errorBusqueda}"></p>
-                <p class="alert-error" role="alert" id="error-estado" th:if="${errorEstado}" th:text="${errorEstado}"></p>
+                <p class="field-error" role="alert" id="error-busqueda" th:if="${errorBusqueda}" th:text="${errorBusqueda}"></p>
+                <p class="field-error" role="alert" id="error-estado" th:if="${errorEstado}" th:text="${errorEstado}"></p>
             </section>
             <section class="card panel-consulta" aria-label="Asignaciones registradas"
                      th:unless="${errorBusqueda != null or errorEstado != null}">

@@ -27,12 +27,14 @@
                     </div>
                     <div class="form-group">
                         <label for="idColaborador">Colaborador</label>
-                        <select th:field="*{idColaborador}" th:errorclass="is-invalid">
+                        <select th:field="*{idColaborador}"
+                                th:attr="aria-invalid=${#fields.hasErrors('idColaborador')},
+                                         aria-describedby=${#fields.hasErrors('idColaborador') ? 'error-colaborador' : null}">
                             <option value="">Selecciona un colaborador</option>
                             <option th:each="c : ${colaboradores}" th:value="${c.idColaborador}"
                                     th:text="${c.usuario.nombreCompleto + (c.cargo != null ? ' · ' + c.cargo : '')}"></option>
                         </select>
-                        <div class="field-error" role="alert" th:errors="*{idColaborador}"></div>
+                        <div class="field-error" id="error-colaborador" role="alert" th:errors="*{idColaborador}"></div>
                     </div>
                     <div class="form-group">
                         <label for="rolProyecto">Rol en el proyecto</label>

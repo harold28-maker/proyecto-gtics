@@ -411,7 +411,6 @@ public class ColaboradorController {
                 errorArchivo = "Vuelve a seleccionar el archivo antes de guardar.";
             }
             model.addAttribute("errorArchivo", errorArchivo);
-            model.addAttribute("mensajeError", "Revisa los campos marcados.");
             return volverAlFormularioCertificacion(formulario, colaborador, sinExpiracion, page, model, redirect);
         }
 

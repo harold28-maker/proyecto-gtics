@@ -41,5 +41,4 @@
 @media (max-width:760px) { .filtros-historial { grid-template-columns:1fr 1fr; } .filtros-historial .busqueda, .filtros-historial .estado-filtro { grid-column:1/-1; } }
 
 .historial-rm .alert-error p { margin:0; }
-.filtros-historial [aria-invalid="true"] { border-color:var(--color-danger); }
 .historial-rm #detalle-equipo, .historial-rm #proyectos-cerrados { scroll-margin-top:4rem; }

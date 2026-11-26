@@ -46,7 +46,6 @@
 .entrada-chat { display: flex; align-items: flex-start; gap: .6rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-rule); }
 .entrada-chat .campo-mensaje { flex: 1; min-width: 0; }
 .entrada-chat textarea { display: block; width: 100%; min-height: 2.75rem; resize: vertical; }
-.talento-rm .is-invalid { border-color: var(--color-danger); }
 .candidato .evidencia dd { overflow-wrap: anywhere; }
 
 @media (max-width: 1160px) {

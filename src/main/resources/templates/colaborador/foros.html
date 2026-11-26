@@ -57,7 +57,7 @@
                         <a class="btn btn-light" th:href="@{/colaborador/foros}">Limpiar</a>
                     </div>
                 </form>
-                <p class="alert-error" role="alert" th:each="error : ${erroresFiltros.values()}" th:text="${error}"></p>
+                <p class="field-error" role="alert" th:each="error : ${erroresFiltros.values()}" th:text="${error}"></p>
                 <p class="empty" th:if="${foros.isEmpty() and erroresFiltros.isEmpty()}">No hay publicaciones que coincidan con los filtros.</p>
                 <div class="temas-foro" th:unless="${foros.isEmpty()}">
                     <article class="tema-foro" th:each="f : ${foros}"

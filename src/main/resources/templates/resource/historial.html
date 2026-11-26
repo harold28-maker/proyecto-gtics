@@ -63,7 +63,7 @@
                     <a th:href="@{/resource/historial}" class="btn btn-light">Limpiar</a>
                 </form>
 
-                <div class="alert-error" role="alert" th:unless="${erroresFiltros.isEmpty()}">
+                <div class="field-error" role="alert" th:unless="${erroresFiltros.isEmpty()}">
                     <p th:each="error : ${erroresFiltros.values()}" th:text="${error}"></p>
                 </div>
                 <p class="alert-error" role="alert" th:if="${errorDetalle != null}" th:text="${errorDetalle}"></p>

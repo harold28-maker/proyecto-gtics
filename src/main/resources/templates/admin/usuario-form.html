@@ -25,9 +25,9 @@
                 <span class="required-note"><span class="required">*</span> Campos obligatorios</span>
             </section>
 
-            <div class="usuario-form-error usuario-aviso" role="alert" th:if="${error != null}" th:text="${error}">
+            <p class="field-error usuario-aviso" role="alert" th:if="${error != null}" th:text="${error}">
                 No se pudo guardar el usuario.
-            </div>
+            </p>
 
             <section class="card usuario-form-card" th:classappend="${editar ? 'usuario-edicion' : 'usuario-alta'}">
                 <form id="usuarioForm" th:action="@{/admin/usuarios/guardar}" th:object="${usuario}"

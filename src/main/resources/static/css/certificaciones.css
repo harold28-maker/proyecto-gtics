@@ -156,12 +156,9 @@
     min-width: 0;
 }
 
-.cert-form .form-group .input:not(.is-invalid) {
+.cert-form .form-group .input {
     border-color: var(--color-rule-2);
     background: var(--color-paper);
-}
-
-.cert-form .form-group .input {
     border-radius: var(--radius-input);
     font-size: var(--text-sm);
 }

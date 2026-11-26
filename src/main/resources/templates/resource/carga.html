@@ -70,7 +70,7 @@
                         <a class="btn btn-light" th:href="@{/resource/carga}">Limpiar</a>
                     </form>
 
-                    <p class="alert-error" role="alert" th:if="${erroresFiltros.containsKey('colaborador')}"
+                    <p class="field-error" role="alert" th:if="${erroresFiltros.containsKey('colaborador')}"
                        th:text="${erroresFiltros.get('colaborador')}"></p>
                     <p class="detalle-ayuda muted" th:if="${sinCargaHoy}">Hoy no hay asignaciones vigentes entre los perfiles activos.</p>
                     <p class="empty" th:if="${filtrosValidos and cargas.isEmpty()}"

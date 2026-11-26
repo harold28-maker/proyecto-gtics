@@ -225,7 +225,6 @@
     font-weight: 650;
 }
 .filtros-disponibilidad .btn { margin-top: calc(1.55 * var(--text-xs) + var(--space-3xs)); }
-.filtros-disponibilidad [aria-invalid="true"] { border-color: var(--color-danger); }
 .ayuda-disponibilidad { margin: .7rem 0 .9rem; font-size: var(--text-xs); }
 
 .disponibilidad-tabla { table-layout: fixed; min-width: 62rem; }
@@ -282,7 +281,6 @@
     font-weight: 650;
 }
 .filtros-carga .btn { margin-top: calc(1.55 * var(--text-xs) + var(--space-3xs)); }
-.filtros-carga [aria-invalid="true"] { border-color: var(--color-danger); }
 .detalle-ayuda { margin: .7rem 0 0; font-size: var(--text-xs); }
 .leyenda-carga { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; margin: .8rem 0; font-size: var(--text-xs); }
 .leyenda-carga span { display: inline-flex; gap: .45rem; align-items: center; }
