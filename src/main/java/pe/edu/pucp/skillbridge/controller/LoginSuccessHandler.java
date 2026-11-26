@@ -8,27 +8,32 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import pe.edu.pucp.skillbridge.entity.Auditoria;
 import pe.edu.pucp.skillbridge.entity.Usuario;
+import pe.edu.pucp.skillbridge.repository.AuditoriaRepository;
 import pe.edu.pucp.skillbridge.repository.UsuarioRepository;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
 
 /**
- * Gestiona el acceso exitoso, actualiza el último ingreso y establece los datos
+ * Registra el acceso exitoso, actualiza el último ingreso y establece los datos
  * de sesión necesarios para la navegación según el rol.
  */
 @Component
 public class LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaRepository auditoriaRepository;
 
     /**
-     * Construye el manejador de autenticación exitosa con el repositorio de usuarios.
+     * Construye el manejador de autenticación exitosa.
      *
      * @param usuarioRepository Repositorio utilizado para actualizar y recuperar al usuario autenticado.
+     * @param auditoriaRepository Repositorio utilizado para registrar cada ingreso.
      */
-    public LoginSuccessHandler(UsuarioRepository usuarioRepository) {
+    public LoginSuccessHandler(UsuarioRepository usuarioRepository, AuditoriaRepository auditoriaRepository) {
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaRepository = auditoriaRepository;
     }
 
     /**
@@ -48,6 +53,13 @@ public class LoginSuccessHandler implements AuthenticationSuccessHandler {
         Usuario usuario = usuarioRepository.findByCorreoIgnoreCase(authentication.getName()).orElseThrow();
         usuario.setUltimoAcceso(LocalDateTime.now());
         usuarioRepository.save(usuario);
+
+        Auditoria acceso = new Auditoria();
+        acceso.setUsuario(usuario);
+        acceso.setAccion(Auditoria.ACCION_INICIAR_SESION);
+        acceso.setModulo(Auditoria.MODULO_AUTENTICACION);
+        acceso.setDetalle(usuario.getRolVisual());
+        auditoriaRepository.save(acceso);
 
         HttpSession session = request.getSession();
         session.setAttribute("usuarioSesionId", usuario.getIdUsuario());

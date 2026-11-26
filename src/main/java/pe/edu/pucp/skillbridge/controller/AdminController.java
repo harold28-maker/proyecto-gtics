@@ -11,6 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +21,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.util.WebUtils;
 
 import pe.edu.pucp.skillbridge.entity.*;
 import pe.edu.pucp.skillbridge.repository.*;
@@ -28,6 +31,7 @@ import pe.edu.pucp.skillbridge.repository.CategoriaHabilidadRepository.ResumenCa
 import pe.edu.pucp.skillbridge.repository.HabilidadRepository.UsoHabilidad;
 import pe.edu.pucp.skillbridge.service.CorreoCuentaService;
 import pe.edu.pucp.skillbridge.service.FotoPerfilService;
+import pe.edu.pucp.skillbridge.service.MonitoreoService;
 import pe.edu.pucp.skillbridge.service.ReporteAdministrativoService;
 import pe.edu.pucp.skillbridge.util.PoliticaContrasena;
 
@@ -41,6 +45,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.nio.charset.StandardCharsets;
@@ -53,6 +59,7 @@ import java.nio.charset.StandardCharsets;
 @RequestMapping("/admin")
 public class AdminController {
 
+    private static final String CLAVE_TEMPORAL_SESION = AdminController.class.getName() + ".claveTemporal";
 
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
@@ -61,6 +68,7 @@ public class AdminController {
     private final CategoriaHabilidadRepository categoriaHabilidadRepository;
     private final AuditoriaRepository auditoriaRepository;
     private final ReporteAdministrativoService reporteAdministrativoService;
+    private final MonitoreoService monitoreoService;
 
     private final CorreoCuentaService correoCuentaService;
     private final FotoPerfilService fotoPerfilService;
@@ -68,6 +76,7 @@ public class AdminController {
     private final TransactionTemplate transacciones;
 
     private record CuentaGuardada(Usuario usuario, String fotoAnterior) {}
+    private record ClaveTemporal(String referencia, String valor, boolean enUso) {}
 
 
     /**
@@ -81,6 +90,7 @@ public class AdminController {
      * @param categoriaHabilidadRepository repositorio del catálogo de categorías
      * @param auditoriaRepository repositorio de registros de auditoría
      * @param reporteAdministrativoService servicio de reportes y exportación a Excel
+     * @param monitoreoService servicio de consulta de ingresos y actividad reciente
      * @param correoCuentaService servicio de envío del correo de bienvenida
      * @param fotoPerfilService servicio de fotos de usuario
      * @param passwordEncoder codificador de contraseñas utilizado por la aplicación
@@ -94,6 +104,7 @@ public class AdminController {
             CategoriaHabilidadRepository categoriaHabilidadRepository,
             AuditoriaRepository auditoriaRepository,
             ReporteAdministrativoService reporteAdministrativoService,
+            MonitoreoService monitoreoService,
             CorreoCuentaService correoCuentaService,
             FotoPerfilService fotoPerfilService,
             PasswordEncoder passwordEncoder,
@@ -107,6 +118,7 @@ public class AdminController {
         this.categoriaHabilidadRepository = categoriaHabilidadRepository;
         this.auditoriaRepository = auditoriaRepository;
         this.reporteAdministrativoService = reporteAdministrativoService;
+        this.monitoreoService = monitoreoService;
         this.correoCuentaService = correoCuentaService;
         this.fotoPerfilService = fotoPerfilService;
         this.passwordEncoder = passwordEncoder;
@@ -307,6 +319,31 @@ public class AdminController {
         return "admin/usuario-form";
     }
 
+    @PostMapping("/usuarios/generar-clave")
+    public String generarClaveUsuario(
+            @RequestParam(required = false) String nombres,
+            @RequestParam(required = false) String apellidos,
+            @RequestParam(required = false) String correo,
+            @RequestParam(required = false) String telefono,
+            @RequestParam(required = false) Integer idRol,
+            @RequestParam(defaultValue = "ACTIVO") Usuario.EstadoUsuario estado,
+            HttpSession session,
+            Model model
+    ) {
+        if (!esAdmin(session)) {
+            return "redirect:/login";
+        }
+
+        Rol rol = idRol == null ? null : rolRepository.findById(idRol).orElse(null);
+        Usuario formulario = construirUsuarioFormulario(null, nombres, apellidos, correo, telefono, rol, estado);
+        ClaveTemporal clave = new ClaveTemporal(UUID.randomUUID().toString(), PoliticaContrasena.generarTemporal(), false);
+        synchronized (WebUtils.getSessionMutex(session)) {
+            session.setAttribute(CLAVE_TEMPORAL_SESION, clave);
+        }
+        mostrarClaveTemporal(model, clave);
+        return volverFormularioUsuario(model, formulario, null);
+    }
+
 
     /* =========================================================
        EDITAR USUARIO
@@ -471,6 +508,7 @@ public class AdminController {
             )
             String confirmarPassword,
 
+            @RequestParam(value = "referenciaClave", required = false) String referenciaClave,
             @RequestParam(value = "foto", required = false) MultipartFile foto,
             @RequestParam(value = "fotoRecortada", required = false) MultipartFile fotoRecortada,
             @RequestParam(value = "quitarFoto", defaultValue = "false") boolean quitarFoto,
@@ -530,6 +568,16 @@ public class AdminController {
             }
         }
 
+
+        boolean nuevo = idUsuario == null;
+        ClaveTemporal temporal = null;
+        if (nuevo) {
+            Object pendiente = session.getAttribute(CLAVE_TEMPORAL_SESION);
+            if (pendiente instanceof ClaveTemporal clave && !clave.enUso() && clave.referencia().equals(referenciaClave)) {
+                temporal = clave;
+            }
+            mostrarClaveTemporal(model, temporal);
+        }
 
         /* =====================================================
            ROL
@@ -762,14 +810,14 @@ public class AdminController {
         }
 
 
-        boolean nuevo = idUsuario == null;
-        String clave = password == null ? "" : password;
-        String confirmacion = confirmarPassword == null ? "" : confirmarPassword;
+        if (nuevo && temporal == null) {
+            return volverFormularioUsuario(model, formulario, "Genera una contraseña temporal para guardar el usuario.");
+        }
+
+        String clave = nuevo ? temporal.valor() : (password == null ? "" : password);
+        String confirmacion = nuevo ? clave : (confirmarPassword == null ? "" : confirmarPassword);
 
         if (clave.isBlank()) {
-            if (nuevo) {
-                return volverFormularioUsuario(model, formulario, "La contraseña es obligatoria para un usuario nuevo.");
-            }
             if (!confirmacion.isBlank()) {
                 model.addAttribute("abrirContrasena", true);
                 return volverFormularioUsuario(model, formulario, "Ingresa la nueva contraseña antes de confirmarla.");
@@ -799,6 +847,15 @@ public class AdminController {
             return volverFormularioUsuario(model, formulario, ex.getMessage());
         } catch (IOException ex) {
             return volverFormularioUsuario(model, formulario, "No se pudo guardar la foto. Vuelve a intentarlo.");
+        }
+
+        ClaveTemporal reservada = null;
+        if (nuevo) {
+            reservada = reservarClaveTemporal(session, temporal);
+            if (reservada == null) {
+                mostrarClaveTemporal(model, null);
+                return volverFormularioUsuario(model, formulario, "Genera una contraseña temporal nueva para continuar.");
+            }
         }
 
         Integer usuarioId = idUsuario;
@@ -842,6 +899,9 @@ public class AdminController {
         } catch (DataIntegrityViolationException ex) {
             return volverFormularioUsuario(model, formulario, "No se pudo guardar el usuario. Verifica el correo y los datos ingresados.");
         } finally {
+            if (reservada != null) {
+                terminarUsoClaveTemporal(session, reservada, temporal, resultado != null);
+            }
             if (resultado == null) {
                 fotoPerfilService.eliminar(fotoNueva);
             }
@@ -872,6 +932,35 @@ public class AdminController {
         redirect.addFlashAttribute("mensajeExito", mensaje);
 
         return "redirect:/admin/usuarios";
+    }
+
+    private void mostrarClaveTemporal(Model model, ClaveTemporal clave) {
+        model.addAttribute("referenciaClave", clave == null ? null : clave.referencia());
+        model.addAttribute("claveTemporal", clave == null ? null : clave.valor());
+    }
+
+    private ClaveTemporal reservarClaveTemporal(HttpSession session, ClaveTemporal clave) {
+        synchronized (WebUtils.getSessionMutex(session)) {
+            if (session.getAttribute(CLAVE_TEMPORAL_SESION) != clave) {
+                return null;
+            }
+            ClaveTemporal reservada = new ClaveTemporal(clave.referencia(), clave.valor(), true);
+            session.setAttribute(CLAVE_TEMPORAL_SESION, reservada);
+            return reservada;
+        }
+    }
+
+    private void terminarUsoClaveTemporal(HttpSession session, ClaveTemporal reservada, ClaveTemporal anterior,
+                                         boolean usuarioGuardado) {
+        synchronized (WebUtils.getSessionMutex(session)) {
+            if (session.getAttribute(CLAVE_TEMPORAL_SESION) == reservada) {
+                if (usuarioGuardado) {
+                    session.removeAttribute(CLAVE_TEMPORAL_SESION);
+                } else {
+                    session.setAttribute(CLAVE_TEMPORAL_SESION, anterior);
+                }
+            }
+        }
     }
 
 
@@ -1521,68 +1610,23 @@ public class AdminController {
        MONITOREO
        ========================================================= */
 
-    /**
-     * Muestra indicadores generales y la actividad reciente del sistema.
-     *
-     * @param session sesión HTTP utilizada para comprobar el acceso administrativo
-     * @param model modelo al que se agregan los conteos y eventos recientes
-     * @return la vista de monitoreo o una redirección al inicio de sesión
-     */
+    /** Muestra el panel o actualiza sus datos usando los permisos de la solicitud. */
     @GetMapping("/monitoreo")
     public String monitoreo(
-            HttpSession session,
+            @RequestParam(defaultValue = "accesos") String vista,
+            @RequestParam(defaultValue = "false") boolean parcial,
+            @RequestAttribute("permisosBloqueados") Set<String> permisosBloqueados,
             Model model
     ) {
-
-        if (!esAdmin(session)) {
-            return "redirect:/login";
+        if (!"accesos".equals(vista) && !"eventos".equals(vista)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La vista de monitoreo no es válida.");
         }
-
-
-        List<Auditoria> eventos =
-                auditoriaRepository
-                        .findTop50ByOrderByFechaDesc();
-
-
-        model.addAttribute(
-                "titulo",
-                "Monitoreo del sistema"
-        );
-
-
-        model.addAttribute(
-                "usuarios",
-                usuarioRepository.count()
-        );
-
-
-        model.addAttribute(
-                "colaboradores",
-                colaboradorRepository.count()
-        );
-
-
-        model.addAttribute(
-                "eventos",
-                eventos.size()
-        );
-
-
-        model.addAttribute(
-                "habilidades",
-                habilidadRepository.count()
-        );
-
-
-        model.addAttribute(
-                "actividad",
-                eventos.stream()
-                        .limit(8)
-                        .toList()
-        );
-
-
-        return "admin/monitoreo";
+        model.addAttribute("titulo", "Monitoreo del sistema");
+        model.addAttribute("vista", vista);
+        if (!permisosBloqueados.contains("auditoria")) {
+            model.addAttribute("resumen", monitoreoService.consultar("accesos".equals(vista)));
+        }
+        return parcial ? "admin/monitoreo :: datos" : "admin/monitoreo";
     }
 
 

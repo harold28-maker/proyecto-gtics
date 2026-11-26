@@ -39,7 +39,7 @@ public class PermisosRolService {
                             List.of("/admin/categorias")),
                     new Permiso("auditoria", "Auditoría", "Consultar auditoría", "Registro de acciones del sistema", true,
                             List.of("/admin/auditoria")),
-                    new Permiso("monitoreo", "Monitoreo", "Consultar monitoreo", "Estado y servicios del sistema", true,
+                    new Permiso("monitoreo", "Monitoreo", "Consultar monitoreo", "Accesos y actividad reciente", true,
                             List.of("/admin/monitoreo")),
                     new Permiso("reportes", "Reportes", "Consultar y descargar reportes", "Reportes administrativos habilitados", true,
                             List.of("/admin/reportes"))
