@@ -30,7 +30,8 @@
                 </p>
                 <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
 
-                <form id="consulta-talento" th:object="${consultaTalento}" th:action="@{${rutaTalento}}" method="post" novalidate>
+                <form id="consulta-talento" th:fragment="contexto" th:object="${consultaTalento}"
+                      th:action="@{${rutaTalento}}" method="post" novalidate>
                     <div class="talento-contexto">
                         <div class="form-group">
                             <label for="idProyecto">Proyecto</label>
@@ -60,6 +61,7 @@
                 </form>
 
                 <div class="chat-talento" aria-label="Conversación">
+                    <th:block th:fragment="conversacion">
                     <article class="mensaje-talento asistente" th:if="${turnos.isEmpty()}">
                         <header>Asistente de talento IA</header>
                         <p th:if="${proyectos.isEmpty()}">El chat se habilita al seleccionar un proyecto vigente a tu cargo.</p>
@@ -77,14 +79,16 @@
                             <p th:text="${orden.last and resultado != null ? resultado.respuesta : turno.respuesta}"></p>
                         </article>
                     </th:block>
+                    </th:block>
 
+                    <th:block th:fragment="candidatos">
                     <th:block th:if="${resultado != null and !resultado.criterios.isEmpty()}">
                         <div class="criterios">
                             <strong>Criterios de la consulta</strong>
                             <span class="badge" th:each="criterio : ${resultado.criterios}" th:text="${criterio}"></span>
                         </div>
                         <div class="resultados-encabezado">
-                            <h3>Candidatos para revisar</h3>
+                            <h3 th:unless="${rolVista == 'PM'}">Candidatos para revisar</h3>
                             <p class="muted" th:text="|${resultado.solicitados} solicitados · ${resultado.completos} coincidencias completas|"></p>
                         </div>
 
@@ -115,7 +119,7 @@
                                         <a class="btn btn-light btn-sm" th:if="${rolVista == 'RM'}"
                                            th:href="@{/resource/colaboradores/{id}(id=${c.idColaborador})}">Ver perfil</a>
                                         <a class="btn btn-light btn-sm" th:if="${rolVista == 'PM'}"
-                                           th:href="@{/pm/colaboradores(q=${c.nombre})}">Ver en colaboradores</a>
+                                           th:href="@{/pm/colaboradores/{id}(id=${c.idColaborador})}">Ver perfil</a>
                                     </th:block>
                                     <form th:if="${puedeAsignar}" th:action="@{${rutaTalento + '/preparar'}}" method="post">
                                         <input type="hidden" name="idColaborador" th:value="${c.idColaborador}">
@@ -126,9 +130,10 @@
                             </article>
                         </div>
                     </th:block>
+                    </th:block>
                 </div>
 
-                <div class="entrada-chat" th:object="${consultaTalento}">
+                <div class="entrada-chat" th:fragment="entrada" th:object="${consultaTalento}">
                     <div class="campo-mensaje">
                         <textarea form="consulta-talento" th:field="*{mensaje}" th:errorclass="is-invalid" rows="1"
                                   aria-label="Mensaje para el asistente"

@@ -5,84 +5,63 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Disponibilidad | SkillBridge AI</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/project-manager.css}">
 </head>
 <body>
 <div class="app-shell">
     <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
-            <div class="grid-4">
-                <div class="metric green">
-                    <div class="label">Disponibles</div>
-                    <div class="value" th:text="${disponibles}">0</div>
-                    <div class="hint">50 % o más</div>
+        <div class="content pm-ui">
+            <th:block th:replace="~{pm/elementos :: avisos}"></th:block>
+            <section class="page-intro">
+                <div><h2>Disponibilidad del equipo</h2><p>Consulta la capacidad libre de hoy o comprueba un período antes de asignar.</p></div>
+                <a class="btn btn-light" th:unless="${permisosBloqueados.contains('asignaciones')}" th:href="@{/pm/asignaciones}">Ir a asignaciones</a>
+            </section>
+            <section class="pm-kpis" aria-label="Resumen de disponibilidad" th:if="${erroresFiltros.isEmpty()}">
+                <article class="metric green"><div class="label">Disponibles</div><div class="value" th:text="|${disponibles} de ${cargas.size()}|"></div><div class="hint">Con 50 % o más libre</div></article>
+                <article class="metric orange"><div class="label">Disponibilidad parcial</div><div class="value" th:text="${parciales}"></div><div class="hint">Entre 1 % y 49 % libre</div></article>
+                <article class="metric blue"><div class="label">Sin disponibilidad</div><div class="value" th:text="${sinDisponibilidad}"></div><div class="hint">Con 0 % libre</div></article>
+            </section>
+            <section class="card section pm-capacidad">
+                <form class="pm-filter" method="get" th:action="@{/pm/disponibilidad}" novalidate>
+                    <input type="hidden" name="modo" value="periodo">
+                    <label>Desde<input type="date" name="desde" th:value="${desde}">
+                        <span th:replace="~{pm/elementos :: error(${erroresFiltros}, 'desde')}"></span></label>
+                    <label>Hasta<input type="date" name="hasta" th:value="${hasta}">
+                        <span th:replace="~{pm/elementos :: error(${erroresFiltros}, 'hasta')}"></span></label>
+                    <button class="btn btn-primary" type="submit">Consultar período</button>
+                    <a class="btn btn-light" th:href="@{/pm/disponibilidad}">Ver hoy</a>
+                    <span class="pm-meta pm-corte" th:unless="${porPeriodo}" th:text="|Hoy · ${#temporals.format(hoy, 'dd-MM-yyyy')} · Hora de Lima|"></span>
+                </form>
+                <th:block th:replace="~{pm/elementos :: error(${erroresFiltros}, 'modo')}"></th:block>
+                <p class="pm-meta" th:if="${porPeriodo and erroresFiltros.isEmpty()}">
+                    Capacidad libre en el momento de mayor carga del período, incluidas las asignaciones planificadas.
+                </p>
+                <p class="empty" th:if="${cargas.isEmpty() and erroresFiltros.isEmpty()}">Aún no hay perfiles activos.</p>
+                <div class="table-wrap" th:unless="${cargas.isEmpty()}">
+                    <table>
+                        <thead><tr><th scope="col">Colaborador</th><th scope="col">Capacidad base</th>
+                            <th scope="col" th:text="${porPeriodo ? 'Carga máxima' : 'Carga vigente'}"></th>
+                            <th scope="col" th:text="${porPeriodo ? 'Disponible mínimo' : 'Disponible hoy'}"></th><th scope="col">Clasificación</th></tr></thead>
+                        <tbody>
+                        <tr th:each="c : ${cargas}">
+                            <td><div class="pm-persona">
+                                <th:block th:if="${usuariosPorColaborador != null}">
+                                    <span th:replace="~{fragments/perfil :: avatar(${usuariosPorColaborador.get(c.idColaborador)}, @{/pm/colaboradores/fotos/{id}(id=${c.idColaborador})}, 'avatar')}"></span>
+                                </th:block>
+                                <div><strong th:text="${c.colaborador}"></strong><small class="pm-meta" th:text="${c.cargo}"></small></div>
+                            </div></td>
+                            <td th:text="|${c.disponibilidadBase} %|"></td>
+                            <td><div th:replace="~{pm/elementos :: barra(${c.carga}, 'orange')}"></div></td>
+                            <td><div th:replace="~{pm/elementos :: barra(${c.disponibilidad}, 'green')}"></div></td>
+                            <td><span class="badge" th:classappend="${c.disponibilidad == 0 ? 'badge-danger' : c.disponibilidad < 50 ? 'badge-warning' : 'badge-success'}"
+                                      th:text="${c.clasificacion.etiqueta}"></span></td>
+                        </tr>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="metric orange">
-                    <div class="label">Parcialmente disponibles</div>
-                    <div class="value" th:text="${parciales}">0</div>
-                    <div class="hint">Entre 1 % y 49 %</div>
-                </div>
-                <div class="metric">
-                    <div class="label">Sin disponibilidad</div>
-                    <div class="value" th:text="${sinDisponibilidad}">0</div>
-                    <div class="hint">0 % disponible</div>
-                </div>
-                <div class="metric blue">
-                    <div class="label">Total perfiles</div>
-                    <div class="value" th:text="${#lists.size(cargas)}">0</div>
-                    <div class="hint">Evaluados por carga</div>
-                </div>
-            </div>
-
-            <div class="grid-3 section">
-                <section class="card" style="grid-column:span 2">
-                    <div class="card-title"><h2>Disponibilidad por colaborador</h2></div>
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                            <tr>
-                                <th>Colaborador</th>
-                                <th>Cargo</th>
-                                <th>Capacidad base</th>
-                                <th>Carga actual</th>
-                                <th>Disponible hoy</th>
-                                <th>Estado</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr th:each="c : ${cargas}">
-                                <td><strong th:text="${c.colaborador}"></strong><br><small class="muted" th:text="${c.area}"></small></td>
-                                <td th:text="${c.cargo}"></td>
-                                <td th:text="|${c.disponibilidadBase} %|"></td>
-                                <td>
-                                    <div class="progress orange"><span th:style="|width:${c.carga > 100 ? 100 : c.carga}%|"></span></div>
-                                    <small th:text="|${c.carga} %|"></small>
-                                </td>
-                                <td>
-                                    <div class="progress green"><span th:style="|width:${c.disponibilidad}%|"></span></div>
-                                    <small th:text="|${c.disponibilidad} %|"></small>
-                                </td>
-                                <td>
-                                    <span class="badge"
-                                          th:classappend="${c.clasificacion.name() == 'DISPONIBLE' ? 'badge-success' : (c.clasificacion.name() == 'PARCIAL' ? 'badge-warning' : 'badge-danger')}"
-                                          th:text="${c.clasificacion.etiqueta}"></span>
-                                </td>
-                            </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-                <section class="card">
-                    <div class="card-title"><h2>Resumen</h2></div>
-                    <div class="donut-wrap" th:with="porcentaje=${#lists.isEmpty(cargas) ? 0 : (disponibles * 100 / #lists.size(cargas))}">
-                        <div class="donut" th:style="|--value:${porcentaje}|">
-                            <div class="donut-label"><strong th:text="|${porcentaje} %|">0 %</strong><small>disponibles</small></div>
-                        </div>
-                    </div>
-                    <p class="muted" style="text-align:center;margin-top:18px">La disponibilidad de hoy descuenta las asignaciones activas vigentes de la capacidad base.</p>
-                </section>
-            </div>
+            </section>
         </div>
     </main>
 </div>

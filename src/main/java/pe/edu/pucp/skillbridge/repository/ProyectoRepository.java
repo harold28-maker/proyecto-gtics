@@ -1,13 +1,16 @@
 package pe.edu.pucp.skillbridge.repository;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 import pe.edu.pucp.skillbridge.entity.Proyecto;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Define las operaciones de acceso y modificación de datos para los proyectos.
@@ -25,6 +28,10 @@ public interface ProyectoRepository extends JpaRepository<Proyecto, Integer> {
      * @return lista de proyectos administrados por el usuario, desde el más reciente hasta el más antiguo
      */
     List<Proyecto> findByProjectManagerIdUsuarioOrderByFechaCreacionDesc(Integer idUsuario);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Proyecto p where p.idProyecto = ?1 and p.projectManager.idUsuario = ?2")
+    Optional<Proyecto> buscarPropioParaActualizar(Integer idProyecto, Integer idUsuario);
     /**
      * Busca los proyectos que tienen un estado específico y los ordena por fecha de inicio descendente.
      *

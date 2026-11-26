@@ -37,18 +37,24 @@
             </form>
 
             <form th:unless="${sesionActiva}" id="login-form" th:action="@{/acceder}"
-                  method="post" autocomplete="off">
+                  method="post" autocomplete="off" novalidate>
                 <div class="login-field-simple">
                     <label for="correo">Correo institucional</label>
-                    <input id="correo" name="correo" type="email" maxlength="150" required
+                    <input id="correo" name="correo" type="email" aria-required="true"
                            autocomplete="off" placeholder="nombre@skillbridge.com"
-                           th:value="${correoIngresado}">
+                           th:value="${correoIngresado}"
+                           th:attr="aria-invalid=${errorCorreo != null}, aria-describedby=${errorCorreo != null ? 'error-correo' : null}">
+                    <p id="error-correo" class="field-error" role="alert"
+                       th:if="${errorCorreo}" th:text="${errorCorreo}"></p>
                 </div>
 
                 <div class="login-field-simple">
                     <label for="password">Contraseña</label>
                     <input id="password" name="password" type="password"
-                           minlength="8" maxlength="30" required autocomplete="off">
+                           aria-required="true" autocomplete="off"
+                           th:attr="aria-invalid=${errorContrasena != null}, aria-describedby=${errorContrasena != null ? 'error-contrasena' : null}">
+                    <p id="error-contrasena" class="field-error" role="alert"
+                       th:if="${errorContrasena}" th:text="${errorContrasena}"></p>
                     <a class="login-link-simple" th:href="@{/recuperar-contrasena}">¿Olvidaste tu contraseña?</a>
                 </div>
 

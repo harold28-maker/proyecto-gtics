@@ -103,7 +103,7 @@ public class PermisosRolService {
     private static final Map<String, Map<String, String>> PERMISOS_REPORTE = Map.of(
             "ADMINISTRADOR", Map.of("usuarios", "usuarios", "habilidades", "habilidades",
                     "auditoria", "auditoria", "dedicacion", "usuarios"),
-            "PROJECT_MANAGER", Map.of("proyectos", "proyectos", "asignaciones", "asignaciones",
+            "PROJECT_MANAGER", Map.of("proyectos", "proyectos", "asignaciones", "asignaciones", "dedicacion", "asignaciones",
                     "carga", "disponibilidad", "historial", "historial"),
             "RESOURCE_MANAGER", Map.of("capacidad", "capacidad", "asignaciones", "asignaciones",
                     "talento", "talento", "proyectos", "historial")

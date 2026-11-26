@@ -129,6 +129,7 @@ CREATE TABLE proyectos (
     id_project_manager INT NOT NULL,
     nombre VARCHAR(150) NOT NULL,
     descripcion TEXT,
+    tecnologias VARCHAR(300),
     fecha_inicio DATE,
     fecha_fin DATE,
     vacantes INT DEFAULT 0,

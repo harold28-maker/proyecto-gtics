@@ -2,6 +2,7 @@ package pe.edu.pucp.skillbridge.entity;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
+import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -15,11 +16,34 @@ public class Proyecto {
     /**
      * Define los niveles de prioridad disponibles para un proyecto.
      */
-    public enum Prioridad { BAJA, MEDIA, ALTA }
+    public enum Prioridad {
+        BAJA("Baja"), MEDIA("Media"), ALTA("Alta");
+
+        private final String etiqueta;
+
+        Prioridad(String etiqueta) { this.etiqueta = etiqueta; }
+
+        public String getEtiqueta() { return etiqueta; }
+    }
     /**
      * Define los estados posibles de avance o ciclo de vida de un proyecto.
      */
-    public enum EstadoProyecto { PLANNING, ACTIVE, ON_HOLD, COMPLETED, CANCELLED }
+    public enum EstadoProyecto {
+        PLANNING("En planificación", "badge-blue"), ACTIVE("En curso", "badge-success"),
+        ON_HOLD("En pausa", "badge-warning"), COMPLETED("Completado", "badge-success"),
+        CANCELLED("Cancelado", "badge-danger");
+
+        private final String etiqueta;
+        private final String estilo;
+
+        EstadoProyecto(String etiqueta, String estilo) {
+            this.etiqueta = etiqueta;
+            this.estilo = estilo;
+        }
+
+        public String getEtiqueta() { return etiqueta; }
+        public String getEstilo() { return estilo; }
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,10 +63,16 @@ public class Proyecto {
     @Size(max = 3000, message = "{validation.proyecto.descripcion.size}")
     private String descripcion;
 
+    @Column(length = 300)
+    @Size(max = 300, message = "Las tecnologías admiten hasta 300 caracteres.")
+    private String tecnologias;
+
     @Column(name = "fecha_inicio")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate fechaInicio;
 
     @Column(name = "fecha_fin")
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     private LocalDate fechaFin;
 
     @PositiveOrZero(message = "{validation.proyecto.vacantes.min}")
@@ -122,6 +152,12 @@ public class Proyecto {
      * @param descripcion descripción que se asignará
      */
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+    public String getTecnologias() { return tecnologias; }
+    public void setTecnologias(String tecnologias) { this.tecnologias = tecnologias; }
+
+    public boolean isCerrado() {
+        return estado == EstadoProyecto.COMPLETED || estado == EstadoProyecto.CANCELLED;
+    }
     /**
      * Obtiene la fecha de inicio del proyecto.
      *

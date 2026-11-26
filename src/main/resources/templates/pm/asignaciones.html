@@ -5,82 +5,64 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Asignaciones | SkillBridge AI</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/project-manager.css}">
 </head>
 <body>
 <div class="app-shell">
     <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
-            <div class="alert-success" role="status" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
-            <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
-            <div class="grid-3">
-                <div class="metric">
-                    <div class="metric-icon">☷</div>
-                    <div class="label">Asignaciones</div>
-                    <div class="value" th:text="${#lists.size(asignaciones)}"></div>
-                    <div class="hint">Registradas</div>
-                </div>
-                <div class="metric green">
-                    <div class="metric-icon">✓</div>
-                    <div class="label">Activas</div>
-                    <div class="value" th:text="${activas}"></div>
-                    <div class="hint">En ejecución</div>
-                </div>
-                <div class="metric blue">
-                    <div class="metric-icon">◷</div>
-                    <div class="label">Planificadas</div>
-                    <div class="value" th:text="${planificadas}"></div>
-                    <div class="hint">Próximas</div>
-                </div>
-            </div>
-            <div class="page-actions section">
-                <div><p class="eyebrow">Staffing</p>
-                    <p class="muted mb-0">Actualiza dedicación, fechas y estado sin perder el historial de
-                        participación.</p></div>
-                <a class="btn btn-primary" th:href="@{/pm/asignaciones/nueva}">＋ Nueva asignación</a></div>
-            <section class="card">
-                <div class="table-wrap">
+        <div class="content pm-ui">
+            <th:block th:replace="~{pm/elementos :: avisos}"></th:block>
+            <section class="page-intro">
+                <div><h2>Asignaciones del equipo</h2><p>Consulta la capacidad del período antes de incorporar a una persona.</p></div>
+                <a class="btn btn-primary" th:href="@{/pm/asignaciones/nueva}">Nueva asignación</a>
+            </section>
+            <section class="pm-kpis" aria-label="Resumen de asignaciones">
+                <article class="metric"><div class="label">Asignaciones</div><div class="value" th:text="${total}"></div><div class="hint">Registradas en tus proyectos</div></article>
+                <article class="metric green"><div class="label">Vigentes hoy</div><div class="value" th:text="${vigentes}"></div><div class="hint">Activas dentro de sus fechas</div></article>
+                <article class="metric blue"><div class="label">Planificadas</div><div class="value" th:text="${planificadas}"></div><div class="hint">Participaciones próximas</div></article>
+                <article class="metric orange"><div class="label">Fuera de plazo</div><div class="value" th:text="${vencidas}"></div><div class="hint">Participaciones con el período vencido</div></article>
+            </section>
+            <section class="card section">
+                <form class="pm-filter" th:action="@{/pm/asignaciones}" method="get" novalidate>
+                    <label class="pm-search">Buscar asignación<input type="search" name="q" th:value="${q}" placeholder="Colaborador o rol">
+                        <span th:replace="~{pm/elementos :: error(${erroresFiltros}, 'q')}"></span></label>
+                    <label>Proyecto<select name="proyecto"><option value="">Todos mis proyectos</option>
+                        <option th:each="p : ${proyectos}" th:text="${p.nombre}" th:value="${p.idProyecto}" th:selected="${proyectoSeleccionado == p.idProyecto}"></option></select>
+                        <span th:replace="~{pm/elementos :: error(${erroresFiltros}, 'proyecto')}"></span></label>
+                    <label>Estado<select name="estado"><option value="">Todos los estados</option>
+                        <option th:each="e : ${estados}" th:text="${e.etiqueta}" th:value="${e.name()}" th:selected="${estadoSeleccionado == e}"></option></select>
+                        <span th:replace="~{pm/elementos :: error(${erroresFiltros}, 'estado')}"></span></label>
+                    <button class="btn btn-primary" type="submit">Aplicar</button><a class="btn btn-light" th:href="@{/pm/asignaciones}">Limpiar</a>
+                </form>
+                <p class="empty" th:if="${filas.isEmpty() and erroresFiltros.isEmpty()}">No se encontraron asignaciones.</p>
+                <div class="table-wrap" th:unless="${filas.isEmpty()}">
                     <table>
-                        <thead>
-                        <tr>
-                            <th>Colaborador</th>
-                            <th>Proyecto</th>
-                            <th>Rol</th>
-                            <th>Periodo</th>
-                            <th>Carga</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
-                        </thead>
+                        <thead><tr><th scope="col">Colaborador</th><th scope="col">Proyecto</th><th scope="col">Rol en el proyecto</th>
+                            <th scope="col">Período</th><th scope="col">Dedicación</th><th scope="col">Estado</th><th scope="col">Acciones</th></tr></thead>
                         <tbody>
-                        <tr th:each="a : ${asignaciones}">
-                            <td>
-                                <div class="table-user"><span class="mini-avatar"
-                                                              th:text="${a.colaborador.usuario.iniciales}"></span>
-                                    <div><strong th:text="${a.colaborador.usuario.nombreCompleto}"></strong><small
-                                            th:text="${a.colaborador.cargo}"></small></div>
-                                </div>
-                            </td>
-                            <td><strong th:text="${a.proyecto.nombre}"></strong></td>
-                            <td th:text="${a.rolProyecto}"></td>
-                            <td><span th:text="${a.fechaInicio}"></span><br><small class="muted"
-                                                                                   th:text="${a.fechaFin ?: '-'}"></small>
-                            </td>
-                            <td style="min-width:130px">
-                                <div class="progress"><span th:style="|width:${a.porcentajeDedicacion}%|"></span></div>
-                                <small th:text="|${a.porcentajeDedicacion}%|"></small></td>
-                            <td><span class="badge"
-                                      th:classappend="${a.estado.name() == 'ACTIVA'} ? ' badge-success' : (${a.estado.name() == 'CANCELADA'} ? ' badge-danger' : ' badge-warning')"
-                                      th:text="${a.estado}"></span></td>
-                            <td>
+                        <tr th:each="fila : ${filas}" th:with="a=${fila.asignacion}, c=${a.colaborador}">
+                            <td><div class="pm-persona">
+                                <th:block th:unless="${permisosBloqueados.contains('colaboradores')}">
+                                    <span th:replace="~{fragments/perfil :: avatar(${c.usuario}, @{/pm/colaboradores/fotos/{id}(id=${c.idColaborador})}, 'avatar')}"></span>
+                                </th:block>
+                                <span class="avatar" aria-hidden="true" th:if="${permisosBloqueados.contains('colaboradores')}" th:text="${c.usuario.iniciales}"></span>
+                                <div><strong th:text="${c.usuario.nombreCompleto}"></strong><small class="pm-meta" th:text="${c.cargo}"></small></div>
+                            </div></td>
+                            <td th:text="${a.proyecto.nombre}"></td><td th:text="${a.rolProyecto}"></td>
+                            <td><div th:replace="~{pm/elementos :: periodo(${a.fechaInicio}, ${a.fechaFin})}"></div></td>
+                            <td><div th:replace="~{pm/elementos :: barra(${a.porcentajeDedicacion}, '')}"></div></td>
+                            <td><span class="badge" th:classappend="${fila.estado.estilo}"
+                                      th:text="${fila.estado.name() == 'VENCIDA' ? 'Fuera de plazo' : fila.estado.etiqueta}"></span>
+                                <small class="pm-meta" th:if="${fila.estado.name() == 'VENCIDA' and a.estado.name() == 'ACTIVA'}">Estado activo</small></td>
+                            <td><th:block th:if="${!a.proyecto.cerrado and a.estado != null and !a.estado.cerrada}">
                                 <div th:replace="~{fragments/asignacion-acciones :: acciones(${a}, '/pm/asignaciones')}"></div>
-                            </td>
+                            </th:block><span class="pm-meta" th:if="${a.proyecto.cerrado or a.estado == null or a.estado.cerrada}">Consulta</span></td>
                         </tr>
                         </tbody>
                     </table>
                 </div>
-                <div class="empty" th:if="${#lists.isEmpty(asignaciones)}">No hay asignaciones registradas.</div>
             </section>
         </div>
     </main>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="avisos">
+    <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+    <p class="alert-success" role="status" th:if="${mensajeExito}" th:text="${mensajeExito}"></p>
+    <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
+</th:block>
+<span th:fragment="estado(proyecto)" class="badge"
+      th:classappend="${proyecto.estado == null ? 'badge-purple' : proyecto.estado.estilo}"
+      th:text="${proyecto.estado == null ? 'Sin estado' : proyecto.estado.etiqueta}"></span>
+<div th:fragment="periodo(inicio, fin)" class="pm-fecha">
+    <div th:text="${inicio == null ? 'Sin fecha de inicio' : #temporals.format(inicio, 'dd-MM-yyyy')}"></div>
+    <small class="pm-meta" th:text="${fin == null ? 'Sin fecha de fin' : #temporals.format(fin, 'dd-MM-yyyy')}"></small>
+</div>
+<div th:fragment="barra(valor, color)" class="pm-barra" th:with="numero=${valor ?: 0}">
+    <div class="progress" th:classappend="${color}" aria-hidden="true">
+        <span th:style="|width:${numero > 100 ? 100 : (numero < 0 ? 0 : numero)}%|"></span>
+    </div>
+    <strong th:text="|${numero} %|"></strong>
+</div>
+<span th:fragment="error(errores, campo)" class="field-error" role="alert"
+      th:if="${errores != null and errores.containsKey(campo)}" th:text="${errores.get(campo)}"></span>
+<div th:fragment="accionesReporte(tipo, filtro, modo)" class="pm-actions">
+    <a class="btn btn-light btn-sm"
+       th:href="@{/pm/reportes#vista-previa(reporte=${tipo.clave},modo=${modo},proyecto=${filtro.proyecto},fecha=${filtro.fecha},asignaciones=${filtro.asignaciones.name()})}">Vista previa</a>
+    <a class="btn btn-primary btn-sm"
+       th:href="@{/pm/reportes/excel(tipo=${tipo.clave},proyecto=${filtro.proyecto},fecha=${filtro.fecha},asignaciones=${filtro.asignaciones.name()})}">Descargar Excel</a>
+    <a class="btn btn-light btn-sm" aria-label="Descargar CSV"
+       th:href="@{/pm/reportes/exportar(tipo=${tipo.clave},proyecto=${filtro.proyecto},fecha=${filtro.fecha},asignaciones=${filtro.asignaciones.name()})}">CSV</a>
+</div>
+<section th:fragment="ficha(proyecto, requerimientos)" class="card section">
+    <header class="card-title"><h3 th:text="|${proyecto.nombre}|"></h3>
+        <span th:replace="~{pm/elementos :: estado(${proyecto})}"></span>
+    </header>
+    <p th:if="${proyecto.descripcion}" th:text="${proyecto.descripcion}"></p>
+    <dl class="grid-3 pm-ficha-datos">
+        <div class="soft-panel"><dt>Inicio registrado</dt><dd th:text="${proyecto.fechaInicio == null ? '—' : #temporals.format(proyecto.fechaInicio, 'dd-MM-yyyy')}"></dd></div>
+        <div class="soft-panel"><dt>Fin registrado</dt><dd th:text="${proyecto.fechaFin == null ? '—' : #temporals.format(proyecto.fechaFin, 'dd-MM-yyyy')}"></dd></div>
+        <div class="soft-panel"><dt>Avance registrado</dt><dd th:text="|${proyecto.progreso ?: 0} %|"></dd></div>
+        <div class="soft-panel"><dt>Personas requeridas</dt><dd th:text="${proyecto.vacantes ?: 0}"></dd></div>
+        <div class="soft-panel"><dt>Prioridad</dt><dd th:text="${proyecto.prioridad == null ? '—' : proyecto.prioridad.etiqueta}"></dd></div>
+        <div class="soft-panel"><dt>Tecnologías utilizadas</dt><dd th:text="${proyecto.tecnologias ?: 'Sin tecnologías registradas'}"></dd></div>
+    </dl>
+    <h4 class="section">Habilidades requeridas</h4>
+    <p class="empty" th:if="${requerimientos.isEmpty()}">Aún no hay habilidades requeridas registradas.</p>
+    <div class="pm-chips" th:unless="${requerimientos.isEmpty()}">
+        <span class="badge badge-purple" th:each="h : ${requerimientos}" th:text="|${h.nombre} · ${h.nivel} · ${h.vacantes}|"></span>
+    </div>
+</section>
+</body>
+</html>

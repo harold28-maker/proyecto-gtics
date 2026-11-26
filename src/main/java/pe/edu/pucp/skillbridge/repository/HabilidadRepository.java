@@ -30,6 +30,8 @@ public interface HabilidadRepository extends JpaRepository<Habilidad, Integer> {
      */
     List<Habilidad> findByNombreContainingIgnoreCase(String nombre);
 
+    List<Habilidad> findByNombreIgnoreCase(String nombre);
+
     /**
      * Bloquea la habilidad durante una modificación de estado o el registro de una nueva asociación.
      *

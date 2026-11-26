@@ -119,11 +119,12 @@ public class ForoController {
                 .toList() : List.of();
 
         boolean esPm = "PM".equals(sesion.rolVista());
-        int totalPaginas = Math.max(1, (filtrados.size() + POR_PAGINA - 1) / POR_PAGINA);
+        int tamanoPagina = esPm ? 4 : POR_PAGINA;
+        int totalPaginas = Math.max(1, (filtrados.size() + tamanoPagina - 1) / tamanoPagina);
         int paginaActual = numeroPagina == null ? 1 : Math.max(1, Math.min(numeroPagina, totalPaginas));
-        int desde = (paginaActual - 1) * POR_PAGINA;
-        int hasta = Math.min(desde + POR_PAGINA, filtrados.size());
-        List<Foro> pagina = esPm ? filtrados : filtrados.subList(desde, hasta);
+        int desde = (paginaActual - 1) * tamanoPagina;
+        int hasta = Math.min(desde + tamanoPagina, filtrados.size());
+        List<Foro> pagina = filtrados.subList(desde, hasta);
         model.addAttribute("titulo", "Foro de proyectos");
         model.addAttribute("foros", pagina);
         model.addAttribute("q", texto);
@@ -136,8 +137,13 @@ public class ForoController {
         model.addAttribute("totalForos", visibles.size());
         model.addAttribute("abiertos", visibles.stream().filter(f -> f.getEstado() == Foro.EstadoForo.ABIERTO).count());
         model.addAttribute("resueltos", visibles.stream().filter(f -> f.getEstado() == Foro.EstadoForo.RESUELTO).count());
+        model.addAttribute("cerrados", visibles.stream().filter(f -> f.getEstado() == Foro.EstadoForo.CERRADO).count());
         model.addAttribute("conteoRespuestas", pagina.stream().collect(Collectors.toMap(Foro::getIdForo,
                 f -> respuestas.countByForoIdForo(f.getIdForo()))));
+        if (esPm) {
+            model.addAttribute("temasConSolucion", pagina.stream().map(Foro::getIdForo)
+                    .filter(respuestas::existsByForoIdForoAndEsSolucionTrue).collect(Collectors.toSet()));
+        }
         model.addAttribute("paginaActual", paginaActual);
         model.addAttribute("totalPaginas", totalPaginas);
         model.addAttribute("resultados", filtrados.size());

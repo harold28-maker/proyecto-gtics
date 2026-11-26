@@ -26,4 +26,6 @@ public interface RespuestaForoRepository extends JpaRepository<RespuestaForo, In
      * @return número total de respuestas asociadas al foro
      */
     long countByForoIdForo(Integer idForo);
+
+    boolean existsByForoIdForoAndEsSolucionTrue(Integer idForo);
 }

@@ -152,7 +152,7 @@ tbody tr:hover { background: #f8f9fa; }
 .progress.red > span { background: var(--red); }
 
 .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
-.input, input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
+.input, input[type="text"], input[type="search"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
     width: 100%; border: 1px solid var(--border-strong); background: #fff; border-radius: 3px; padding: 5px 8px; outline: none; color: var(--text); font-size: 12px;
 }
 input:focus, select:focus, textarea:focus { border-color: var(--purple); }
@@ -874,11 +874,11 @@ body.modal-open { overflow: hidden; }
     text-align: right;
 }
 
-.users-management .users-state {
+.badge.users-state {
     gap: var(--space-3xs);
 }
 
-.users-management .users-state::before {
+.badge.users-state::before {
     content: "";
     width: .375rem;
     height: .375rem;
@@ -1283,7 +1283,7 @@ tbody tr:hover { background: var(--color-accent-soft); }
 .progress.orange > span { background: var(--color-warning); }
 .progress.red > span { background: var(--color-danger); }
 
-.input, input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
+.input, input[type="text"], input[type="search"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
     min-height: 2.75rem;
     padding: var(--space-2xs) var(--space-xs);
     border: var(--rule-thin) solid var(--color-rule-2);
@@ -1708,6 +1708,11 @@ input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-a
 .login-field-simple label {
     font-size: clamp(1rem, 1.35vw, 1.3125rem);
     font-weight: 700;
+}
+
+.login-field-simple .field-error {
+    margin: 0;
+    font-size: var(--text-sm);
 }
 
 .login-field-simple input {

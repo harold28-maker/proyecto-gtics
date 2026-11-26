@@ -12,6 +12,7 @@ public class Habilidad {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_habilidad")
+    @Positive(message = "{validation.habilidad.id.valido}")
     private Integer idHabilidad;
 
     @Column(nullable = false, unique = true, length = 100)
@@ -29,7 +30,7 @@ public class Habilidad {
     private String descripcion;
 
     @NotNull(message = "{validation.habilidad.estado.required}")
-    private Boolean estado = true;
+    private Boolean estado;
 
     /**
      * Obtiene el identificador de la habilidad.

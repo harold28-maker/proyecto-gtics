@@ -3,6 +3,7 @@ package pe.edu.pucp.skillbridge.controller;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
+import org.springframework.beans.propertyeditors.StringTrimmerEditor;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
@@ -19,6 +20,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -1218,6 +1220,14 @@ public class AdminController {
         return "admin/habilidades";
     }
 
+    @InitBinder("habilidad")
+    public void prepararDatosHabilidad(WebDataBinder binder) {
+        binder.setAllowedFields("idHabilidad", "nombre", "categoria", "descripcion", "estado");
+        binder.registerCustomEditor(String.class, "nombre", new StringTrimmerEditor(true));
+        binder.registerCustomEditor(String.class, "categoria", new StringTrimmerEditor(true));
+        binder.registerCustomEditor(String.class, "descripcion", new StringTrimmerEditor(true));
+    }
+
     /**
      * Prepara el formulario para registrar una habilidad nueva con estado activo.
      */
@@ -1232,6 +1242,7 @@ public class AdminController {
         }
         Habilidad habilidad = new Habilidad();
         habilidad.setCategoria(filtros.categoriaFiltro());
+        habilidad.setEstado(true);
         return formularioHabilidad(habilidad, model);
     }
 
@@ -1281,7 +1292,6 @@ public class AdminController {
 
         model.addAttribute("estadoOriginal", estadoOriginal);
         if (bindingResult.hasErrors()) {
-            model.addAttribute("error", bindingResult.getAllErrors().get(0).getDefaultMessage());
             return formularioHabilidad(habilidad, model);
         }
 
@@ -1291,7 +1301,6 @@ public class AdminController {
             return formularioHabilidad(habilidad, model);
         }
 
-        String nombreLimpio = habilidad.getNombre().trim();
         Integer id = habilidad.getIdHabilidad();
         Habilidad registrada = id == null ? null : habilidadRepository.buscarParaActualizar(id).orElse(null);
         if (id != null && registrada == null) {
@@ -1299,10 +1308,8 @@ public class AdminController {
             return redirigirCatalogoHabilidades(filtros, redirect);
         }
 
-        boolean nombreRepetido = habilidadRepository.findAll().stream()
-                .anyMatch(h -> h.getNombre() != null
-                        && h.getNombre().equalsIgnoreCase(nombreLimpio)
-                        && !h.getIdHabilidad().equals(id));
+        boolean nombreRepetido = habilidadRepository.findByNombreIgnoreCase(habilidad.getNombre()).stream()
+                .anyMatch(h -> !h.getIdHabilidad().equals(id));
         if (nombreRepetido) {
             bindingResult.rejectValue("nombre", "validation.habilidad.nombre.unique");
             return formularioHabilidad(habilidad, model);
@@ -1320,9 +1327,7 @@ public class AdminController {
             }
         }
 
-        habilidad.setNombre(nombreLimpio);
         habilidad.setCategoria(categoria.getNombre());
-        habilidad.setDescripcion(habilidad.getDescripcion().trim());
         habilidadRepository.save(habilidad);
         registrarAuditoria(administrador, "Guardar habilidad", "Habilidades",
                 "Se actualizó el catálogo: " + habilidad.getNombre());

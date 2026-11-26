@@ -354,12 +354,7 @@
 
                             <td>
 
-                                <span class="badge badge-purple"
-                                      th:text="${u.rol.nombre}">
-
-                                    COLABORADOR
-
-                                </span>
+                                <span th:replace="~{fragments/perfil :: rolUsuario(${u})}"></span>
 
                             </td>
 
@@ -379,17 +374,7 @@
 
                             <td>
 
-                                <span class="badge"
-                                      th:classappend="${
-                                          u.estado.name() == 'ACTIVO'
-                                          ? ' badge-success'
-                                          : ' badge-warning'
-                                      }"
-                                      th:text="${u.estado}">
-
-                                    ACTIVO
-
-                                </span>
+                                <span th:replace="~{fragments/perfil :: estadoUsuario(${u})}"></span>
 
                             </td>
 

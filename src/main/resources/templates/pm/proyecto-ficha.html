@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Ficha del proyecto | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/project-manager.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content pm-ui">
+            <th:block th:replace="~{pm/elementos :: avisos}"></th:block>
+            <section class="page-intro">
+                <div><h2>Ficha del proyecto</h2><p th:text="${proyecto.projectManager.nombreCompleto}"></p></div>
+                <a class="btn btn-light" th:href="@{/pm/proyectos}">Volver a Proyectos</a>
+            </section>
+            <section th:replace="~{pm/elementos :: ficha(${proyecto}, ${requerimientos})}"></section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

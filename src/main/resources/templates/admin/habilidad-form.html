@@ -36,11 +36,6 @@
 
         <div class="content">
 
-            <div class="alert-error"
-                 th:if="${error}"
-                 th:text="${error}"></div>
-
-
             <!-- =========================================
                  TEXTO SUPERIOR
                  ========================================= -->
@@ -81,12 +76,13 @@
                 <form id="habilidadForm"
                       th:action="@{/admin/habilidades/guardar(q=${filtros.q()}, categoriaFiltro=${filtros.categoriaFiltro()}, estadoFiltro=${filtros.estadoFiltro()})}"
                       th:object="${habilidad}"
-                      method="post">
+                      method="post" novalidate>
 
 
                     <!-- ID -->
                     <input type="hidden"
                            th:field="*{idHabilidad}">
+                    <p class="field-error" role="alert" th:errors="*{idHabilidad}"></p>
 
                     <input type="hidden" name="estadoOriginal" th:if="${estadoOriginal != null}"
                            th:value="${estadoOriginal}">
@@ -112,15 +108,15 @@
                             <input id="nombre"
                                    type="text"
                                    th:field="*{nombre}"
-                                   th:errorclass="is-invalid"
-                                   maxlength="40"
-                                   required
+                                   aria-required="true"
+                                   aria-describedby="errorNombre ayudaNombre"
+                                   th:attr="aria-invalid=${#fields.hasErrors('nombre')}"
                                    placeholder="Ej. Spring Boot">
 
-                            <div class="field-error" th:errors="*{nombre}"></div>
+                            <div id="errorNombre" class="field-error" role="alert" th:errors="*{nombre}"></div>
 
 
-                            <p class="form-note">
+                            <p id="ayudaNombre" class="form-note">
                                 Máximo 40 caracteres.
                             </p>
 
@@ -141,13 +137,15 @@
                             </label>
 
 
-                            <select id="categoria" th:field="*{categoria}" th:errorclass="is-invalid" required>
+                            <select id="categoria" th:field="*{categoria}"
+                                    aria-required="true" aria-describedby="errorCategoria"
+                                    th:attr="aria-invalid=${#fields.hasErrors('categoria')}">
                                 <option value="">Selecciona una categoría</option>
                                 <option th:each="categoria : ${categorias}"
                                         th:value="${categoria.nombre}" th:text="${categoria.nombre}"></option>
                             </select>
 
-                            <div class="field-error" th:errors="*{categoria}"></div>
+                            <div id="errorCategoria" class="field-error" role="alert" th:errors="*{categoria}"></div>
                             <p class="form-note" th:if="${#lists.isEmpty(categorias)}">
                                 Registra una categoría para poder guardar la habilidad.
                                 <a th:unless="${permisosBloqueados.contains('categorias')}"
@@ -174,21 +172,22 @@
                             <textarea id="descripcion"
                                       rows="5"
                                       th:field="*{descripcion}"
-                                      th:errorclass="is-invalid"
-                                      maxlength="150"
-                                      required
+                                      aria-required="true"
+                                      aria-describedby="errorDescripcion ayudaDescripcion"
+                                      th:attr="aria-invalid=${#fields.hasErrors('descripcion')}"
                                       placeholder="Describe el alcance o uso principal de la habilidad."></textarea>
 
-                            <div class="field-error" th:errors="*{descripcion}"></div>
+                            <div id="errorDescripcion" class="field-error" role="alert" th:errors="*{descripcion}"></div>
 
 
                             <div class="habilidad-description-footer">
 
-                                <p class="form-note">
+                                <p id="ayudaDescripcion" class="form-note">
                                     Máximo 150 caracteres.
                                 </p>
 
-                                <span id="descripcionContador">
+                                <span id="descripcionContador"
+                                      th:text="|${#strings.length(habilidad.descripcion ?: '')} / 150|">
                                     0 / 150
                                 </span>
 
@@ -213,9 +212,10 @@
 
                             <select id="estado"
                                     th:field="*{estado}"
-                                    th:errorclass="is-invalid"
-                                    required>
-
+                                    aria-required="true"
+                                    aria-describedby="errorEstado"
+                                    th:attr="aria-invalid=${#fields.hasErrors('estado')}">
+                                <option value="">Selecciona un estado</option>
                                 <option th:value="true">
                                     Activa
                                 </option>
@@ -226,7 +226,7 @@
 
                             </select>
 
-                            <div class="field-error" th:errors="*{estado}"></div>
+                            <div id="errorEstado" class="field-error" role="alert" th:errors="*{estado}"></div>
 
                         </div>
 

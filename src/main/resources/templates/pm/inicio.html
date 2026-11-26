@@ -1,6 +1,69 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Project Manager | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
-            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
-<section class="card hero-card" th:if="${pm != null}"><div class="profile-hero"><div class="profile-avatar" th:text="${#strings.substring(pm.nombres,0,1)}">P</div><div><p class="eyebrow">Resumen del día</p><h2 class="mt-0" th:text="|¡Hola, ${pm.nombres}!|">Hola</h2><p class="muted">Gestiona proyectos, equipos y asignaciones desde tu panel principal.</p></div><div class="actions"><a class="btn btn-light" th:unless="${permisosBloqueados.contains('reportes')}" th:href="@{/pm/reportes}">Ver reportes</a><a class="btn btn-primary" th:unless="${permisosBloqueados.contains('proyectos')}" th:href="@{/pm/proyectos/nuevo}">＋ Crear proyecto</a></div></div></section>
-<div class="grid-4 section"><div class="metric" th:unless="${permisosBloqueados.contains('proyectos')}"><div class="metric-icon">▣</div><div class="label">Proyectos activos</div><div class="value" th:text="${proyectosActivos}">0</div><div class="hint">En ejecución</div></div><div class="metric blue" th:unless="${permisosBloqueados.contains('proyectos')}"><div class="metric-icon">◷</div><div class="label">En planificación</div><div class="value" th:text="${proyectosPlanning}">0</div><div class="hint">Por iniciar</div></div><div class="metric green" th:unless="${permisosBloqueados.contains('asignaciones')}"><div class="metric-icon">☷</div><div class="label">Asignaciones</div><div class="value" th:text="${asignaciones}">0</div><div class="hint">Vinculadas a tus proyectos</div></div><div class="metric orange" th:unless="${permisosBloqueados.contains('asignaciones') or permisosBloqueados.contains('colaboradores')}"><div class="metric-icon">♙</div><div class="label">Colaboradores</div><div class="value" th:text="${colaboradores}">0</div><div class="hint">Participando actualmente</div></div></div>
-<div class="grid-2 section"><section class="card" th:unless="${permisosBloqueados.contains('proyectos')}"><div class="card-title"><h2>Proyectos recientes</h2><a class="btn btn-light btn-sm" th:href="@{/pm/proyectos}">Ver todos</a></div><div class="forum-item" th:each="p : ${proyectos}"><div><h3 th:text="${p.nombre}"></h3><p th:text="|${p.estado} · ${p.fechaInicio} → ${p.fechaFin}|"></p><div class="progress" style="margin-top:8px"><span th:style="|width:${p.progreso}%|"></span></div></div><span class="badge badge-purple" th:text="|${p.progreso}%|"></span></div></section><section class="card" th:unless="${permisosBloqueados.contains('asignaciones')}"><div class="card-title"><h2>Asignaciones recientes</h2><a class="btn btn-light btn-sm" th:href="@{/pm/asignaciones}">Gestionar</a></div><div class="forum-item" th:each="a : ${ultimasAsignaciones}"><div><h3 th:text="${a.colaborador.usuario.nombreCompleto}"></h3><p th:text="|${a.proyecto.nombre} · ${a.rolProyecto}|"></p></div><span class="badge badge-success" th:text="|${a.porcentajeDedicacion}%|"></span></div></section></div>
-</div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Inicio | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/project-manager.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content pm-ui">
+            <th:block th:replace="~{pm/elementos :: avisos}"></th:block>
+            <section class="page-intro">
+                <div><h2>Gestión de proyectos</h2><p th:text="|Hola, ${pm.nombres}. Revisa tus próximos vencimientos y el equipo asignado.|"></p></div>
+                <div class="pm-actions">
+                    <a class="btn btn-light" th:unless="${permisosBloqueados.contains('reportes')}" th:href="@{/pm/reportes}">Ver reportes</a>
+                    <a class="btn btn-primary" th:if="${verProyectos}" th:href="@{/pm/proyectos/nuevo}">Crear proyecto</a>
+                </div>
+            </section>
+            <section class="pm-kpis" aria-label="Resumen de proyectos">
+                <article class="metric green" th:if="${verProyectos}"><div class="label">Proyectos en curso</div>
+                    <div class="value" th:text="${activos}"></div><div class="hint">A tu cargo</div></article>
+                <article class="metric blue" th:if="${verProyectos}"><div class="label">En planificación</div>
+                    <div class="value" th:text="${planificacion}"></div><div class="hint">Por iniciar</div></article>
+                <article class="metric " th:if="${verAsignaciones}"><div class="label">Asignaciones vigentes</div>
+                    <div class="value" th:text="${vigentes}"></div><div class="hint">Activas dentro de su período</div></article>
+                <article class="metric orange" th:if="${verProyectos}"><div class="label">Fin previsto vencido</div>
+                    <div class="value" th:text="${vencidos}"></div><div class="hint">Proyectos por revisar</div></article>
+            </section>
+            <div class="pm-dos-columnas section">
+                <section class="card" th:if="${verProyectos}">
+                    <header class="card-title"><h3>Fechas por revisar</h3><a class="btn btn-light btn-sm" th:href="@{/pm/proyectos}">Ver proyectos</a></header>
+                    <p class="empty" th:if="${fechas.isEmpty()}">Aún no hay fechas de fin registradas en proyectos en curso.</p>
+                    <ul class="pm-lista">
+                        <li th:each="f : ${fechas}">
+                            <div class="pm-linea">
+                                <div><strong th:text="${f.proyecto.nombre}"></strong>
+                                    <small class="pm-meta" th:text="|Fin previsto ${#temporals.format(f.proyecto.fechaFin,'dd-MM-yyyy')}|"></small>
+                                </div>
+                                <span class="badge" th:classappend="${f.dias < 0 ? 'badge-warning' : 'badge-blue'}" th:text="${f.etiqueta}"></span>
+                            </div>
+                            <div class="progress"><span th:style="|width:${f.proyecto.progreso ?: 0}%|"></span></div>
+                            <small class="pm-meta" th:text="|${f.proyecto.progreso ?: 0} % de avance|"></small>
+                        </li>
+                    </ul>
+                </section>
+                <section class="card" th:if="${verAsignaciones}">
+                    <header class="card-title"><h3>Asignaciones vigentes</h3><a class="btn btn-light btn-sm" th:href="@{/pm/asignaciones}">Gestionar</a></header>
+                    <p class="empty" th:if="${ultimasAsignaciones.isEmpty()}">Hoy no hay asignaciones vigentes en tus proyectos.</p>
+                    <ul class="pm-lista">
+                        <li th:each="a : ${ultimasAsignaciones}" class="pm-linea">
+                            <div><strong th:text="${a.colaborador.usuario.nombreCompleto}"></strong>
+                                <small class="pm-meta" th:text="|${a.proyecto.nombre} · ${a.rolProyecto}|"></small>
+                                <small class="pm-meta" th:text="${a.fechaFin == null ? 'Sin fecha de fin' : 'Hasta ' + #temporals.format(a.fechaFin,'dd-MM-yyyy')}"></small>
+                            </div>
+                            <span class="badge badge-success" th:text="|${a.porcentajeDedicacion} % de dedicación|"></span>
+                        </li>
+                    </ul>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

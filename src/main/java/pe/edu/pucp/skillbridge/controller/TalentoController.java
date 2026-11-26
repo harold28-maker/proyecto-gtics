@@ -92,6 +92,10 @@ public class TalentoController {
         Conversacion previa = proyectoValido && actual != null && actual.idProyecto().equals(formulario.getIdProyecto())
                 ? actual : null;
         if (errores.hasErrors()) return vista(gestor, bloqueados, proyectos, previa, model);
+        if (!gemini.configurado() && esProjectManager(gestor)) {
+            model.addAttribute("mensajeError", "El asistente de talento no está disponible. Contacta a Administración.");
+            return vista(gestor, bloqueados, proyectos, previa, model);
+        }
 
         try {
             Interpretacion interpretacion = gemini.interpretar(formulario.getMensaje(),

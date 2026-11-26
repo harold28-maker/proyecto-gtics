@@ -1,62 +1,61 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Habilidades requeridas | SkillBridge AI</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/project-manager.css}">
 </head>
 <body>
 <div class="app-shell">
     <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
-            <div class="alert-success" th:if="${mensajeExito}" th:text="${mensajeExito}"></div>
-            <div class="alert-error" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+        <div class="content pm-ui">
+            <th:block th:replace="~{pm/elementos :: avisos}"></th:block>
             <section class="page-intro">
-                <div>
-                    <p class="eyebrow">Requerimientos técnicos</p>
-                    <h2 th:text="${proyecto.nombre}">Proyecto</h2>
-                    <p>Define las habilidades, nivel esperado y número de vacantes técnicas que necesita el proyecto.</p>
-                </div>
-                <a class="btn btn-light" th:href="@{/pm/proyectos}">← Volver a proyectos</a>
+                <div><h2>Habilidades requeridas</h2><p th:text="${proyecto.nombre}"></p></div>
+                <a class="btn btn-light" th:href="@{/pm/proyectos}">Volver a Proyectos</a>
             </section>
-
-            <div class="grid-3">
-                <section class="card" style="grid-column:span 2">
-                    <div class="card-title"><div><h2>Stack requerido</h2><p class="muted">La combinación proyecto + habilidad es única y puede actualizarse desde el mismo formulario.</p></div><span class="badge badge-purple" th:text="|${#lists.size(requerimientos)} skills|"></span></div>
-                    <div class="table-wrap">
+            <div class="pm-dos-columnas">
+                <section class="card">
+                    <header class="card-title"><h3>Requerimientos del proyecto</h3></header>
+                    <p class="empty" th:if="${requerimientos.isEmpty()}">Aún no hay habilidades requeridas.</p>
+                    <div class="table-wrap" th:unless="${requerimientos.isEmpty()}">
                         <table>
-                            <thead><tr><th>Habilidad</th><th>Categoría</th><th>Nivel</th><th>Vacantes</th><th></th></tr></thead>
-                            <tbody>
-                            <tr th:each="h : ${requerimientos}">
-                                <td><strong th:text="${h.nombre}"></strong></td>
-                                <td><span class="badge badge-purple" th:text="${h.categoria}"></span></td>
-                                <td th:text="${h.nivel}"></td>
-                                <td th:text="${h.vacantes}"></td>
-                                <td class="text-right">
-                                    <form th:action="@{/pm/proyectos/{id}/habilidades/{idHabilidad}/eliminar(id=${proyecto.idProyecto},idHabilidad=${h.idHabilidad})}" method="post">
-                                        <button class="btn btn-danger-soft btn-sm" type="submit">Quitar</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            </tbody>
+                            <thead><tr><th scope="col">Habilidad</th><th scope="col">Nivel</th><th scope="col">Vacantes</th>
+                                <th scope="col" th:unless="${proyecto.cerrado}">Acción</th></tr></thead>
+                            <tbody><tr th:each="h : ${requerimientos}">
+                                <td><strong th:text="${h.nombre}"></strong><small class="pm-meta" th:text="${h.categoria}"></small></td>
+                                <td th:text="${h.nivel}"></td><td th:text="${h.vacantes}"></td>
+                                <td th:unless="${proyecto.cerrado}"><form th:action="@{/pm/proyectos/{id}/habilidades/{habilidad}/eliminar(id=${proyecto.idProyecto},habilidad=${h.idHabilidad})}" method="post">
+                                    <button class="btn btn-danger-soft btn-sm" type="submit">Retirar</button>
+                                </form></td>
+                            </tr></tbody>
                         </table>
                     </div>
-                    <div class="empty" th:if="${#lists.isEmpty(requerimientos)}">Aún no se han definido habilidades requeridas para este proyecto.</div>
                 </section>
-
-                <aside class="card hero-card">
-                    <p class="eyebrow">Agregar o actualizar</p>
-                    <h3>Requerimiento técnico</h3>
-                    <form th:action="@{/pm/proyectos/{id}/habilidades/guardar(id=${proyecto.idProyecto})}" method="post">
-                        <div class="form-group" style="margin-top:14px"><label>Habilidad</label><select name="idHabilidad" required><option value="">Selecciona</option><option th:each="h : ${catalogo}" th:value="${h.idHabilidad}" th:text="|${h.nombre} · ${h.categoria}|"></option></select></div>
-                        <div class="form-group" style="margin-top:12px"><label>Nivel requerido</label><select name="nivel" required><option>BASICO</option><option>INTERMEDIO</option><option>AVANZADO</option><option>EXPERTO</option></select></div>
-                        <div class="form-group" style="margin-top:12px"><label>Vacantes</label><input type="number" name="vacantes" min="1" value="1" required></div>
-                        <button class="btn btn-primary" style="width:100%;margin-top:15px">Guardar requerimiento</button>
+                <section class="card" th:unless="${proyecto.cerrado}">
+                    <header class="card-title"><h3>Agregar o actualizar</h3></header>
+                    <form class="pm-form" method="post" th:action="@{/pm/proyectos/{id}/habilidades/guardar(id=${proyecto.idProyecto})}" novalidate>
+                        <div class="form-grid">
+                            <div class="form-group full"><label for="idHabilidad">Habilidad</label><select id="idHabilidad" name="idHabilidad">
+                                <option value="">Selecciona del catálogo</option><option th:each="h : ${catalogo}" th:value="${h.idHabilidad}" th:selected="${h.idHabilidad == habilidadSeleccionada}" th:text="${h.nombre}"></option>
+                            </select><p th:replace="~{pm/elementos :: error(${erroresFiltros}, 'idHabilidad')}"></p></div>
+                            <div class="form-group"><label for="nivel">Nivel requerido</label><select id="nivel" name="nivel">
+                                <option value="BASICO" th:selected="${nivelSeleccionado == 'BASICO'}">Básico</option>
+                                <option value="INTERMEDIO" th:selected="${nivelSeleccionado == 'INTERMEDIO'}">Intermedio</option>
+                                <option value="AVANZADO" th:selected="${nivelSeleccionado == 'AVANZADO'}">Avanzado</option>
+                                <option value="EXPERTO" th:selected="${nivelSeleccionado == 'EXPERTO'}">Experto</option>
+                            </select><p th:replace="~{pm/elementos :: error(${erroresFiltros}, 'nivel')}"></p></div>
+                            <div class="form-group"><label for="vacantes">Vacantes</label>
+                                <input id="vacantes" type="number" name="vacantes" th:value="${vacantes ?: '1'}">
+                                <p th:replace="~{pm/elementos :: error(${erroresFiltros}, 'vacantes')}"></p></div>
+                        </div>
+                        <div class="pm-actions"><button class="btn btn-primary" type="submit">Guardar habilidad</button></div>
                     </form>
-                    <div class="knowledge-tip"><strong>Cómo funciona</strong><p>Si la habilidad ya existe en el proyecto, se actualizan el nivel y las vacantes. Si no existe, se crea la relación.</p></div>
-                </aside>
+                </section>
             </div>
         </div>
     </main>

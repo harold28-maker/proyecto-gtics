@@ -9,18 +9,18 @@
 </head>
 <body>
 <div class="app-shell">
-    <aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside>
+    <aside th:replace="~{fragments/layout :: sidebar(${rolSesion == 'PM' ? 'PM' : 'RM'})}"></aside>
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content perfil-rm" th:with="usuario=${colaborador.usuario}">
+        <div class="content perfil-rm" th:with="usuario=${colaborador.usuario}, base=${rolSesion == 'PM' ? '/pm' : '/resource'}">
             <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
             <section class="page-intro">
                 <h2>Perfil del colaborador</h2>
-                <a class="btn btn-light" th:if="${desdeInicio}" th:href="@{/resource/inicio}">Volver a Inicio</a>
-                <a class="btn btn-light" th:unless="${desdeInicio}" th:href="@{/resource/colaboradores}">Volver a Colaboradores</a>
+                <a class="btn btn-light" th:if="${desdeInicio}" th:href="@{${base + '/inicio'}}">Volver a Inicio</a>
+                <a class="btn btn-light" th:unless="${desdeInicio}" th:href="@{${base + '/colaboradores'}}">Volver a Colaboradores</a>
             </section>
             <section class="card identidad" aria-label="Datos del colaborador">
-                <span th:replace="~{fragments/perfil :: avatar(${usuario}, @{/resource/colaboradores/fotos/{id}(id=${colaborador.idColaborador})}, 'foto')}"></span>
+                <span th:replace="~{fragments/perfil :: avatar(${usuario}, @{${base + '/colaboradores/fotos/' + colaborador.idColaborador}}, 'foto')}"></span>
                 <div class="identidad-nombre">
                     <h3 th:text="${usuario.nombreCompleto}"></h3>
                     <p class="muted" th:if="${colaborador.cargo != null or colaborador.area != null}">
@@ -31,7 +31,7 @@
                     <span class="badge badge-purple" th:if="${colaborador.seniority != null}"
                           th:text="${colaborador.seniority.etiqueta}"></span>
                 </div>
-                <a class="btn btn-primary" th:if="${puedeAsignar}" th:href="@{/resource/asignaciones/nueva(idColaborador=${colaborador.idColaborador})}">+ Nueva asignación</a>
+                <a class="btn btn-primary" th:if="${puedeAsignar}" th:href="@{${base + '/asignaciones/nueva'}(idColaborador=${colaborador.idColaborador})}">Nueva asignación</a>
             </section>
             <section class="capacidad" th:if="${capacidad != null}" aria-labelledby="capacidad-titulo">
                 <h3 id="capacidad-titulo">Capacidad de hoy</h3>

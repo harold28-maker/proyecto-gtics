@@ -1,2 +1,47 @@
-<!doctype html>
-<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{resource/talent :: pantalla}"></html>
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Recomendaciones | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/talento-chat.css}">
+    <link rel="stylesheet" th:href="@{/css/project-manager.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content talento-rm pm-ui">
+            <th:block th:replace="~{pm/elementos :: avisos}"></th:block>
+            <section class="page-intro">
+                <div><h2>Recomendaciones</h2><p>Describe el perfil que necesita tu proyecto y revisa los criterios de cada candidato.</p></div>
+                <form th:action="@{${rutaTalento + '/nueva'}}" method="post">
+                    <button type="submit" class="btn btn-light">Nueva consulta</button>
+                </form>
+            </section>
+            <p class="pm-aviso-talento" role="status" th:if="${!iaConfigurada and mensajeError == null}">
+                El asistente de talento está pendiente de configuración.
+            </p>
+            <div class="pm-dos-columnas pm-talento">
+                <section class="card">
+                    <header class="card-title"><h3>Asistente de talento IA</h3></header>
+                    <form th:replace="~{resource/talent :: contexto}"></form>
+                    <div class="chat-talento" aria-label="Conversación">
+                        <th:block th:replace="~{resource/talent :: conversacion}"></th:block>
+                    </div>
+                    <div th:replace="~{resource/talent :: entrada}"></div>
+                </section>
+                <section class="card">
+                    <header class="card-title"><h3>Candidatos recomendados</h3></header>
+                    <p class="empty" th:if="${resultado == null}">Los candidatos y sus criterios aparecerán aquí después de una consulta.</p>
+                    <p class="empty" th:if="${resultado != null and resultado.candidatos.isEmpty()}">No se encontraron candidatos para esta consulta.</p>
+                    <th:block th:replace="~{resource/talent :: candidatos}"></th:block>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>
