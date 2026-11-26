@@ -39,6 +39,8 @@ jobs:
 
       - name: 4. Configurar GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: 5. Preparar el artefacto de documentación
         uses: actions/upload-pages-artifact@v3
