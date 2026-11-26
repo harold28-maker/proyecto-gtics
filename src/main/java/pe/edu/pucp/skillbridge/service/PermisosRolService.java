@@ -39,7 +39,7 @@ public class PermisosRolService {
                             List.of("/admin/categorias")),
                     new Permiso("auditoria", "Auditoría", "Consultar auditoría", "Registro de acciones del sistema", true,
                             List.of("/admin/auditoria")),
-                    new Permiso("monitoreo", "Monitoreo", "Consultar monitoreo", "Estado y servicios del sistema", true,
+                    new Permiso("monitoreo", "Monitoreo", "Consultar monitoreo", "Accesos y actividad reciente", true,
                             List.of("/admin/monitoreo")),
                     new Permiso("reportes", "Reportes", "Consultar y descargar reportes", "Reportes administrativos habilitados", true,
                             List.of("/admin/reportes"))
@@ -93,6 +93,8 @@ public class PermisosRolService {
                             List.of("/colaborador/foros", "/foros")),
                     new Permiso("chat", "Colaboración", "Participar en el chat", "Proyectos en los que participa", true,
                             List.of("/colaborador/chat")),
+                    new Permiso("asistente", "Colaboración", "Consultar el asistente de IA", "Publicaciones autorizadas", true,
+                            List.of("/colaborador/asistente")),
                     new Permiso("notificaciones", "Notificaciones", "Consultar notificaciones", "Sus propias notificaciones", true,
                             List.of("/colaborador/notificaciones"))
             )
@@ -101,7 +103,7 @@ public class PermisosRolService {
     private static final Map<String, Map<String, String>> PERMISOS_REPORTE = Map.of(
             "ADMINISTRADOR", Map.of("usuarios", "usuarios", "habilidades", "habilidades",
                     "auditoria", "auditoria", "dedicacion", "usuarios"),
-            "PROJECT_MANAGER", Map.of("proyectos", "proyectos", "asignaciones", "asignaciones",
+            "PROJECT_MANAGER", Map.of("proyectos", "proyectos", "asignaciones", "asignaciones", "dedicacion", "asignaciones",
                     "carga", "disponibilidad", "historial", "historial"),
             "RESOURCE_MANAGER", Map.of("capacidad", "capacidad", "asignaciones", "asignaciones",
                     "talento", "talento", "proyectos", "historial")

@@ -27,5 +27,12 @@
       th:with="estado=${certificacion.estadoActual.name()}"
       th:classappend="${estado == 'VENCIDA' ? 'badge-danger' : (estado == 'VIGENTE' ? 'badge-success' : 'badge-purple')}"
       th:text="${estado == 'VENCIDA' ? 'Vencida' : (estado == 'VIGENTE' ? 'Vigente' : 'Sin expiración')}">Vigente</span>
+<span class="badge badge-purple" th:fragment="rolUsuario(usuario)"
+      th:text="${usuario.rolVisual}">Colaborador</span>
+
+<span class="badge users-state" th:fragment="estadoUsuario(usuario)"
+      th:with="estado=${usuario.estado?.name()}"
+      th:classappend="${estado == 'ACTIVO' ? 'badge-success' : (estado == 'BLOQUEADO' ? 'badge-danger' : (estado == 'INACTIVO' ? 'badge-warning' : ''))}"
+      th:text="${estado == null ? 'Sin estado' : #strings.capitalize(#strings.toLowerCase(estado))}">Activo</span>
 </body>
 </html>

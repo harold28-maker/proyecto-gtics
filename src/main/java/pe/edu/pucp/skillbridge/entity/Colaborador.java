@@ -12,7 +12,19 @@ public class Colaborador {
     /**
      * Niveles de seniority disponibles para un colaborador.
      */
-    public enum Seniority { JUNIOR, SEMI_SENIOR, SENIOR, LEAD }
+    public enum Seniority {
+        JUNIOR("Junior"), SEMI_SENIOR("Semi senior"), SENIOR("Senior"), LEAD("Líder");
+
+        private final String etiqueta;
+
+        Seniority(String etiqueta) {
+            this.etiqueta = etiqueta;
+        }
+
+        public String getEtiqueta() {
+            return etiqueta;
+        }
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

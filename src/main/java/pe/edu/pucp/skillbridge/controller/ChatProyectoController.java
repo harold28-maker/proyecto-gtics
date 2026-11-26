@@ -116,7 +116,7 @@ public class ChatProyectoController {
     public String mostrar(@PathVariable Integer idProyecto, Model model, Authentication auth) {
         Usuario usuario = usuarioActual(auth);
         Proyecto proyecto = proyectoAutorizado(usuario, idProyecto);
-        List<MensajeChat> lista = mensajes.findByProyectoIdProyectoOrderByFechaEnvioAsc(idProyecto);
+        List<MensajeChat> lista = mensajes.findByProyectoIdProyectoOrderByFechaEnvioAscIdMensajeAsc(idProyecto);
         if (lista.size() > 100) lista = lista.subList(lista.size() - 100, lista.size());
         model.addAttribute("titulo", "Chat por proyecto");
         model.addAttribute("proyecto", proyecto);

@@ -12,6 +12,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestParam;
+import pe.edu.pucp.skillbridge.config.ValidacionLoginFilter;
 
 
 /**
@@ -36,6 +37,7 @@ public class HomeController {
      * @param error Parámetro opcional que indica si el inicio de sesión falló.
      * @param logout Parámetro opcional que indica si se cerró una sesión.
      * @param authentication Información de autenticación de la solicitud actual.
+     * @param request Solicitud que permite recuperar los avisos del formulario.
      * @param model Modelo utilizado para proporcionar datos a la vista de login.
      * @return Nombre de la vista de inicio de sesión.
      */
@@ -43,9 +45,15 @@ public class HomeController {
     public String login(@RequestParam(required = false) String error,
                         @RequestParam(required = false) String logout,
                         Authentication authentication,
-                        Model model, HttpServletRequest request) {
+                        HttpServletRequest request,
+                        Model model) {
+        ValidacionLoginFilter.Avisos avisos = ValidacionLoginFilter.consumirAvisos(request);
         model.addAttribute("sesionActiva", tieneSesionActiva(authentication));
         model.addAttribute("titulo", "Iniciar sesión");
+        if (avisos != null) {
+            model.addAttribute("errorCorreo", avisos.errorCorreo());
+            model.addAttribute("errorContrasena", avisos.errorContrasena());
+        }
         // Consumimos el correo de un único intento fallido; no se guarda la contraseña.
         String correoIngresado = "";
         HttpSession sesion = request.getSession(false);
@@ -54,7 +62,7 @@ public class HomeController {
             if (recordado instanceof String correo) correoIngresado = correo;
         }
         if (sesion != null) sesion.removeAttribute("loginCorreoFallido");
-        model.addAttribute("correoIngresado", correoIngresado);
+        model.addAttribute("correoIngresado", avisos == null ? correoIngresado : avisos.correo());
         model.addAttribute("errorLogin", error == null ? null
                 : "Correo o contraseña incorrectos, o la cuenta no está activa.");
         model.addAttribute("logoutExitoso", logout != null);

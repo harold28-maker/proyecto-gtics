@@ -1,1 +1,176 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Disponibilidad | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content"><div class="grid-4"><div class="metric green"><div class="metric-icon">✓</div><div class="label">Disponibles</div><div class="value" th:text="${disponibles}"></div><div class="hint">50% o más</div></div><div class="metric orange"><div class="metric-icon">◫</div><div class="label">Parcialmente disponibles</div><div class="value" th:text="${parciales}"></div><div class="hint">Entre 1% y 49%</div></div><div class="metric"><div class="metric-icon">×</div><div class="label">Sin disponibilidad</div><div class="value" th:text="${sinDisponibilidad}"></div><div class="hint" style="color:var(--red)">0% disponible</div></div><div class="metric blue"><div class="metric-icon">♙</div><div class="label">Colaboradores</div><div class="value" th:text="${#lists.size(cargas)}"></div><div class="hint">Perfiles evaluados</div></div></div><section class="card section"><div class="card-title"><h2>Vista general de disponibilidad</h2><span class="badge badge-purple">Base - carga activa</span></div><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Rol principal</th><th>Capacidad base</th><th>Carga actual</th><th>Disponible hoy</th><th>Clasificación</th></tr></thead><tbody><tr th:each="c : ${cargas}"><td><strong th:text="${c.colaborador}"></strong><br><small class="muted" th:text="${c.area}"></small></td><td th:text="${c.cargo}"></td><td th:text="|${c.disponibilidadBase}%|"></td><td><div class="progress orange"><span th:style="|width:${c.carga > 100 ? 100 : c.carga}%|"></span></div><small th:text="|${c.carga}%|"></small></td><td><div class="progress green"><span th:style="|width:${c.disponibilidad}%|"></span></div><small th:text="|${c.disponibilidad}%|"></small></td><td><span class="badge" th:classappend="${c.clasificacion.name() == 'DISPONIBLE' ? 'badge-success' : (c.clasificacion.name() == 'PARCIAL' ? 'badge-warning' : 'badge-danger')}" th:text="${c.clasificacion.etiqueta}"></span></td></tr></tbody></table></div></section></div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Disponibilidad | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/resource-gestion.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content disponibilidad-rm">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+
+            <section class="page-intro">
+                <div>
+                    <h2>Disponibilidad</h2>
+                    <p>Consulta cuánta dedicación puedes asignar a cada colaborador.</p>
+                </div>
+                <nav class="modos-disponibilidad" aria-label="Tipo de consulta">
+                    <a class="modo" th:href="@{/resource/disponibilidad}"
+                       th:attr="aria-current=${porPeriodo ? null : 'page'}">Hoy</a>
+                    <a class="modo" th:href="@{/resource/disponibilidad(modo='periodo')}"
+                       th:attr="aria-current=${porPeriodo ? 'page' : null}">Por período</a>
+                </nav>
+            </section>
+
+            <section class="grid-4" aria-label="Resumen de disponibilidad" th:if="${consultaValida}">
+                <div class="metric green">
+                    <div class="label">Disponibles</div>
+                    <div class="value" th:text="${disponibles}"></div>
+                    <div class="hint">50 % o más</div>
+                </div>
+                <div class="metric orange">
+                    <div class="label">Parcialmente disponibles</div>
+                    <div class="value" th:text="${parciales}"></div>
+                    <div class="hint">Entre 1 % y 49 %</div>
+                </div>
+                <div class="metric">
+                    <div class="label">Sin disponibilidad</div>
+                    <div class="value" th:text="${sinDisponibilidad}"></div>
+                    <div class="hint">0 % libre</div>
+                </div>
+                <div class="metric blue">
+                    <div class="label">Perfiles activos</div>
+                    <div class="value" th:text="${totalPerfiles}"></div>
+                    <div class="hint" th:text="${porPeriodo ? 'Evaluados en el período' : 'Evaluados hoy'}"></div>
+                </div>
+            </section>
+
+            <section class="card section" aria-label="Consulta de disponibilidad">
+                <p class="field-error" role="alert" th:if="${erroresFiltros.containsKey('modo')}"
+                   th:text="${erroresFiltros.get('modo')}"></p>
+                <form class="filtros-disponibilidad" th:classappend="${porPeriodo ? 'filtros-periodo' : ''}"
+                      th:action="@{/resource/disponibilidad}" method="get" role="search" novalidate>
+                    <input type="hidden" name="modo" th:value="${porPeriodo ? 'periodo' : 'hoy'}">
+                    <div class="form-group busqueda">
+                        <label for="busqueda">Colaborador o cargo</label>
+                        <input id="busqueda" name="q" type="text" th:value="${q}"
+                               placeholder="Ej. María González o QA Engineer"
+                               th:attr="aria-invalid=${erroresFiltros.containsKey('q')},
+                                        aria-describedby=${erroresFiltros.containsKey('q') ? 'error-busqueda' : null}">
+                        <p class="field-error" id="error-busqueda" role="alert" th:if="${erroresFiltros.containsKey('q')}"
+                           th:text="${erroresFiltros.get('q')}"></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="clasificacion">Clasificación</label>
+                        <select id="clasificacion" name="clasificacion"
+                                th:attr="aria-invalid=${erroresFiltros.containsKey('clasificacion')},
+                                         aria-describedby=${erroresFiltros.containsKey('clasificacion') ? 'error-clasificacion' : null}">
+                            <option value="TODOS">Todas</option>
+                            <option th:each="c : ${clasificaciones}" th:value="${c.name()}"
+                                    th:selected="${c == clasificacionSeleccionada}" th:text="${c.etiqueta}"></option>
+                        </select>
+                        <p class="field-error" id="error-clasificacion" role="alert" th:if="${erroresFiltros.containsKey('clasificacion')}"
+                           th:text="${erroresFiltros.get('clasificacion')}"></p>
+                    </div>
+                    <div class="form-group fecha" th:if="${porPeriodo}">
+                        <label for="desde">Desde</label>
+                        <input id="desde" name="desde" type="date" th:value="${desde}"
+                               th:attr="aria-invalid=${erroresFiltros.containsKey('desde')},
+                                        aria-describedby=${erroresFiltros.containsKey('desde') ? 'error-desde' : null}">
+                        <p class="field-error" id="error-desde" role="alert" th:if="${erroresFiltros.containsKey('desde')}"
+                           th:text="${erroresFiltros.get('desde')}"></p>
+                    </div>
+                    <div class="form-group fecha" th:if="${porPeriodo}">
+                        <label for="hasta">Hasta</label>
+                        <input id="hasta" name="hasta" type="date" th:value="${hasta}"
+                               th:attr="aria-invalid=${erroresFiltros.containsKey('hasta')},
+                                        aria-describedby=${erroresFiltros.containsKey('hasta') ? 'error-hasta' : null}">
+                        <p class="field-error" id="error-hasta" role="alert" th:if="${erroresFiltros.containsKey('hasta')}"
+                           th:text="${erroresFiltros.get('hasta')}"></p>
+                    </div>
+                    <button class="btn btn-primary" type="submit">Consultar</button>
+                    <a class="btn btn-light" th:href="@{/resource/disponibilidad(modo=${porPeriodo ? 'periodo' : 'hoy'})}">Limpiar</a>
+                </form>
+
+                <p class="ayuda-disponibilidad muted" th:if="${consultaValida and !porPeriodo}">
+                    Datos del <time th:datetime="${hoy}" th:text="${#temporals.format(hoy, 'dd-MM-yyyy')}"></time>
+                    · Disponible hoy = capacidad base − carga actual.
+                </p>
+                <p class="ayuda-disponibilidad muted" th:if="${consultaValida and porPeriodo}">
+                    El saldo para todo el período se calcula con el día de mayor carga, incluidas las asignaciones planificadas.
+                </p>
+                <p class="ayuda-disponibilidad muted" th:if="${sinCargaHoy}">Hoy no hay asignaciones vigentes entre los perfiles activos.</p>
+                <p class="empty" th:if="${porPeriodo and !consultaValida and erroresFiltros.isEmpty()}">
+                    Elige las fechas para consultar la capacidad del equipo.
+                </p>
+
+                <div class="table-wrap" role="region" aria-label="Tabla de disponibilidad" tabindex="0"
+                     th:if="${!cargas.isEmpty()}">
+                    <table class="disponibilidad-tabla" th:classappend="${verPerfil ? '' : 'sin-perfil'}">
+                        <colgroup>
+                            <col class="colaborador"><col class="cargo"><col class="base"><col class="carga">
+                            <col class="disponible"><col class="clasificacion"><col class="perfil" th:if="${verPerfil}">
+                        </colgroup>
+                        <thead>
+                        <tr>
+                            <th scope="col">Colaborador</th>
+                            <th scope="col">Cargo</th>
+                            <th scope="col">Capacidad base</th>
+                            <th scope="col" th:text="${porPeriodo ? 'Carga máxima' : 'Carga actual'}"></th>
+                            <th scope="col" th:text="${porPeriodo ? 'Disponible en el período' : 'Disponible hoy'}"></th>
+                            <th scope="col">Clasificación</th>
+                            <th scope="col" th:if="${verPerfil}">Perfil</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="c : ${cargas}">
+                            <td>
+                                <strong class="nombre" th:text="${c.colaborador}"></strong>
+                                <small class="muted" th:text="${c.area}"></small>
+                            </td>
+                            <td th:text="${c.cargo}"></td>
+                            <td class="capacidad-base" th:text="|${c.disponibilidadBase} %|"></td>
+                            <td>
+                                <div class="porcentaje">
+                                    <strong th:text="|${c.carga} %|"></strong>
+                                    <div class="progress orange" aria-hidden="true">
+                                        <span th:style="|width:${c.carga > 100 ? 100 : c.carga}%|"></span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="porcentaje">
+                                    <strong th:text="|${c.disponibilidad} %|"></strong>
+                                    <div class="progress green" aria-hidden="true">
+                                        <span th:style="|width:${c.disponibilidad}%|"></span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${c.clasificacion.name() == 'DISPONIBLE' ? 'badge-success'
+                                          : (c.clasificacion.name() == 'PARCIAL' ? 'badge-warning' : 'badge-danger')}"
+                                      th:text="${c.clasificacion.etiqueta}"></span>
+                            </td>
+                            <td th:if="${verPerfil}">
+                                <a class="accion-perfil" th:href="@{/resource/colaboradores/{id}(id=${c.idColaborador})}">Ver perfil</a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="empty" th:if="${consultaValida and cargas.isEmpty()}"
+                   th:text="${totalPerfiles == 0 ? 'Aún no hay perfiles con cuenta activa.'
+                       : 'No hay perfiles que coincidan con los filtros.'}"></p>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

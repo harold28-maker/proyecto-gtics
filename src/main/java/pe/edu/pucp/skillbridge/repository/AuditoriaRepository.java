@@ -15,6 +15,46 @@ import java.util.List;
  * Repositorio de acceso a datos para los registros de auditoría del sistema.
  */
 public interface AuditoriaRepository extends JpaRepository<Auditoria, Integer> {
+    interface ConteoAccesos {
+        long getAccesos();
+        long getUsuarios();
+    }
+
+    interface EventoMonitoreo {
+        Integer getId();
+        String getUsuario();
+        String getAccion();
+        String getModulo();
+        String getDetalle();
+        Long getSegundos();
+    }
+
+    // Los límites Unix permiten consultar el día de Lima aunque MySQL esté configurado en otra zona.
+    @Query(value = """
+            select count(*) as accesos, count(distinct id_usuario) as usuarios
+            from auditoria
+            where accion = :accion and modulo = :modulo
+              and fecha >= from_unixtime(:desde) and fecha < from_unixtime(:hasta)
+            """, nativeQuery = true)
+    ConteoAccesos contarAccesos(
+            @Param("accion") String accion, @Param("modulo") String modulo,
+            @Param("desde") long desde, @Param("hasta") long hasta
+    );
+
+    @Query(value = """
+            select a.id_auditoria as id, concat_ws(' ', u.nombres, u.apellidos) as usuario,
+                   a.accion as accion, a.modulo as modulo, a.detalle as detalle,
+                   unix_timestamp(a.fecha) as segundos
+            from auditoria a
+            left join usuarios u on u.id_usuario = a.id_usuario
+            where (a.accion = :accion and coalesce(a.modulo, '') = :modulo) = :accesos
+            order by a.fecha desc, a.id_auditoria desc
+            limit 5
+            """, nativeQuery = true)
+    List<EventoMonitoreo> actividadReciente(
+            @Param("accion") String accion, @Param("modulo") String modulo, @Param("accesos") boolean accesos
+    );
+
     /**
      * Obtiene los cincuenta registros de auditoría más recientes.
      *

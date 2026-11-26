@@ -1,299 +1,127 @@
 <!DOCTYPE html>
-<html lang="es"
-      xmlns:th="http://www.thymeleaf.org">
-
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1">
-
-    <title>
-        Monitoreo | SkillBridge AI
-    </title>
-
-    <link rel="stylesheet"
-          th:href="@{/css/app.css}">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Monitoreo | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/monitoreo-admin.css}">
+    <script defer th:src="@{/js/monitoreo.js}"></script>
 </head>
-
 <body>
-
 <div class="app-shell">
-
-
-    <!-- SIDEBAR -->
-    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}">
-    </aside>
-
+    <aside th:replace="~{fragments/layout :: sidebar('ADMIN')}"></aside>
 
     <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
 
+        <div class="content monitoreo" id="monitoreo"
+             th:attr="data-url=@{/admin/monitoreo(vista=${vista},parcial=true)}">
+            <section class="page-intro monitoreo-intro">
+                <div>
+                    <h2>Monitoreo del sistema</h2>
+                    <p>Consulta quién ingresó y qué acciones se registraron.</p>
+                </div>
+                <div class="monitoreo-actualizacion">
+                    <small id="monitoreo-ultima" th:hidden="${resumen == null}">
+                        Última actualización a las
+                        <time id="monitoreo-hora" th:text="${resumen == null ? '' : #temporals.format(resumen.actualizado, 'HH:mm')}"></time>
+                    </small>
+                    <a id="monitoreo-actualizar" class="btn btn-primary"
+                       th:href="@{/admin/monitoreo(vista=${vista})}">Actualizar ahora</a>
+                </div>
+            </section>
 
-        <!-- TOPBAR -->
-        <header th:replace="~{fragments/layout :: topbar(${titulo})}">
-        </header>
+            <p class="monitoreo-aviso" id="monitoreo-aviso" role="status" hidden></p>
 
-
-        <div class="content">
-
-
-            <!-- =========================================
-                 INDICADORES
-                 ========================================= -->
-
-            <div class="grid-4">
-
-
-                <!-- ESTADO DEL SISTEMA -->
-
-                <div class="metric green">
-
-                    <div class="label">
-                        Estado del sistema
-                    </div>
-
-                    <div class="value monitor-status-value">
-                        Operativo
-                    </div>
-
-                    <div class="hint">
-                        Aplicación disponible
-                    </div>
-
+            <div id="monitoreo-datos" th:fragment="datos"
+                 th:attr="data-vista=${vista},
+                          data-accesos=${resumen == null ? '' : resumen.idsAccesos},
+                          data-hora=${resumen == null ? '' : #temporals.format(resumen.actualizado, 'HH:mm')},
+                          data-fecha=${resumen == null ? '' : #temporals.format(resumen.actualizado, 'dd/MM/yyyy HH:mm')}">
+                <div class="aviso-permisos" role="status" th:if="${resumen == null}">
+                    El administrador deshabilitó el permiso de Auditoría. Contacta a Administración para consultar la actividad.
                 </div>
 
+                <th:block th:if="${resumen != null}">
+                    <section class="grid-2 monitoreo-resumen" aria-label="Resumen de hoy">
+                        <article class="metric">
+                            <div class="label">Accesos hoy</div>
+                            <div class="value" id="monitoreo-accesos-hoy" th:text="${resumen.accesosHoy}">7</div>
+                            <div class="hint">Inicios de sesión exitosos</div>
+                        </article>
+                        <article class="metric blue">
+                            <div class="label">Usuarios distintos hoy</div>
+                            <div class="value" id="monitoreo-usuarios-hoy" th:text="${resumen.usuariosDistintos}">5</div>
+                            <div class="hint">Una vez por cuenta</div>
+                        </article>
+                    </section>
 
-                <!-- USUARIOS -->
+                    <section class="card section monitoreo-actividad" aria-labelledby="monitoreo-actividad">
+                        <header class="card-title">
+                            <h3 id="monitoreo-actividad">Actividad reciente</h3>
+                            <a id="monitoreo-ver-auditoria" class="btn btn-light btn-sm" th:href="@{/admin/auditoria}">Ver auditoría</a>
+                        </header>
 
-                <div class="metric">
+                        <div class="monitoreo-controles">
+                            <nav class="monitoreo-pestanas" aria-label="Tipo de actividad">
+                                <a id="monitoreo-ver-accesos" th:href="@{/admin/monitoreo(vista='accesos')}"
+                                   th:attr="aria-current=${vista == 'accesos' ? 'page' : null}">Inicios de sesión</a>
+                                <a id="monitoreo-ver-eventos" th:href="@{/admin/monitoreo(vista='eventos')}"
+                                   th:attr="aria-current=${vista == 'eventos' ? 'page' : null}">Otros eventos</a>
+                            </nav>
+                            <span class="monitoreo-zona">Hora de Lima</span>
+                        </div>
 
-                    <div class="label">
-                        Usuarios
-                    </div>
+                        <div class="empty" th:if="${resumen.actividad.isEmpty()}"
+                             th:text="${vista == 'accesos' ? 'Aún no se registraron inicios de sesión.' : 'Aún no se registraron otros eventos.'}">
+                        </div>
 
-                    <div class="value"
-                         th:text="${usuarios}">
-                        0
-                    </div>
-
-                    <div class="hint">
-                        Registrados
-                    </div>
-
-                </div>
-
-
-                <!-- EVENTOS -->
-
-                <div class="metric blue" th:unless="${permisosBloqueados.contains('auditoria')}">
-
-                    <div class="label">
-                        Eventos auditados
-                    </div>
-
-                    <div class="value"
-                         th:text="${eventos}">
-                        0
-                    </div>
-
-                    <div class="hint">
-                        Últimos registros
-                    </div>
-
-                </div>
-
-
-                <!-- HABILIDADES -->
-
-                <div class="metric orange">
-
-                    <div class="label">
-                        Habilidades
-                    </div>
-
-                    <div class="value"
-                         th:text="${habilidades}">
-                        0
-                    </div>
-
-                    <div class="hint">
-                        Catálogo disponible
-                    </div>
-
-                </div>
-
-
+                        <div class="table-wrap" th:unless="${resumen.actividad.isEmpty()}">
+                            <table th:attr="aria-label=${vista == 'accesos' ? 'Inicios de sesión recientes' : 'Otros eventos recientes'}">
+                                <thead>
+                                <tr>
+                                    <th scope="col">Usuario</th>
+                                    <th scope="col" th:if="${vista == 'accesos'}">Rol</th>
+                                    <th scope="col" th:if="${vista == 'eventos'}">Acción</th>
+                                    <th scope="col" th:if="${vista == 'eventos'}">Módulo</th>
+                                    <th scope="col" th:if="${vista == 'eventos'}">Detalle</th>
+                                    <th scope="col">Fecha y hora</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="evento : ${resumen.actividad}"
+                                    th:classappend="${evento.nuevo ? 'monitoreo-nuevo' : ''}"
+                                    th:attr="data-acceso=${vista == 'accesos' ? evento.id : null}">
+                                    <td>
+                                        <div class="monitoreo-usuario">
+                                            <strong th:text="${evento.usuario}">María González</strong>
+                                            <span class="badge monitoreo-etiqueta" th:if="${vista == 'accesos'}"
+                                                  th:hidden="${!evento.nuevo}">Nuevo</span>
+                                        </div>
+                                    </td>
+                                    <td th:if="${vista == 'accesos'}" th:text="${#strings.defaultString(evento.detalle, '—')}"></td>
+                                    <td th:if="${vista == 'eventos'}" th:text="${evento.accion}"></td>
+                                    <td th:if="${vista == 'eventos'}" th:text="${#strings.defaultString(evento.modulo, '—')}"></td>
+                                    <td th:if="${vista == 'eventos'}" th:text="${#strings.defaultString(evento.detalle, '—')}"></td>
+                                    <td>
+                                        <time th:if="${evento.fecha != null}" th:attr="datetime=${evento.fecha}"
+                                              th:text="${#temporals.format(evento.fecha, 'dd/MM/yyyy HH:mm')}"></time>
+                                        <span th:if="${evento.fecha == null}">—</span>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="monitoreo-cantidad" th:if="${resumen.actividad.size() > 1}"
+                           th:text="|Mostrando los últimos ${resumen.actividad.size()} ${vista == 'accesos' ? 'accesos' : 'eventos'}|">
+                            Mostrando los últimos 5 accesos
+                        </p>
+                    </section>
+                </th:block>
             </div>
-
-
-            <!-- =========================================
-                 MONITOREO
-                 ========================================= -->
-
-            <div class="grid-2 section">
-
-
-                <!-- =====================================
-                     ESTADO DE SERVICIOS
-                     ===================================== -->
-
-                <section class="card monitor-services-card">
-
-
-                    <div class="card-title">
-
-                        <h2>
-                            Estado de servicios
-                        </h2>
-
-                    </div>
-
-
-                    <div class="monitor-service-list">
-
-
-                        <!-- APLICACIÓN -->
-
-                        <div class="monitor-service-row">
-
-                            <span>
-                                Aplicación
-                            </span>
-
-                            <strong class="service-ok">
-                                Operativa
-                            </strong>
-
-                        </div>
-
-
-                        <!-- BASE DE DATOS -->
-
-                        <div class="monitor-service-row">
-
-                            <span>
-                                Base de datos
-                            </span>
-
-                            <strong class="service-ok">
-                                Conectada
-                            </strong>
-
-                        </div>
-
-
-                        <!-- USUARIOS -->
-
-                        <div class="monitor-service-row">
-
-                            <span>
-                                Usuarios registrados
-                            </span>
-
-                            <strong th:text="${usuarios}">
-                                0
-                            </strong>
-
-                        </div>
-
-
-                        <!-- COLABORADORES -->
-
-                        <div class="monitor-service-row">
-
-                            <span>
-                                Colaboradores
-                            </span>
-
-                            <strong th:text="${colaboradores}">
-                                0
-                            </strong>
-
-                        </div>
-
-
-                    </div>
-
-
-                </section>
-
-
-                <!-- =====================================
-                     EVENTOS RECIENTES
-                     ===================================== -->
-
-                <section class="card" th:unless="${permisosBloqueados.contains('auditoria')}">
-
-
-                    <div class="card-title">
-
-                        <h2>
-                            Eventos recientes
-                        </h2>
-
-                    </div>
-
-
-                    <div class="monitor-event"
-                         th:each="a : ${actividad}">
-
-
-                        <div>
-
-                            <h3 th:text="${a.accion}">
-                                Acción realizada
-                            </h3>
-
-
-                            <p>
-
-                                <span th:text="${a.modulo}">
-                                    Administración
-                                </span>
-
-                                <span>
-                                    ·
-                                </span>
-
-                                <span th:text="${a.detalle}">
-                                    Detalle del evento
-                                </span>
-
-                            </p>
-
-                        </div>
-
-
-                    </div>
-
-
-                    <!-- SI NO HAY EVENTOS -->
-
-                    <div class="empty"
-                         th:if="${#lists.isEmpty(actividad)}">
-
-                        No hay eventos recientes.
-
-                    </div>
-
-
-                </section>
-
-
-            </div>
-
-
         </div>
-
-
     </main>
-
-
 </div>
-
-
 </body>
-
 </html>

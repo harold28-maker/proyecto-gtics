@@ -131,7 +131,6 @@
 
 .perfil-editor .form-group textarea { min-height: 4.75rem; resize: vertical; }
 .perfil-editor .form-group input[readonly] { background: var(--color-paper-2); }
-.perfil-editor .form-group .is-invalid { border-color: var(--color-danger); }
 
 .perfil-nota-campo {
     margin-inline-start: var(--space-3xs);

@@ -19,21 +19,20 @@
                     <h2 id="titulo-categoria" th:text="${titulo}">Nueva categoría</h2>
                 </div>
 
-                <form th:action="@{/admin/categorias/guardar}" method="post">
+                <form th:action="@{/admin/categorias/guardar}" method="post" novalidate>
                     <input type="hidden" name="idCategoria" th:if="${idCategoria != null}" th:value="${idCategoria}">
                     <input type="hidden" name="q" th:value="${q}">
 
                     <div class="form-group">
                         <label for="nombre">Nombre <span class="required">*</span></label>
                         <input id="nombre" type="text" name="nombre" th:value="${nombreCategoria}"
-                               th:classappend="${errorNombre != null} ? ' is-invalid' : ''"
-                               th:attr="aria-invalid=${errorNombre != null}"
-                               placeholder="Ej. Base de datos" maxlength="30" required
-                               aria-describedby="ayuda-nombre error-nombre">
-                        <div class="field-error" id="error-nombre" th:text="${errorNombre}"></div>
+                               placeholder="Ej. Base de datos" aria-required="true"
+                               th:attr="aria-invalid=${errorNombre != null},
+                                        aria-describedby=${errorNombre != null ? 'error-nombre ayuda-nombre' : 'ayuda-nombre'}">
+                        <p class="field-error" id="error-nombre" role="alert" th:if="${errorNombre}" th:text="${errorNombre}"></p>
                         <p class="form-note" id="ayuda-nombre" th:text="${idCategoria == null
                             ? 'Máximo 30 caracteres.'
-                            : 'El cambio de nombre también se aplicará a las habilidades vinculadas.'}">
+                            : 'Máximo 30 caracteres. El cambio de nombre también se aplicará a las habilidades vinculadas.'}">
                             Máximo 30 caracteres.
                         </p>
                     </div>

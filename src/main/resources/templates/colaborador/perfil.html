@@ -21,8 +21,10 @@
                     <span th:replace="~{fragments/perfil :: avatar(${colaborador.usuario}, @{/colaborador/perfil/foto}, 'usuario-foto-vista perfil-avatar-principal')}"></span>
                     <div>
                         <h2 id="nombre-perfil" th:text="${colaborador.usuario.nombreCompleto}">Nombre del colaborador</h2>
-                        <p class="muted" th:with="nivel=${colaborador.seniority?.name()}"
-                           th:text="|${colaborador.cargo ?: 'Cargo por definir'} · ${colaborador.area ?: 'Área por definir'}${nivel == null ? '' : ' · ' + (nivel == 'JUNIOR' ? 'Junior' : (nivel == 'SEMI_SENIOR' ? 'Semi senior' : (nivel == 'SENIOR' ? 'Senior' : 'Líder')))}|"></p>
+                        <p class="muted" th:text="|${colaborador.cargo ?: 'Cargo por definir'} · ${colaborador.area ?: 'Área por definir'}|"></p>
+                        <p class="muted" th:if="${colaborador.seniority != null}">
+                            Nivel profesional <span class="badge badge-purple" th:text="${colaborador.seniority.etiqueta}"></span>
+                        </p>
                     </div>
                 </div>
                 <a class="btn btn-primary" th:href="@{/colaborador/perfil/editar}">Editar perfil</a>

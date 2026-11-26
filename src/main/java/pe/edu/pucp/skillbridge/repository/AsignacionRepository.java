@@ -1,20 +1,42 @@
 package pe.edu.pucp.skillbridge.repository;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import pe.edu.pucp.skillbridge.entity.Asignacion;
 import pe.edu.pucp.skillbridge.entity.Proyecto;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repositorio de acceso a datos para las asignaciones de colaboradores a proyectos.
  */
 public interface AsignacionRepository extends JpaRepository<Asignacion, Integer> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select a from Asignacion a where a.idAsignacion = :id")
+    Optional<Asignacion> buscarParaActualizar(@Param("id") Integer id);
+
+    @EntityGraph(attributePaths = {"proyecto", "colaborador.usuario"})
+    @Query("""
+            select a from Asignacion a
+            where a.colaborador.idColaborador in :idsColaboradores
+              and a.estado in :estados and a.proyecto.estado in :proyectos
+              and (:fin is null or a.fechaInicio <= :fin)
+              and (a.fechaFin is null or a.fechaFin >= :inicio)
+            """)
+    List<Asignacion> buscarCompromisosEnPeriodo(
+            @Param("idsColaboradores") List<Integer> idsColaboradores,
+            @Param("estados") List<Asignacion.EstadoAsignacion> estados,
+            @Param("proyectos") List<Proyecto.EstadoProyecto> proyectos,
+            @Param("inicio") LocalDate inicio, @Param("fin") LocalDate fin);
+
     /**
      * Obtiene las asignaciones de un colaborador ordenadas desde la más reciente.
      *
@@ -30,6 +52,9 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Integer>
      * @return lista de asignaciones asociadas al proyecto
      */
     List<Asignacion> findByProyectoIdProyectoOrderByFechaInicioDesc(Integer idProyecto);
+
+    @EntityGraph(attributePaths = {"proyecto", "colaborador.usuario"})
+    List<Asignacion> findByProyectoIdProyectoInOrderByFechaInicioDescIdAsignacionDesc(Collection<Integer> idsProyecto);
 
     /**
      * Obtiene las asignaciones de los proyectos administrados por un gestor ordenadas desde la más reciente.

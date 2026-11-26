@@ -63,7 +63,7 @@
                     <a class="btn btn-light" th:href="@{/admin/auditoria}">Limpiar</a>
                 </form>
 
-                <div class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></div>
+                <p class="field-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
 
                 <th:block th:if="${resultados != null}">
                     <div class="empty" th:if="${resultados.isEmpty()}">

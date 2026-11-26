@@ -15,7 +15,43 @@ public class Asignacion {
     /**
      * Estados posibles de una asignación dentro de un proyecto.
      */
-    public enum EstadoAsignacion { PLANIFICADA, ACTIVA, FINALIZADA, CANCELADA }
+    public enum EstadoAsignacion {
+        PLANIFICADA("Planificada"), ACTIVA("Activa"), FINALIZADA("Finalizada"), CANCELADA("Cancelada");
+
+        private final String etiqueta;
+
+        EstadoAsignacion(String etiqueta) {
+            this.etiqueta = etiqueta;
+        }
+
+        public String getEtiqueta() {
+            return etiqueta;
+        }
+
+        public boolean isCerrada() {
+            return this == FINALIZADA || this == CANCELADA;
+        }
+
+        public boolean isActivable() {
+            return permiteCambiarA(ACTIVA);
+        }
+
+        public boolean isFinalizable() {
+            return permiteCambiarA(FINALIZADA);
+        }
+
+        public boolean isCancelable() {
+            return permiteCambiarA(CANCELADA);
+        }
+
+        public boolean permiteCambiarA(EstadoAsignacion destino) {
+            return switch (this) {
+                case PLANIFICADA -> destino == ACTIVA || destino == CANCELADA;
+                case ACTIVA -> destino == FINALIZADA || destino == CANCELADA;
+                case FINALIZADA, CANCELADA -> false;
+            };
+        }
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -62,6 +98,33 @@ public class Asignacion {
     @AssertTrue(message = "{validation.asignacion.periodo}")
     public boolean isPeriodoValido() {
         return fechaInicio == null || fechaFin == null || !fechaFin.isBefore(fechaInicio);
+    }
+
+    public boolean tieneFinVencido(LocalDate fecha) {
+        return fechaFin != null && fechaFin.isBefore(fecha);
+    }
+
+    public boolean esHistorica(LocalDate fecha) {
+        Proyecto.EstadoProyecto estadoProyecto = proyecto.getEstado();
+        return (estado != null && estado.isCerrada())
+                || estadoProyecto == Proyecto.EstadoProyecto.COMPLETED
+                || estadoProyecto == Proyecto.EstadoProyecto.CANCELLED
+                || tieneFinVencido(fecha);
+    }
+
+    /**
+     * Reconoce una participación iniciada que aporta evidencia al historial del colaborador.
+     */
+    public boolean registraExperiencia(LocalDate fecha) {
+        if (fechaInicio == null || fechaInicio.isAfter(fecha)) return false;
+        return estado == EstadoAsignacion.FINALIZADA
+                || (estado == EstadoAsignacion.ACTIVA && esHistorica(fecha)
+                && proyecto.getEstado() != Proyecto.EstadoProyecto.CANCELLED);
+    }
+
+    public boolean estaVigente(LocalDate fecha) {
+        return estado == EstadoAsignacion.ACTIVA && fechaInicio != null
+                && !fechaInicio.isAfter(fecha) && !esHistorica(fecha);
     }
 
     /**

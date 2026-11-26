@@ -10,6 +10,9 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "auditoria")
 public class Auditoria {
+    public static final String ACCION_INICIAR_SESION = "Iniciar sesión";
+    public static final String MODULO_AUTENTICACION = "Autenticación";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_auditoria")

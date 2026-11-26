@@ -60,6 +60,7 @@ public class MenuLateral {
                     enlace("/colaborador/foros", "Foro", "foros", "/foros"),
                     enlace("/colaborador/chat", "Chat", "chat"),
                     enlace("/mensajes", "Chat por proyecto", "chat"),
+                    enlace("/colaborador/asistente", "Asistente de IA", "asistente"),
                     enlace("/colaborador/notificaciones", "Notificaciones", "notificaciones")
             )
     );

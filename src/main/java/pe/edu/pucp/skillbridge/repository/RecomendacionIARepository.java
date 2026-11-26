@@ -3,11 +3,15 @@ package pe.edu.pucp.skillbridge.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import pe.edu.pucp.skillbridge.entity.RecomendacionIA;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Define las operaciones de acceso a datos para las recomendaciones generadas por inteligencia artificial.
  */
 public interface RecomendacionIARepository extends JpaRepository<RecomendacionIA, Integer> {
+    Optional<RecomendacionIA> findFirstByProyectoIsNotNullOrderByPorcentajeMatchDescIdRecomendacionDesc();
+    List<RecomendacionIA> findTop3ByProyectoIdProyectoOrderByPorcentajeMatchDescIdRecomendacionDesc(Integer idProyecto);
+
     /**
      * Busca todas las recomendaciones y las ordena por porcentaje de coincidencia descendente.
      *

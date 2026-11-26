@@ -1,1 +1,169 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Carga de trabajo | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content"><div class="grid-3"><div class="metric"><div class="metric-icon">▤</div><div class="label">Carga promedio</div><div class="value" th:text="|${cargaPromedio}%|"></div><div class="hint">Del equipo</div></div><div class="metric green"><div class="metric-icon">✓</div><div class="label">Capacidad saludable</div><div class="value" th:text="${#lists.size(cargas)}"></div><div class="hint">Perfiles evaluados</div></div><div class="metric blue"><div class="metric-icon">⌁</div><div class="label">Modelo de cálculo</div><div class="value" style="font-size:18px">Asignaciones</div><div class="hint">Asignaciones activas vigentes hoy</div></div></div><div class="grid-3 section"><section class="card" style="grid-column:span 2"><div class="card-title"><h2>Distribución de carga</h2></div><div class="bar-list"><div class="bar-item" th:each="c : ${cargas}"><span th:text="${c.colaborador}"></span><div class="bar-track"><span th:style="|width:${c.carga > 100 ? 100 : c.carga}%|"></span></div><strong th:text="|${c.carga}%|"></strong></div></div></section><section class="card"><div class="card-title"><h2>Promedio del equipo</h2></div><div class="donut-wrap"><div class="donut" th:style="|--value:${cargaPromedio}|"><div class="donut-label"><strong th:text="|${cargaPromedio}%|"></strong><small>carga media</small></div></div></div><p class="muted" style="text-align:center;margin-top:18px">Compara la carga asignada con la disponibilidad base declarada por cada colaborador.</p></section></div></div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Carga de trabajo | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/resource-gestion.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content carga-rm">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <section class="page-intro">
+                <div>
+                    <h2>Carga de trabajo</h2>
+                    <p>Asignaciones activas vigentes al <time th:datetime="${hoy}"
+                        th:text="${#temporals.format(hoy, 'dd-MM-yyyy')}"></time>.</p>
+                </div>
+                <a class="btn btn-light" th:href="@{/resource/disponibilidad}">Ver disponibilidad</a>
+            </section>
+
+            <section class="grid-3" aria-label="Resumen de carga de trabajo" th:if="${filtrosValidos}">
+                <div class="metric">
+                    <div class="label">Carga promedio</div>
+                    <div class="value" th:text="|${cargaPromedio} %|"></div>
+                    <div class="hint">Por persona con cuenta activa</div>
+                </div>
+                <div class="metric orange">
+                    <div class="label">Al límite</div>
+                    <div class="value" th:text="${alLimite}"></div>
+                    <div class="hint">Carga igual a su capacidad base</div>
+                </div>
+                <div class="metric riesgo">
+                    <div class="label">Con sobrecarga</div>
+                    <div class="value" th:text="${sobrecargados}"></div>
+                    <div class="hint">Carga superior a su capacidad base</div>
+                </div>
+            </section>
+
+            <div class="paneles-carga section" th:classappend="${detalle == null ? 'sin-detalle' : ''}">
+                <section class="card" aria-labelledby="carga-titulo">
+                    <div class="card-title"><h3 id="carga-titulo">Carga por colaborador</h3></div>
+                    <form class="filtros-carga" th:action="@{/resource/carga}" method="get" role="search" novalidate>
+                        <div class="form-group">
+                            <label for="busqueda">Colaborador o cargo</label>
+                            <input id="busqueda" name="q" type="text" th:value="${q}"
+                                   placeholder="Ej. Ana Torres o QA Engineer"
+                                   th:attr="aria-invalid=${erroresFiltros.containsKey('q')},
+                                            aria-describedby=${erroresFiltros.containsKey('q') ? 'error-busqueda' : null}">
+                            <p id="error-busqueda" class="field-error" role="alert" th:if="${erroresFiltros.containsKey('q')}"
+                               th:text="${erroresFiltros.get('q')}"></p>
+                        </div>
+                        <div class="form-group">
+                            <label for="estado">Estado de carga</label>
+                            <select id="estado" name="estado"
+                                    th:attr="aria-invalid=${erroresFiltros.containsKey('estado')},
+                                             aria-describedby=${erroresFiltros.containsKey('estado') ? 'error-estado' : null}">
+                                <option value="TODOS">Todos</option>
+                                <option th:each="e : ${estados}" th:value="${e.name()}"
+                                        th:selected="${e == estadoSeleccionado}" th:text="${e.etiqueta}"></option>
+                            </select>
+                            <p id="error-estado" class="field-error" role="alert" th:if="${erroresFiltros.containsKey('estado')}"
+                               th:text="${erroresFiltros.get('estado')}"></p>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Buscar</button>
+                        <a class="btn btn-light" th:href="@{/resource/carga}">Limpiar</a>
+                    </form>
+
+                    <p class="field-error" role="alert" th:if="${erroresFiltros.containsKey('colaborador')}"
+                       th:text="${erroresFiltros.get('colaborador')}"></p>
+                    <p class="detalle-ayuda muted" th:if="${sinCargaHoy}">Hoy no hay asignaciones vigentes entre los perfiles activos.</p>
+                    <p class="empty" th:if="${filtrosValidos and cargas.isEmpty()}"
+                       th:text="${totalPerfiles == 0 ? 'Aún no hay perfiles con cuenta activa.'
+                           : 'No hay colaboradores que coincidan con los filtros.'}"></p>
+
+                    <th:block th:if="${!cargas.isEmpty()}">
+                        <p class="detalle-ayuda muted">Selecciona un nombre para ver el detalle de su carga.</p>
+                        <div class="leyenda-carga" aria-label="Leyenda de la gráfica">
+                            <span><i class="muestra-carga" aria-hidden="true"></i>Carga actual</span>
+                            <span><i class="muestra-base" aria-hidden="true"></i>Capacidad base</span>
+                        </div>
+                        <div class="table-wrap" role="region" aria-label="Carga y capacidad por colaborador" tabindex="0">
+                            <table class="tabla-carga">
+                                <colgroup><col><col><col><col></colgroup>
+                                <thead>
+                                <tr>
+                                    <th scope="col">Colaborador</th>
+                                    <th scope="col">
+                                        Dedicación (%)
+                                        <div class="escala" aria-hidden="true">
+                                            <span th:each="marca : ${marcasEscala}" th:text="${marca}"></span>
+                                        </div>
+                                    </th>
+                                    <th scope="col">Carga</th>
+                                    <th scope="col">Base</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:each="c : ${cargas}" th:with="seleccionado=${detalle?.idColaborador == c.idColaborador}"
+                                    th:classappend="${seleccionado ? 'seleccionada' : ''}">
+                                    <td>
+                                        <a class="detalle-enlace" th:text="${c.colaborador}"
+                                           th:attr="aria-current=${seleccionado ? 'true' : null}"
+                                           th:href="@{/resource/carga(q=${q},estado=${estadoSeleccionado?.name() ?: 'TODOS'},colaborador=${c.idColaborador})}"></a>
+                                        <small class="muted" th:text="${c.cargo}"></small>
+                                    </td>
+                                    <td>
+                                        <div class="medidor" aria-hidden="true">
+                                            <span class="barra-carga" th:style="|width:${100.0 * c.carga / maximoEscala}%|"></span>
+                                            <span class="marca" th:style="|left:${100.0 * c.disponibilidadBase / maximoEscala}%|"></span>
+                                        </div>
+                                    </td>
+                                    <td class="valor"><strong th:text="|${c.carga} %|"></strong></td>
+                                    <td class="valor" th:text="|${c.disponibilidadBase} %|"></td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </th:block>
+                </section>
+
+                <section class="card detalle-carga" aria-labelledby="detalle-titulo" th:if="${detalle != null}">
+                    <div class="card-title"><h3 id="detalle-titulo">Detalle de carga</h3></div>
+                    <h4 class="persona" th:text="${detalle.colaborador}"></h4>
+                    <p class="cargo muted" th:text="${detalle.cargo}"></p>
+                    <span class="badge estado-detalle"
+                          th:if="${detalle.estadoCarga.name() != 'CON_MARGEN'}"
+                          th:classappend="${detalle.estadoCarga.name() == 'SOBRECARGA' ? 'badge-danger'
+                              : (detalle.estadoCarga.name() == 'AL_LIMITE' ? 'badge-warning' : '')}"
+                          th:text="${detalle.estadoCarga.etiqueta}"></span>
+
+                    <dl class="soft-panel saldos">
+                        <div><dt>Capacidad base</dt><dd th:text="|${detalle.disponibilidadBase} %|"></dd></div>
+                        <div><dt>Carga actual</dt><dd th:text="|${detalle.carga} %|"></dd></div>
+                        <div><dt>Disponible hoy</dt><dd class="libre" th:text="|${detalle.disponibilidad} %|"></dd></div>
+                    </dl>
+
+                    <th:block th:if="${verAsignaciones}">
+                        <h4 class="subtitulo">Asignaciones vigentes</h4>
+                        <p class="muted" th:if="${asignacionesVigentes.isEmpty()}">Este perfil no tiene asignaciones vigentes hoy.</p>
+                        <ul class="asignaciones-carga" th:unless="${asignacionesVigentes.isEmpty()}">
+                            <li class="asignacion" th:each="a : ${asignacionesVigentes}">
+                                <div>
+                                    <strong th:text="${a.proyecto.nombre}"></strong>
+                                    <small class="muted">
+                                        <time th:datetime="${a.fechaInicio}" th:text="${#temporals.format(a.fechaInicio, 'dd-MM-yyyy')}"></time>
+                                        <th:block th:if="${a.fechaFin != null}">
+                                            al <time th:datetime="${a.fechaFin}" th:text="${#temporals.format(a.fechaFin, 'dd-MM-yyyy')}"></time>
+                                        </th:block>
+                                        <span th:unless="${a.fechaFin != null}">· Sin fecha de fin</span>
+                                    </small>
+                                </div>
+                                <span class="badge badge-purple" th:text="|${a.porcentajeDedicacion ?: 0} %|"></span>
+                            </li>
+                        </ul>
+                    </th:block>
+                    <a class="btn btn-light btn-sm perfil" th:if="${verPerfil}"
+                       th:href="@{/resource/colaboradores/{id}(id=${detalle.idColaborador})}">Ver perfil</a>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

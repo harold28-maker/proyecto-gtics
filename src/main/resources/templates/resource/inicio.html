@@ -1,6 +1,128 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Resource Manager | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content">
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Inicio | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/resource-gestion.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('RM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content rm-contenido" th:with="verCapacidad=${!permisosBloqueados.contains('capacidad')},verTalento=${!permisosBloqueados.contains('talento')}">
             <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
-<section class="page-intro"><div><h2>Gestión de talento y capacidad</h2><p>Supervisa disponibilidad, carga de trabajo y candidatos recomendados para las necesidades de los proyectos.</p></div><div class="actions"><a class="btn btn-light" th:unless="${permisosBloqueados.contains('reportes')}" th:href="@{/resource/reportes}">Ver reportes</a><a class="btn btn-primary" th:unless="${permisosBloqueados.contains('talento')}" th:href="@{/resource/talent}">✧ Usar Talent Matching IA</a></div></section>
-<div class="grid-4" th:unless="${permisosBloqueados.contains('capacidad')}"><div class="metric"><div class="metric-icon">♙</div><div class="label">Colaboradores</div><div class="value" th:text="${totalColaboradores}"></div><div class="hint">Perfiles con capacidad</div></div><div class="metric green"><div class="metric-icon">✓</div><div class="label">Disponibles</div><div class="value" th:text="${disponibles}"></div><div class="hint">50% o más disponible</div></div><div class="metric orange"><div class="metric-icon">!</div><div class="label">Sobrecargados</div><div class="value" th:text="${sobrecargados}"></div><div class="hint" style="color:var(--red)">Requieren atención</div></div><div class="metric blue"><div class="metric-icon">▤</div><div class="label">Carga promedio</div><div class="value" th:text="|${cargaPromedio}%|"></div><div class="hint">Del equipo</div></div></div>
-<div class="grid-3 section"><section class="card" style="grid-column:span 2" th:unless="${permisosBloqueados.contains('capacidad')}"><div class="card-title"><h2>Capacidad del equipo</h2><a class="btn btn-light btn-sm" th:href="@{/resource/carga}">Ver detalle</a></div><div class="table-wrap"><table><thead><tr><th>Colaborador</th><th>Área</th><th>Carga actual</th><th>Disponible hoy</th></tr></thead><tbody><tr th:each="c : ${cargas}"><td><strong th:text="${c.colaborador}"></strong><br><small class="muted" th:text="${c.cargo}"></small></td><td th:text="${c.area}"></td><td><div class="progress orange"><span th:style="|width:${c.carga > 100 ? 100 : c.carga}%|"></span></div><small th:text="|${c.carga}%|"></small></td><td><div class="progress green"><span th:style="|width:${c.disponibilidad}%|"></span></div><small th:text="|${c.disponibilidad}%|"></small></td></tr></tbody></table></div></section><section class="card" th:unless="${permisosBloqueados.contains('talento')}"><div class="card-title"><h2>Top recomendaciones</h2></div><div class="list-row" th:each="r : ${recomendaciones}"><div><strong th:text="${r.colaborador.usuario.nombreCompleto}"></strong><small class="muted" style="display:block" th:text="${r.proyecto.nombre}"></small></div><span class="badge badge-success" th:text="|${r.porcentajeMatch}%|"></span></div><a class="btn btn-light" style="width:100%;margin-top:14px" th:href="@{/resource/talent}">Ver Talent Matching</a></section></div>
-</div></main></div></body></html>
+            <section class="page-intro rm-intro">
+                <div>
+                    <h2>Gestión de talento y capacidad</h2>
+                    <p>Consulta la capacidad del equipo y encuentra candidatos para tus proyectos.</p>
+                </div>
+                <div class="actions">
+                    <a class="btn btn-light" th:unless="${permisosBloqueados.contains('reportes')}" th:href="@{/resource/reportes}">Ver reportes</a>
+                    <a class="btn btn-primary" th:unless="${permisosBloqueados.contains('asignaciones')}" th:href="@{/resource/asignaciones/nueva}">+ Nueva asignación</a>
+                </div>
+            </section>
+            <section class="grid-4 rm-indicadores" th:if="${verCapacidad}" aria-label="Indicadores del equipo">
+                <div class="metric">
+                    <div class="label">Colaboradores</div>
+                    <div class="value" th:text="${totalColaboradores}"></div>
+                    <div class="hint">Perfiles del equipo</div>
+                </div>
+                <div class="metric green">
+                    <div class="label">Con 50 % o más libre</div>
+                    <div class="value" th:text="${disponibles}"></div>
+                    <div class="hint">Capacidad disponible hoy</div>
+                </div>
+                <div class="metric orange">
+                    <div class="label">Sobrecargados</div>
+                    <div class="value" th:text="${sobrecargados}"></div>
+                    <div class="hint">Carga por encima de su base</div>
+                </div>
+                <div class="metric blue">
+                    <div class="label">Carga promedio</div>
+                    <div class="value" th:text="|${cargaPromedio} %|"></div>
+                    <div class="hint">Dedicación activa por persona</div>
+                </div>
+            </section>
+            <div class="rm-paneles" th:if="${verCapacidad or verTalento}" th:classappend="${verCapacidad and verTalento ? '' : 'un-panel'}">
+                <section class="card rm-capacidad" th:if="${verCapacidad}" aria-labelledby="capacidad-titulo">
+                    <div class="card-title">
+                        <div><h2 id="capacidad-titulo">Capacidad del equipo</h2><p class="muted">Dedicación de las asignaciones activas</p></div>
+                        <a class="btn btn-light btn-sm" th:href="@{/resource/disponibilidad}">Ver disponibilidad</a>
+                    </div>
+                    <p class="empty" th:if="${cargas.isEmpty()}">No hay perfiles para mostrar.</p>
+                    <div class="table-wrap" th:unless="${cargas.isEmpty()}">
+                        <table th:with="verPerfil=${!permisosBloqueados.contains('colaboradores')}">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Colaborador</th>
+                                    <th scope="col">Área</th>
+                                    <th scope="col">Capacidad base</th>
+                                    <th scope="col">Carga actual</th>
+                                    <th scope="col">Disponible hoy</th>
+                                    <th scope="col" th:if="${verPerfil}">Perfil</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="c : ${cargas}">
+                                    <td class="persona"><strong th:text="${c.colaborador}"></strong><small class="muted" th:text="${c.cargo}"></small></td>
+                                    <td th:text="${c.area}"></td>
+                                    <td th:text="|${c.disponibilidadBase} %|"></td>
+                                    <td>
+                                        <strong class="valor-carga" th:text="|${c.carga} %|"></strong>
+                                        <div class="progress orange" aria-hidden="true">
+                                            <span th:style="|width:${c.carga > 100 ? 100 : c.carga}%|"></span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong class="valor-carga" th:text="|${c.disponibilidad} %|"></strong>
+                                        <div class="progress green" aria-hidden="true">
+                                            <span th:style="|width:${c.disponibilidad}%|"></span>
+                                        </div>
+                                    </td>
+                                    <td th:if="${verPerfil}">
+                                        <a class="perfil" th:href="@{/resource/colaboradores/{id}(id=${c.idColaborador},desde='inicio')}"
+                                           th:aria-label="|Ver perfil de ${c.colaborador}|">Ver perfil</a>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="rm-formula" th:unless="${cargas.isEmpty()}">Disponible hoy = capacidad base − carga actual, con un mínimo de 0 %.</p>
+                </section>
+                <section class="card rm-talent" th:if="${verTalento}" aria-labelledby="talent-titulo">
+                    <div class="card-title"><h2 id="talent-titulo">Talent Matching IA</h2></div>
+                    <form class="rm-filtro" th:unless="${proyectosTalento.isEmpty()}" th:action="@{/resource/inicio}" method="get" novalidate>
+                        <label for="proyecto-talento">Proyecto</label>
+                        <div class="controles">
+                            <select id="proyecto-talento" name="proyecto" th:attr="aria-invalid=${errorProyecto != null}">
+                                <option value="" th:if="${proyectoTalento == null}">Selecciona un proyecto</option>
+                                <option th:each="p : ${proyectosTalento}" th:value="${p.idProyecto}" th:text="${p.nombre}"
+                                        th:selected="${proyectoTalento != null and p.idProyecto == proyectoTalento.idProyecto}"></option>
+                            </select>
+                            <button class="btn btn-light btn-sm" type="submit">Ver</button>
+                        </div>
+                        <p class="field-error" role="alert" th:if="${errorProyecto}" th:text="${errorProyecto}"></p>
+                    </form>
+                    <p class="empty" th:if="${proyectosTalento.isEmpty()}">Aún no hay proyectos para consultar.</p>
+                    <div class="rm-candidatos">
+                        <p class="empty" th:if="${proyectoTalento != null and candidatos.isEmpty()}">Todavía no hay recomendaciones para este proyecto.</p>
+                        <article class="rm-candidato" th:each="r : ${candidatos}" th:with="carga=${capacidadPorColaborador.get(r.colaborador.idColaborador)}">
+                            <header>
+                                <h3 th:text="${r.colaborador.usuario.nombreCompleto}"></h3>
+                                <span class="badge badge-purple" th:text="|${#strings.replace(r.porcentajeMatch.stripTrailingZeros().toPlainString(), '.', ',')} % de coincidencia|"></span>
+                            </header>
+                            <p th:text="${r.justificacion ?: 'Justificación pendiente'}"></p>
+                            <div class="libre" th:if="${carga != null}" th:text="|${carga.disponibilidad} % libre hoy|"></div>
+                        </article>
+                    </div>
+                    <a class="btn btn-light" th:href="@{/resource/talent(proyecto=${proyectoTalento?.idProyecto})}">Abrir Talent Matching</a>
+                </section>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

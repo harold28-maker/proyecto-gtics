@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Mis proyectos | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/mis-proyectos.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content proyectos-contenido" th:with="amplio=${totalProyectos == 1}">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <section class="page-intro proyectos-portada">
+                <div>
+                    <h2>Participación en proyectos</h2>
+                    <p>Consulta tus asignaciones vigentes y próximas.</p>
+                </div>
+                <a class="btn btn-light" th:if="${puedeVerHistorial}" th:href="@{/colaborador/historial}">Ver historial</a>
+            </section>
+
+            <section class="grupo-proyectos" th:each="grupo : ${gruposProyectos.entrySet()}"
+                     th:unless="${grupo.value.isEmpty()}" th:aria-label="${grupo.key}">
+                <h3 th:unless="${amplio}" th:text="${grupo.key}"></h3>
+                <div class="proyectos-cuadricula">
+                    <article class="card proyecto-resumen" th:each="tarjeta : ${grupo.value}" th:with="p=${tarjeta.proyecto}"
+                             th:classappend="${amplio ? 'proyecto-amplio' : null}"
+                             th:aria-labelledby="|proyecto-${p.idProyecto}|">
+                        <header class="proyecto-titulo">
+                            <div>
+                                <h3 th:if="${amplio}" th:id="|proyecto-${p.idProyecto}|" th:text="${p.nombre}"></h3>
+                                <h4 th:unless="${amplio}" th:id="|proyecto-${p.idProyecto}|" th:text="${p.nombre}"></h4>
+                                <p class="muted" th:if="${amplio and !#strings.isEmpty(p.descripcion)}" th:text="${p.descripcion}"></p>
+                            </div>
+                            <th:block th:switch="${p.estado == null ? '' : p.estado.name()}">
+                                <span class="badge badge-success" th:case="'ACTIVE'">En curso</span>
+                                <span class="badge badge-blue" th:case="'PLANNING'">En planificación</span>
+                                <span class="badge badge-warning" th:case="'ON_HOLD'">En pausa</span>
+                                <span class="badge" th:case="*">Estado sin registrar</span>
+                            </th:block>
+                        </header>
+
+                        <div class="proyecto-cuerpo">
+                            <div class="proyecto-participaciones">
+                                <h4 th:if="${amplio}">Mi participación</h4>
+                                <div class="proyecto-asignacion" th:each="participacion : ${tarjeta.participaciones}"
+                                     th:with="a=${participacion.asignacion}">
+                                    <p class="proyecto-asignacion-estado"
+                                       th:if="${tarjeta.participaciones.size() > 1 or participacion.pendiente or (amplio and !participacion.vigente)}"
+                                       th:text="${participacion.etiqueta()}"></p>
+                                    <dl class="proyecto-datos">
+                                        <div>
+                                            <dt>Rol en el proyecto</dt>
+                                            <dd th:text="${#strings.isEmpty(a.rolProyecto) ? 'Sin rol registrado' : a.rolProyecto}"></dd>
+                                        </div>
+                                        <div>
+                                            <dt>Mi dedicación</dt>
+                                            <dd th:text="${a.porcentajeDedicacion != null ? a.porcentajeDedicacion + ' %' : 'Sin registrar'}"></dd>
+                                        </div>
+                                        <div>
+                                            <dt>Fecha de inicio</dt>
+                                            <dd><time th:datetime="${a.fechaInicio}" th:text="${#temporals.format(a.fechaInicio, 'dd-MM-yyyy')}"></time></dd>
+                                        </div>
+                                        <div>
+                                            <dt>Fecha de fin</dt>
+                                            <dd>
+                                                <time th:if="${a.fechaFin != null}" th:datetime="${a.fechaFin}"
+                                                      th:text="${#temporals.format(a.fechaFin, 'dd-MM-yyyy')}"></time>
+                                                <span th:unless="${a.fechaFin != null}">Sin fecha de fin</span>
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </div>
+
+                            <div class="proyecto-avance">
+                                <div class="avance-dato">
+                                    <span th:id="|avance-${p.idProyecto}|">Avance del proyecto</span>
+                                    <strong th:if="${p.progreso != null}" th:text="|${p.progreso} %|"></strong>
+                                    <span class="muted" th:unless="${p.progreso != null}">Sin registrar</span>
+                                </div>
+                                <progress th:if="${p.progreso != null}" th:value="${p.progreso}" max="100"
+                                          th:aria-labelledby="|avance-${p.idProyecto}|"></progress>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <div class="card empty" th:if="${totalProyectos == 0}">No tienes proyectos vigentes ni próximos.</div>
+
+            <footer class="proyectos-pie" th:if="${totalPaginas > 1}"
+                    th:with="rango=${primerProyecto == ultimoProyecto ? ultimoProyecto : primerProyecto + '–' + ultimoProyecto}">
+                <p class="muted" th:text="|Mostrando ${rango} de ${totalProyectos} proyectos|"></p>
+                <nav class="proyectos-paginas" aria-label="Paginación de proyectos">
+                    <span class="btn btn-light btn-sm" th:if="${paginaActual == 1}" aria-disabled="true">Anterior</span>
+                    <a class="btn btn-light btn-sm" th:if="${paginaActual > 1}"
+                       th:href="@{/colaborador/proyectos(page=${paginaActual - 1})}">Anterior</a>
+                    <a class="btn btn-sm pagina-proyectos" th:each="pagina : ${#numbers.sequence(1, totalPaginas)}"
+                       th:classappend="${pagina == paginaActual ? 'btn-primary' : 'btn-light'}"
+                       th:href="@{/colaborador/proyectos(page=${pagina})}"
+                       th:attr="aria-current=${pagina == paginaActual ? 'page' : null}"
+                       th:text="${pagina}"></a>
+                    <a class="btn btn-light btn-sm" th:if="${paginaActual < totalPaginas}"
+                       th:href="@{/colaborador/proyectos(page=${paginaActual + 1})}">Siguiente</a>
+                    <span class="btn btn-light btn-sm" th:if="${paginaActual == totalPaginas}" aria-disabled="true">Siguiente</span>
+                </nav>
+            </footer>
+        </div>
+    </main>
+</div>
+</body>
+</html>

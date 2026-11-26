@@ -14,5 +14,5 @@ public interface MensajeChatRepository extends JpaRepository<MensajeChat, Intege
      * @param idProyecto identificador del proyecto cuyos mensajes se consultan
      * @return lista de mensajes del proyecto desde el más antiguo
      */
-    List<MensajeChat> findByProyectoIdProyectoOrderByFechaEnvioAsc(Integer idProyecto);
+    List<MensajeChat> findByProyectoIdProyectoOrderByFechaEnvioAscIdMensajeAsc(Integer idProyecto);
 }

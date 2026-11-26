@@ -1,110 +1,150 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Reportes | SkillBridge AI</title>
-    <link rel="stylesheet" th:href="@{/css/app.css}" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
-      <main class="main">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/project-manager.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
+    <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
-          <div class="grid-4">
-            <div class="metric" th:unless="${permisosBloqueados.contains('proyectos')}">
-              <div class="metric-icon">▣</div>
-              <div class="label">Proyectos</div>
-              <div class="value" th:text="${totalProyectos}"></div>
-              <div class="hint">Portafolio total</div>
-            </div>
-            <div class="metric green" th:unless="${permisosBloqueados.contains('proyectos')}">
-              <div class="metric-icon">●</div>
-              <div class="label">Activos</div>
-              <div class="value" th:text="${proyectosActivos}"></div>
-              <div class="hint">En curso</div>
-            </div>
-            <div class="metric blue" th:unless="${permisosBloqueados.contains('proyectos') or permisosBloqueados.contains('historial')}">
-              <div class="metric-icon">✓</div>
-              <div class="label">Completados</div>
-              <div class="value" th:text="${proyectosCompletados}"></div>
-              <div class="hint">Cerrados</div>
-            </div>
-            <div class="metric orange" th:unless="${permisosBloqueados.contains('asignaciones')}">
-              <div class="metric-icon">☷</div>
-              <div class="label">Asignaciones</div>
-              <div class="value" th:text="${totalAsignaciones}"></div>
-              <div class="hint">Participaciones</div>
-            </div>
-          </div>
-          <div class="grid-2 section">
-            <section class="card">
-              <div class="card-title"><h2>Plantillas de reporte</h2></div>
-              <div class="grid-2">
-                <div class="soft-panel" th:unless="${permisosBloqueados.contains('proyectos')}">
-                  <strong>Resumen de proyectos</strong>
-                  <p class="muted">Estados, progreso y fechas.</p>
-                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='proyectos')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='proyectos')}">Descargar CSV</a><a class="btn btn-light btn-sm" th:href="@{/pm/reportes/pdf(tipo='proyectos')}">Descargar PDF</a></div>
-                </div>
-                <div class="soft-panel" th:unless="${permisosBloqueados.contains('asignaciones')}">
-                  <strong>Asignaciones por proyecto</strong>
-                  <p class="muted">Equipo, roles y dedicación.</p>
-                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='asignaciones')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='asignaciones')}">Descargar CSV</a><a class="btn btn-light btn-sm" th:href="@{/pm/reportes/pdf(tipo='asignaciones')}">Descargar PDF</a></div>
-                </div>
-                <div class="soft-panel" th:unless="${permisosBloqueados.contains('disponibilidad')}">
-                  <strong>Carga de trabajo</strong>
-                  <p class="muted">Distribución de capacidad.</p>
-                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='carga')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='carga')}">Descargar CSV</a><a class="btn btn-light btn-sm" th:href="@{/pm/reportes/pdf(tipo='carga')}">Descargar PDF</a></div>
-                </div>
-                <div class="soft-panel" th:unless="${permisosBloqueados.contains('historial')}">
-                  <strong>Historial</strong>
-                  <p class="muted">Proyectos finalizados.</p>
-                  <div class="actions"><a class="btn btn-light btn-sm" th:href="@{/pm/reportes(reporte='historial')} + '#vista-previa'">Vista previa</a><a class="btn btn-primary btn-sm" th:href="@{/pm/reportes/exportar(tipo='historial')}">Descargar CSV</a><a class="btn btn-light btn-sm" th:href="@{/pm/reportes/pdf(tipo='historial')}">Descargar PDF</a></div>
-                </div>
-              </div>
+        <div class="content pm-ui">
+            <th:block th:replace="~{pm/elementos :: avisos}"></th:block>
+            <section class="page-intro">
+                <div><h2>Reportes de proyectos</h2><p>Consulta la dedicación de tus equipos y el avance de tu portafolio.</p></div>
             </section>
-            <section class="card" th:unless="${permisosBloqueados.contains('proyectos')}">
-              <div class="card-title"><h2>Progreso del portafolio</h2></div>
-              <div class="bar-list">
-                <div class="bar-item" th:each="p : ${proyectos}">
-                  <span th:text="${p.nombre}"></span>
-                  <div class="bar-track">
-                    <span th:style="|width:${p.progreso}%|"></span>
-                  </div>
-                  <strong th:text="|${p.progreso}%|"></strong>
-                </div>
-              </div>
+
+            <section class="card pm-reporte-filtros" aria-label="Filtros de reportes">
+                <form class="pm-filter" th:object="${filtro}" th:action="@{/pm/reportes}" method="get" novalidate>
+                    <input type="hidden" name="modo" th:value="${modo}">
+                    <label class="pm-search" for="proyecto">Proyecto
+                        <select th:field="*{proyecto}" th:errorclass="is-invalid">
+                            <option value="">Todos mis proyectos</option>
+                            <option th:each="p : ${propios}" th:value="${p.idProyecto}" th:text="${p.nombre}"></option>
+                        </select>
+                        <span class="field-error" role="alert" th:errors="*{proyecto}"></span>
+                    </label>
+                    <label for="fecha">Fecha de consulta
+                        <input type="date" th:field="*{fecha}" th:errorclass="is-invalid">
+                        <span class="field-error" role="alert" th:errors="*{fecha}"></span>
+                    </label>
+                    <label for="asignaciones">Asignaciones
+                        <select th:field="*{asignaciones}" th:errorclass="is-invalid">
+                            <option th:each="grupo : ${opcionesGrupo}" th:value="${grupo.name()}" th:text="${grupo.etiqueta}"></option>
+                        </select>
+                        <span class="field-error" role="alert" th:errors="*{asignaciones}"></span>
+                    </label>
+                    <button type="submit" class="btn btn-primary">Aplicar</button>
+                    <a class="btn btn-light" th:href="@{/pm/reportes(modo=${modo})}">Limpiar</a>
+                    <p class="field-error pm-error-global" role="alert" th:each="error : ${#fields.globalErrors()}" th:text="${error}"></p>
+                </form>
             </section>
-          </div>
-          <section class="card section" id="vista-previa" th:if="${reporteSeleccionado != null}">
-            <div class="card-title">
-              <h2>Vista previa del reporte</h2>
-              <a class="btn btn-light btn-sm" th:href="@{/pm/reportes}">Cerrar</a>
-            </div>
 
-            <div class="table-wrap" th:if="${reporteSeleccionado == 'proyectos'}">
-              <table><thead><tr><th>Proyecto</th><th>Estado</th><th>Inicio</th><th>Fin</th><th>Progreso</th></tr></thead>
-              <tbody><tr th:each="p : ${proyectos}"><td th:text="${p.nombre}"></td><td th:text="${p.estado}"></td><td th:text="${p.fechaInicio}"></td><td th:text="${p.fechaFin ?: '-'}"></td><td th:text="|${p.progreso}%|"></td></tr></tbody></table>
-            </div>
+            <section class="card section pm-reporte-principal" th:if="${principal != null}">
+                <header class="card-title">
+                    <div>
+                        <h3 th:text="${principal.titulo}"></h3>
+                        <p class="pm-meta" th:if="${modo == 'dedicacion'}">Cada barra muestra la dedicación asignada a una persona en ese proyecto.</p>
+                        <p class="pm-meta" th:if="${modo == 'avance'}">Avance registrado de cada proyecto seleccionado.</p>
+                    </div>
+                    <th:block th:if="${filtrosValidos}">
+                        <div th:replace="~{pm/elementos :: accionesReporte(${principal}, ${filtro}, ${modo})}"></div>
+                    </th:block>
+                </header>
+                <div class="pm-linea pm-reporte-tabs" th:if="${filtrosValidos}">
+                    <nav class="pm-tabs" aria-label="Vista del reporte">
+                        <a th:if="${verDedicacion}" th:attr="aria-current=${modo == 'dedicacion' ? 'page' : null}"
+                           th:href="@{/pm/reportes(modo='dedicacion',proyecto=${filtro.proyecto},fecha=${filtro.fecha},asignaciones=${filtro.asignaciones.name()})}">Dedicación del equipo</a>
+                        <a th:if="${verAvance}" th:attr="aria-current=${modo == 'avance' ? 'page' : null}"
+                           th:href="@{/pm/reportes(modo='avance',proyecto=${filtro.proyecto},fecha=${filtro.fecha},asignaciones=${filtro.asignaciones.name()})}">Avance de proyectos</a>
+                    </nav>
+                    <div class="pm-chips pm-meta" th:if="${modo == 'dedicacion'}">
+                        <span><span class="pm-leyenda" aria-hidden="true"></span>Vigente</span>
+                        <span><span class="pm-leyenda plan" aria-hidden="true"></span>Planificada</span>
+                    </div>
+                </div>
+                <th:block th:if="${datos != null and modo == 'dedicacion'}" th:with="matriz=${datos.matriz}">
+                    <p class="empty" th:if="${matriz.filas.isEmpty()}">No hay dedicaciones registradas para esta fecha y selección.</p>
+                    <th:block th:unless="${matriz.filas.isEmpty()}">
+                        <div class="table-wrap pm-dedicacion" tabindex="0" role="region" aria-label="Matriz de dedicación por proyecto">
+                            <table>
+                                <thead><tr><th scope="col">Proyecto</th>
+                                    <th scope="col" th:each="persona : ${matriz.personas}" th:text="${persona.nombre}"></th>
+                                </tr></thead>
+                                <tbody>
+                                <tr th:each="f : ${matriz.filas}">
+                                    <th scope="row">
+                                        <strong th:text="${f.proyecto.nombre}"></strong>
+                                        <small class="pm-meta" th:text="${f.proyecto.estado == null ? 'Sin estado' : f.proyecto.estado.etiqueta}"></small>
+                                    </th>
+                                    <td th:each="persona : ${matriz.personas}" th:with="valor=${f.dedicaciones[persona.id]}">
+                                        <span class="muted" th:if="${valor == null}" aria-label="Sin dedicación">—</span>
+                                        <th:block th:if="${valor != null}">
+                                            <div class="pm-porcentaje" th:if="${valor.vigente > 0}" th:attr="aria-label=|Vigente ${valor.vigente} %|">
+                                                <strong th:text="|${valor.vigente} %|"></strong>
+                                                <div class="progress" aria-hidden="true"><span th:style="|width:${valor.vigente > 100 ? 100 : valor.vigente}%|"></span></div>
+                                            </div>
+                                            <div class="pm-porcentaje pm-plan" th:if="${valor.planificada > 0}" th:attr="aria-label=|Planificada ${valor.planificada} %|">
+                                                <strong th:text="|${valor.planificada} %|"></strong>
+                                                <div class="progress" aria-hidden="true"><span th:style="|width:${valor.planificada > 100 ? 100 : valor.planificada}%|"></span></div>
+                                            </div>
+                                        </th:block>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <p class="pm-meta pm-pie" th:text="|${matriz.filas.size()} proyectos con dedicación · ${matriz.personas.size()} colaboradores · ${#temporals.format(datos.fecha, 'dd-MM-yyyy')}|"></p>
+                    </th:block>
+                </th:block>
+                <th:block th:if="${datos != null and modo == 'avance'}">
+                    <p class="empty" th:if="${datos.proyectos.isEmpty()}">Todavía no hay proyectos para mostrar.</p>
+                    <div class="pm-avance-fila" th:each="p : ${datos.proyectos}">
+                        <div>
+                            <strong th:text="${p.nombre}"></strong>
+                            <small class="pm-meta" th:text="${p.estado == null ? 'Sin estado' : p.estado.etiqueta}"></small>
+                        </div>
+                        <div class="progress" aria-hidden="true"><span th:style="|width:${p.progreso ?: 0}%|"></span></div>
+                        <strong th:text="|${p.progreso ?: 0} %|"></strong>
+                    </div>
+                </th:block>
+            </section>
 
-            <div class="table-wrap" th:if="${reporteSeleccionado == 'asignaciones'}">
-              <table><thead><tr><th>Proyecto</th><th>Colaborador</th><th>Rol</th><th>Dedicación</th><th>Estado</th></tr></thead>
-              <tbody><tr th:each="a : ${asignaciones}"><td th:text="${a.proyecto.nombre}"></td><td th:text="${a.colaborador.usuario.nombreCompleto}"></td><td th:text="${a.rolProyecto}"></td><td th:text="|${a.porcentajeDedicacion}%|"></td><td th:text="${a.estado}"></td></tr></tbody></table>
-            </div>
+            <section id="vista-previa" class="card section" th:if="${tabla != null}">
+                <header class="card-title">
+                    <h3 th:text="|Vista previa de ${vistaPrevia.titulo}|"></h3>
+                    <a class="btn btn-light btn-sm"
+                       th:href="@{/pm/reportes(modo=${modo},proyecto=${filtro.proyecto},fecha=${filtro.fecha},asignaciones=${filtro.asignaciones.name()})}">Cerrar vista previa</a>
+                </header>
+                <p class="empty" th:if="${filasVista.isEmpty()}">Este reporte no tiene registros para los filtros aplicados.</p>
+                <div class="table-wrap" th:unless="${filasVista.isEmpty()}">
+                    <table>
+                        <thead><tr><th scope="col" th:each="columna : ${tabla.columnas}" th:text="${columna}"></th></tr></thead>
+                        <tbody><tr th:each="fila : ${filasVista}"><td th:each="celda : ${fila}" th:text="${celda}"></td></tr></tbody>
+                    </table>
+                </div>
+            </section>
 
-            <div class="table-wrap" th:if="${reporteSeleccionado == 'carga'}">
-              <table><thead><tr><th>Colaborador</th><th>Cargo</th><th>Carga</th><th>Disponibilidad</th></tr></thead>
-              <tbody><tr th:each="c : ${cargas}"><td th:text="${c.colaborador}"></td><td th:text="${c.cargo}"></td><td th:text="|${c.carga}%|"></td><td th:text="|${c.disponibilidad}%|"></td></tr></tbody></table>
-            </div>
-
-            <div class="table-wrap" th:if="${reporteSeleccionado == 'historial'}">
-              <table><thead><tr><th>Proyecto</th><th>Estado final</th><th>Periodo</th><th>Progreso</th></tr></thead>
-              <tbody><tr th:each="p : ${proyectos}" th:if="${p.estado.name() == 'COMPLETED' or p.estado.name() == 'CANCELLED'}"><td th:text="${p.nombre}"></td><td th:text="${p.estado}"></td><td th:text="|${p.fechaInicio} - ${p.fechaFin ?: '-'}|"></td><td th:text="|${p.progreso}%|"></td></tr></tbody></table>
-            </div>
-          </section>
+            <section class="card section" th:if="${!otrosReportes.isEmpty()}">
+                <header class="card-title"><h3>Otros reportes</h3></header>
+                <div class="pm-dos-columnas">
+                    <article class="pm-reporte" th:each="tipo : ${otrosReportes}">
+                        <div>
+                            <strong th:text="${tipo.titulo}"></strong>
+                            <p class="pm-meta" th:text="${tipo.clave == 'carga' ? 'Capacidad base y carga de tu equipo.' : 'Proyectos completados o cancelados.'}"></p>
+                        </div>
+                        <th:block th:if="${filtrosValidos}">
+                            <div th:replace="~{pm/elementos :: accionesReporte(${tipo}, ${filtro}, ${modo})}"></div>
+                        </th:block>
+                    </article>
+                </div>
+            </section>
         </div>
-      </main>
-    </div>
-  </body>
+    </main>
+</div>
+</body>
 </html>

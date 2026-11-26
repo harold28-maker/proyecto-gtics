@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Cancelar proyecto | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/project-manager.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content pm-ui">
+            <th:block th:replace="~{pm/elementos :: avisos}"></th:block>
+            <section class="page-intro"><h2>Cancelar proyecto</h2></section>
+            <section class="card">
+                <header class="card-title"><h3 th:text="${proyecto.nombre}"></h3><span th:replace="~{pm/elementos :: estado(${proyecto})}"></span></header>
+                <p>El proyecto pasará a Historial y dejará de contar para la capacidad vigente del equipo.</p>
+                <form class="pm-form" th:action="@{/pm/proyectos/{id}/cancelar(id=${proyecto.idProyecto})}" method="post">
+                    <div class="pm-actions"><a class="btn btn-light" th:href="@{/pm/proyectos}">Volver</a>
+                        <button class="btn btn-danger" type="submit">Confirmar cancelación</button></div>
+                </form>
+            </section>
+        </div>
+    </main>
+</div>
+</body>
+</html>

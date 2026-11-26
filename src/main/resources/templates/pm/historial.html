@@ -1,1 +1,57 @@
-<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Historial | SkillBridge AI</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="app-shell"><aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside><main class="main"><header th:replace="~{fragments/layout :: topbar(${titulo})}"></header><div class="content"><div class="grid-3"><div class="metric"><div class="metric-icon">◷</div><div class="label">Proyectos en historial</div><div class="value" th:text="${#lists.size(proyectos)}"></div><div class="hint">Portafolio registrado</div></div><div class="metric green"><div class="metric-icon">✓</div><div class="label">Finalizados</div><div class="value" th:text="${finalizados}"></div><div class="hint">Completados o cancelados</div></div><div class="metric blue"><div class="metric-icon">▥</div><div class="label">Trazabilidad</div><div class="value">100%</div><div class="hint">Información disponible</div></div></div><section class="card section"><div class="table-wrap"><table><thead><tr><th>Proyecto</th><th>Periodo</th><th>Estado</th><th>Prioridad</th><th>Progreso</th><th>Responsable</th></tr></thead><tbody><tr th:each="p : ${proyectos}"><td><strong th:text="${p.nombre}"></strong><br><small class="muted" th:text="${p.descripcion}"></small></td><td><span th:text="${p.fechaInicio}"></span><br><small class="muted" th:text="${p.fechaFin ?: '-'}"></small></td><td><span class="badge" th:classappend="${p.estado.name() == 'COMPLETED'} ? ' badge-success' : ' badge-purple'" th:text="${p.estado}"></span></td><td th:text="${p.prioridad}"></td><td><div class="progress"><span th:style="|width:${p.progreso}%|"></span></div><small th:text="|${p.progreso}%|"></small></td><td th:text="${p.projectManager.nombreCompleto}"></td></tr></tbody></table></div></section></div></main></div></body></html>
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Historial | SkillBridge AI</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/project-manager.css}">
+</head>
+<body>
+<div class="app-shell">
+    <aside th:replace="~{fragments/layout :: sidebar('PM')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
+        <div class="content pm-ui">
+            <th:block th:replace="~{pm/elementos :: avisos}"></th:block>
+            <section class="page-intro">
+                <div><h2>Historial de proyectos</h2><p>Consulta los proyectos que completaste o cancelaste.</p></div>
+                <a class="btn btn-light" th:unless="${permisosBloqueados.contains('proyectos')}" th:href="@{/pm/proyectos}">Ver portafolio</a>
+            </section>
+            <section class="pm-kpis" aria-label="Resumen de proyectos cerrados">
+                <article class="metric"><div class="label">Cerrados</div><div class="value" th:text="${cerrados}"></div><div class="hint">Proyectos a tu cargo</div></article>
+                <article class="metric green"><div class="label">Completados</div><div class="value" th:text="${completados}"></div><div class="hint">Finalizados</div></article>
+                <article class="metric orange"><div class="label">Cancelados</div><div class="value" th:text="${cancelados}"></div><div class="hint">Registrados en el portafolio</div></article>
+            </section>
+            <section class="card section">
+                <form class="pm-filter" th:action="@{/pm/historial}" method="get" novalidate>
+                    <label class="pm-search">Buscar proyecto<input type="search" name="q" th:value="${q}" placeholder="Nombre del proyecto">
+                        <span th:replace="~{pm/elementos :: error(${erroresFiltros}, 'q')}"></span></label>
+                    <label>Estado final<select name="estado"><option value="">Todos los cerrados</option>
+                        <option value="COMPLETED" th:selected="${estadoSeleccionado?.name() == 'COMPLETED'}">Completados</option>
+                        <option value="CANCELLED" th:selected="${estadoSeleccionado?.name() == 'CANCELLED'}">Cancelados</option>
+                    </select><span th:replace="~{pm/elementos :: error(${erroresFiltros}, 'estado')}"></span></label>
+                    <button class="btn btn-primary" type="submit">Buscar</button><a class="btn btn-light" th:href="@{/pm/historial}">Limpiar</a>
+                </form>
+                <p class="empty" th:if="${proyectos.isEmpty() and erroresFiltros.isEmpty()}">No se encontraron proyectos cerrados.</p>
+                <div class="table-wrap" th:unless="${proyectos.isEmpty()}">
+                    <table>
+                        <thead><tr><th scope="col">Proyecto</th><th scope="col">Período registrado</th><th scope="col">Estado final</th>
+                            <th scope="col">Avance final</th><th scope="col">Responsable</th><th scope="col">Detalle</th></tr></thead>
+                        <tbody><tr th:each="p : ${proyectos}">
+                            <td><strong th:text="${p.nombre}"></strong><small class="pm-meta" th:text="${#strings.abbreviate(p.descripcion, 100)}"></small></td>
+                            <td><div th:replace="~{pm/elementos :: periodo(${p.fechaInicio}, ${p.fechaFin})}"></div></td>
+                            <td><span th:replace="~{pm/elementos :: estado(${p})}"></span></td>
+                            <td><div th:replace="~{pm/elementos :: barra(${p.progreso}, '')}"></div></td>
+                            <td th:text="${p.projectManager.nombreCompleto}"></td>
+                            <td><a class="btn btn-light btn-sm" th:href="@{/pm/historial(q=${q},estado=${estadoSeleccionado?.name()},idProyecto=${p.idProyecto})}">Ver ficha</a></td>
+                        </tr></tbody>
+                    </table>
+                </div>
+            </section>
+            <th:block th:if="${proyecto != null}"><section th:replace="~{pm/elementos :: ficha(${proyecto}, ${requerimientos})}"></section></th:block>
+        </div>
+    </main>
+</div>
+</body>
+</html>

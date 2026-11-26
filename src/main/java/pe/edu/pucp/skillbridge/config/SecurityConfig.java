@@ -1,5 +1,6 @@
 package pe.edu.pucp.skillbridge.config;
 
+import jakarta.validation.Validator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -10,6 +11,7 @@ import org.springframework.security.core.session.SessionRegistryImpl;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
@@ -50,12 +52,14 @@ public class SecurityConfig {
      * @param http configuración de seguridad HTTP proporcionada por Spring
      * @param successHandler manejador ejecutado cuando la autenticación finaliza correctamente
      * @param sessionRegistry registro de sesiones para invalidarlas al restablecer la contraseña
+     * @param validator validador de los campos del formulario de acceso
      * @return cadena de filtros configurada para las rutas de la aplicación
      * @throws Exception si Spring Security no puede construir la cadena de filtros
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
-                                           LoginSuccessHandler successHandler, SessionRegistry sessionRegistry) throws Exception {
+                                           LoginSuccessHandler successHandler, SessionRegistry sessionRegistry,
+                                           Validator validator) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/login", "/sesion/portada", "/css/**", "/js/**",
@@ -73,6 +77,7 @@ public class SecurityConfig {
                         .maximumSessions(-1)
                         .sessionRegistry(sessionRegistry)
                         .expiredUrl("/login"))
+                .addFilterBefore(new ValidacionLoginFilter(validator), UsernamePasswordAuthenticationFilter.class)
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/acceder")

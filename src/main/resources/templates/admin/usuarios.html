@@ -121,7 +121,7 @@
                         </thead>
                         <tbody>
                         <tr th:each="u : ${usuarios}"
-                            th:with="estado=${u.estado == null ? '' : u.estado.name()}, activo=${estado == 'ACTIVO'}">
+                            th:with="activo=${u.estado?.name() == 'ACTIVO'}">
                             <td>
                                 <div class="table-user">
                                     <span class="mini-avatar usuario-avatar" aria-hidden="true">
@@ -136,14 +136,10 @@
                                 </div>
                             </td>
                             <td>
-                                <span class="badge badge-purple" th:text="${u.rolVisual}">Colaborador</span>
+                                <span th:replace="~{fragments/perfil :: rolUsuario(${u})}"></span>
                             </td>
                             <td>
-                                <span class="badge users-state"
-                                      th:classappend="${activo ? 'badge-success' : estado == 'BLOQUEADO' ? 'badge-danger' : estado == 'INACTIVO' ? 'badge-warning' : ''}"
-                                      th:text="${estado.isEmpty() ? 'Sin estado' : #strings.capitalize(#strings.toLowerCase(estado))}">
-                                    Activo
-                                </span>
+                                <span th:replace="~{fragments/perfil :: estadoUsuario(${u})}"></span>
                             </td>
                             <td class="users-access" th:classappend="${u.ultimoAcceso == null ? 'muted' : ''}"
                                 th:text="${u.ultimoAcceso == null ? 'Sin acceso' : #temporals.format(u.ultimoAcceso, 'dd/MM/yyyy · HH:mm')}">

@@ -7,12 +7,12 @@ import org.springframework.beans.propertyeditors.StringTrimmerEditor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.TransactionException;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -23,7 +23,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import pe.edu.pucp.skillbridge.dto.FilaAsignacionDTO;
+import pe.edu.pucp.skillbridge.dto.FilaAsignacionDTO.EstadoParticipacion;
 import pe.edu.pucp.skillbridge.dto.HabilidadColaboradorDTO;
+import pe.edu.pucp.skillbridge.dto.HabilidadPerfilForm;
 import pe.edu.pucp.skillbridge.entity.*;
 import pe.edu.pucp.skillbridge.repository.*;
 import pe.edu.pucp.skillbridge.service.CapacidadColaboradorService;
@@ -37,7 +40,9 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -57,10 +62,6 @@ public class ColaboradorController {
     private final HabilidadRepository habilidadRepository;
     private final CertificacionRepository certificacionRepository;
     private final AsignacionRepository asignacionRepository;
-    private final ForoRepository foroRepository;
-    private final NotificacionRepository notificacionRepository;
-    private final MensajeChatRepository mensajeChatRepository;
-    private final RespuestaForoRepository respuestaForoRepository;
     private final CapacidadColaboradorService capacidadColaboradorService;
     private final FotoPerfilService fotoPerfilService;
     private final TransactionTemplate transacciones;
@@ -69,6 +70,11 @@ public class ColaboradorController {
     @Value("${skillbridge.upload-dir:uploads}")
     private String uploadDir;
 
+    private static final BigDecimal MAX_ANIOS_EXPERIENCIA = BigDecimal.valueOf(50);
+    private static final String HABILIDAD_DUPLICADA = "validation.habilidadPerfil.id.duplicada";
+
+    private static final ZoneId ZONA_HORARIA = ZoneId.of("America/Lima");
+    private static final int PROYECTOS_POR_PAGINA = 4;
     private static final int CERTIFICACIONES_POR_PAGINA = 4;
     private static final long MAX_CREDENCIAL_BYTES = 5L * 1024L * 1024L;
 
@@ -80,10 +86,6 @@ public class ColaboradorController {
      * @param habilidadRepository repositorio de habilidades
      * @param certificacionRepository repositorio de certificaciones
      * @param asignacionRepository repositorio de asignaciones
-     * @param foroRepository repositorio de foros
-     * @param notificacionRepository repositorio de notificaciones
-     * @param mensajeChatRepository repositorio de mensajes de chat
-     * @param respuestaForoRepository repositorio de respuestas de foro
      * @param capacidadColaboradorService servicio de carga vigente
      * @param fotoPerfilService servicio compartido de fotos de usuario
      * @param transacciones transacciones utilizadas al guardar el perfil
@@ -94,10 +96,6 @@ public class ColaboradorController {
                                  HabilidadRepository habilidadRepository,
                                  CertificacionRepository certificacionRepository,
                                  AsignacionRepository asignacionRepository,
-                                 ForoRepository foroRepository,
-                                 NotificacionRepository notificacionRepository,
-                                 MensajeChatRepository mensajeChatRepository,
-                                 RespuestaForoRepository respuestaForoRepository,
                                  CapacidadColaboradorService capacidadColaboradorService,
                                  FotoPerfilService fotoPerfilService,
                                  TransactionTemplate transacciones,
@@ -107,10 +105,6 @@ public class ColaboradorController {
         this.habilidadRepository = habilidadRepository;
         this.certificacionRepository = certificacionRepository;
         this.asignacionRepository = asignacionRepository;
-        this.foroRepository = foroRepository;
-        this.notificacionRepository = notificacionRepository;
-        this.mensajeChatRepository = mensajeChatRepository;
-        this.respuestaForoRepository = respuestaForoRepository;
         this.capacidadColaboradorService = capacidadColaboradorService;
         this.fotoPerfilService = fotoPerfilService;
         this.transacciones = transacciones;
@@ -133,17 +127,8 @@ public class ColaboradorController {
      * @return lista de habilidades del colaborador
      */
     private List<HabilidadColaboradorDTO> habilidades(Integer idColaborador) {
-        List<HabilidadColaboradorDTO> lista = new ArrayList<>();
-        for (Object[] fila : colaboradorRepository.obtenerHabilidades(idColaborador)) {
-            lista.add(new HabilidadColaboradorDTO(
-                    ((Number) fila[0]).intValue(),
-                    String.valueOf(fila[1]),
-                    String.valueOf(fila[2]),
-                    String.valueOf(fila[3]),
-                    fila[4] == null ? BigDecimal.ZERO : new BigDecimal(fila[4].toString())
-            ));
-        }
-        return lista;
+        return colaboradorRepository.obtenerHabilidades(idColaborador).stream()
+                .map(HabilidadColaboradorDTO::desdeFila).toList();
     }
 
     /**
@@ -426,7 +411,6 @@ public class ColaboradorController {
                 errorArchivo = "Vuelve a seleccionar el archivo antes de guardar.";
             }
             model.addAttribute("errorArchivo", errorArchivo);
-            model.addAttribute("mensajeError", "Revisa los campos marcados.");
             return volverAlFormularioCertificacion(formulario, colaborador, sinExpiracion, page, model, redirect);
         }
 
@@ -815,167 +799,289 @@ public class ColaboradorController {
         }
     }
 
-    /**
-     * Muestra el mapa de habilidades del colaborador y, opcionalmente, una habilidad seleccionada para editar.
-     *
-     * @param idEditar identificador de la habilidad que se editará, o {@code null}
-     * @param model modelo utilizado para enviar los datos a la vista
-     * @return nombre de la vista de habilidades
-     */
+    /** Muestra las habilidades propias y abre el formulario o la confirmación solicitada. */
     @GetMapping("/habilidades")
-    public String habilidades(@RequestParam(value = "editar", required = false) Integer idEditar, Model model) {
-        cargarHabilidades(model, idEditar);
+    public String habilidades(@RequestParam(value = "editar", required = false) Integer idEditar,
+                              @RequestParam(value = "quitar", required = false) Integer idQuitar,
+                              Model model, RedirectAttributes redirect) {
+        return vistaHabilidades(model, colaboradorSesion(), idEditar, idQuitar, redirect);
+    }
+
+    private String vistaHabilidades(Model model, Colaborador colaborador, Integer idEditar, Integer idQuitar,
+                                    RedirectAttributes redirect) {
+        boolean tienePerfil = colaborador != null;
+        List<HabilidadColaboradorDTO> actuales = tienePerfil ? habilidades(colaborador.getIdColaborador()) : List.of();
+        HabilidadColaboradorDTO editar = buscarHabilidadPropia(actuales, idEditar);
+        HabilidadColaboradorDTO quitar = buscarHabilidadPropia(actuales, idQuitar);
+        if ((idEditar != null && editar == null) || (idQuitar != null && quitar == null)) {
+            return volverAHabilidades(redirect, "mensajeError", "La habilidad ya no está en tu perfil.");
+        }
+
+        Set<Integer> idsRegistrados = actuales.stream()
+                .map(HabilidadColaboradorDTO::getIdHabilidad).collect(Collectors.toSet());
+        List<Habilidad> disponibles = tienePerfil ? habilidadRepository.findByEstadoTrueOrderByNombreAsc().stream()
+                .filter(h -> !idsRegistrados.contains(h.getIdHabilidad())).toList() : List.of();
+        List<String> categorias = actuales.stream().map(HabilidadColaboradorDTO::getCategoria)
+                .filter(StringUtils::hasText).map(String::strip).distinct().toList();
+
+        model.addAttribute("titulo", "Mis habilidades");
+        model.addAttribute("tienePerfil", tienePerfil);
+        model.addAttribute("habilidades", actuales);
+        model.addAttribute("habilidadesDisponibles", disponibles);
+        model.addAttribute("totalCategorias", categorias.size());
+        model.addAttribute("categoriasVisibles", String.join(" · ", categorias.stream().limit(3).toList()));
+        model.addAttribute("categoriasRestantes", Math.max(0, categorias.size() - 3));
+        model.addAttribute("niveles", HabilidadColaboradorDTO.Nivel.values());
+        model.addAttribute("habilidadEditar", editar);
+        model.addAttribute("habilidadQuitar", quitar);
+        if (!model.containsAttribute("habilidadForm")) {
+            HabilidadPerfilForm formulario = new HabilidadPerfilForm();
+            if (editar != null) {
+                formulario.setIdHabilidad(editar.getIdHabilidad());
+                formulario.setNivel(editar.getNivelHabilidad());
+                formulario.setAniosExperiencia(editar.getAniosExperienciaLocal());
+            }
+            model.addAttribute("habilidadForm", formulario);
+        }
         return "colaborador/habilidades";
     }
 
-    /**
-     * Carga en el modelo las habilidades actuales y disponibles del colaborador.
-     *
-     * @param model modelo que recibirá los atributos
-     * @param idEditar identificador de la habilidad seleccionada para editar
-     */
-    private void cargarHabilidades(Model model, Integer idEditar) {
-        Colaborador c = colaboradorSesion();
-        model.addAttribute("titulo", "Mapa de habilidades");
-        model.addAttribute("colaborador", c);
-        List<HabilidadColaboradorDTO> actuales = c == null ? List.of() : habilidades(c.getIdColaborador());
-        model.addAttribute("habilidades", actuales);
-        List<Integer> idsActuales = actuales.stream().map(HabilidadColaboradorDTO::getIdHabilidad).toList();
-        model.addAttribute("habilidadesDisponibles", habilidadRepository.findByEstadoTrueOrderByNombreAsc().stream()
-                .filter(h -> !idsActuales.contains(h.getIdHabilidad())).toList());
-        model.addAttribute("habilidadEditar", idEditar == null ? null : actuales.stream()
-                .filter(h -> h.getIdHabilidad().equals(idEditar)).findFirst().orElse(null));
+    private HabilidadColaboradorDTO buscarHabilidadPropia(List<HabilidadColaboradorDTO> habilidades, Integer id) {
+        return id == null ? null : habilidades.stream()
+                .filter(habilidad -> id.equals(habilidad.getIdHabilidad())).findFirst().orElse(null);
     }
 
-    /**
-     * Valida que los años de experiencia y el nivel indicados sean aceptados.
-     *
-     * @param nivel nivel de dominio seleccionado
-     * @param aniosExperiencia años de experiencia indicados
-     * @return mensaje de error o {@code null} si ambos valores son válidos
-     */
-    private String validarExperienciaYNivel(String nivel, BigDecimal aniosExperiencia) {
-        if (aniosExperiencia == null || aniosExperiencia.compareTo(BigDecimal.ZERO) < 0 || aniosExperiencia.compareTo(new BigDecimal("50")) > 0) {
-            return "Los años de experiencia deben estar entre 0 y 50.";
+    /** Valida en el servidor el formato y el rango, conservando el texto ingresado. */
+    private BigDecimal validarAniosExperiencia(String experiencia, BindingResult errores) {
+        if (errores.hasFieldErrors("aniosExperiencia")) return null;
+
+        String valor = experiencia.strip();
+        if (!valor.matches("[+-]?(?:[0-9]+(?:[.,][0-9]+)?|[.,][0-9]+)")) {
+            errores.rejectValue("aniosExperiencia", "validation.habilidadPerfil.anios.formato");
+            return null;
         }
-        if (!List.of("BASICO", "INTERMEDIO", "AVANZADO", "EXPERTO").contains(nivel)) {
-            return "Selecciona un nivel válido.";
+
+        BigDecimal anios = new BigDecimal(valor.replace(',', '.'));
+        if (anios.compareTo(BigDecimal.ZERO) < 0 || anios.compareTo(MAX_ANIOS_EXPERIENCIA) > 0) {
+            errores.rejectValue("aniosExperiencia", "validation.habilidadPerfil.anios.rango");
+        } else if (anios.scale() > 1) {
+            errores.rejectValue("aniosExperiencia", "validation.habilidadPerfil.anios.decimales");
         }
+        return anios;
+    }
+
+    @PostMapping("/habilidades/guardar")
+    public String guardarHabilidad(@Valid @ModelAttribute("habilidadForm") HabilidadPerfilForm formulario,
+                                   BindingResult errores, Model model, RedirectAttributes redirect) {
+        Colaborador colaborador = colaboradorSesion();
+        if (colaborador == null) {
+            return volverAHabilidades(redirect, "mensajeError", "No se encontró tu perfil de colaborador.");
+        }
+
+        BigDecimal anios = validarAniosExperiencia(formulario.getAniosExperiencia(), errores);
+        if (!errores.hasErrors()) {
+            Integer idColaborador = colaborador.getIdColaborador();
+            Integer idHabilidad = formulario.getIdHabilidad();
+            String error;
+            try {
+                error = transacciones.execute(estado -> agregarHabilidadAlPerfil(idColaborador, formulario, anios));
+            } catch (DataIntegrityViolationException ex) {
+                error = colaboradorRepository.contarHabilidad(idColaborador, idHabilidad) > 0
+                        ? HABILIDAD_DUPLICADA : "validation.habilidadPerfil.id.noDisponible";
+            }
+            if (error == null) {
+                return volverAHabilidades(redirect, "mensajeExito", "Habilidad agregada correctamente.");
+            }
+            errores.rejectValue("idHabilidad", error);
+        }
+        return vistaHabilidades(model, colaborador, null, null, redirect);
+    }
+
+    private String agregarHabilidadAlPerfil(Integer idColaborador, HabilidadPerfilForm formulario, BigDecimal anios) {
+        Integer idHabilidad = formulario.getIdHabilidad();
+        if (!habilidadRepository.buscarParaActualizar(idHabilidad).map(Habilidad::getEstado).orElse(false)) {
+            return "validation.habilidadPerfil.id.noDisponible";
+        }
+        if (colaboradorRepository.contarHabilidad(idColaborador, idHabilidad) > 0) {
+            return HABILIDAD_DUPLICADA;
+        }
+        colaboradorRepository.guardarHabilidad(idColaborador, idHabilidad, formulario.getNivel().name(), anios);
         return null;
     }
 
-    /**
-     * Valida y registra una nueva habilidad en el perfil del colaborador.
-     *
-     * @param idHabilidad identificador de la habilidad seleccionada
-     * @param nivel nivel de dominio seleccionado
-     * @param aniosExperiencia años de experiencia asociados a la habilidad
-     * @param model modelo utilizado para comunicar el resultado
-     * @return nombre de la vista de habilidades
-     */
-    @PostMapping("/habilidades/guardar")
-    @Transactional
-    public String guardarHabilidad(@RequestParam("idHabilidad") Integer idHabilidad,
-                                   @RequestParam("nivel") String nivel,
-                                   @RequestParam("aniosExperiencia") BigDecimal aniosExperiencia,
-                                   Model model) {
-        Colaborador c = colaboradorSesion();
-        if (c == null) {
-            cargarHabilidades(model, null);
-            return "colaborador/habilidades";
-        }
-        String error = validarExperienciaYNivel(nivel, aniosExperiencia);
-        if (error != null) {
-            cargarHabilidades(model, null);
-            model.addAttribute("mensajeError", error);
-            return "colaborador/habilidades";
-        }
-        if (!habilidadRepository.buscarParaActualizar(idHabilidad).map(Habilidad::getEstado).orElse(false)) {
-            cargarHabilidades(model, null);
-            model.addAttribute("mensajeError", "La habilidad seleccionada ya no está disponible. Si necesitas agregarla, contacta al administrador.");
-            return "colaborador/habilidades";
-        }
-        boolean yaExiste = habilidades(c.getIdColaborador()).stream().anyMatch(h -> h.getIdHabilidad().equals(idHabilidad));
-        if (yaExiste) {
-            cargarHabilidades(model, null);
-            model.addAttribute("mensajeError", "La habilidad seleccionada ya forma parte de tu perfil. Usa Editar para modificarla.");
-            return "colaborador/habilidades";
-        }
-        colaboradorRepository.guardarHabilidad(c.getIdColaborador(), idHabilidad, nivel, aniosExperiencia);
-        cargarHabilidades(model, null);
-        model.addAttribute("mensajeExito", "Habilidad agregada correctamente.");
-        return "colaborador/habilidades";
-    }
-
-    /**
-     * Valida y actualiza el nivel y los años de experiencia de una habilidad asociada.
-     *
-     * @param idHabilidad identificador de la habilidad que se actualizará
-     * @param nivel nivel de dominio seleccionado
-     * @param aniosExperiencia años de experiencia asociados a la habilidad
-     * @param model modelo utilizado para comunicar el resultado
-     * @return nombre de la vista de habilidades
-     */
     @PostMapping("/habilidades/actualizar")
-    public String actualizarHabilidad(@RequestParam("idHabilidad") Integer idHabilidad,
-                                      @RequestParam("nivel") String nivel,
-                                      @RequestParam("aniosExperiencia") BigDecimal aniosExperiencia,
-                                      Model model) {
-        Colaborador c = colaboradorSesion();
-        String error = validarExperienciaYNivel(nivel, aniosExperiencia);
-        if (c == null || error != null) {
-            cargarHabilidades(model, idHabilidad);
-            if (error != null) model.addAttribute("mensajeError", error);
-            return "colaborador/habilidades";
+    public String actualizarHabilidad(@Valid @ModelAttribute("habilidadForm") HabilidadPerfilForm formulario,
+                                      BindingResult errores, Model model, RedirectAttributes redirect) {
+        Colaborador colaborador = colaboradorSesion();
+        if (colaborador == null) {
+            return volverAHabilidades(redirect, "mensajeError", "No se encontró tu perfil de colaborador.");
         }
-        boolean existe = habilidades(c.getIdColaborador()).stream().anyMatch(h -> h.getIdHabilidad().equals(idHabilidad));
-        if (!existe) {
-            cargarHabilidades(model, null);
-            model.addAttribute("mensajeError", "La habilidad que deseas editar ya no está asociada a tu perfil.");
-            return "colaborador/habilidades";
+        if (errores.hasFieldErrors("idHabilidad")) {
+            return volverAHabilidades(redirect, "mensajeError", "Selecciona una habilidad de tu perfil para editarla.");
         }
-        colaboradorRepository.actualizarHabilidad(c.getIdColaborador(), idHabilidad, nivel, aniosExperiencia);
-        cargarHabilidades(model, null);
-        model.addAttribute("mensajeExito", "Habilidad actualizada correctamente.");
-        return "colaborador/habilidades";
+
+        Integer idColaborador = colaborador.getIdColaborador();
+        Integer idHabilidad = formulario.getIdHabilidad();
+        BigDecimal anios = validarAniosExperiencia(formulario.getAniosExperiencia(), errores);
+        if (errores.hasErrors()) {
+            return vistaHabilidades(model, colaborador, idHabilidad, null, redirect);
+        }
+
+        int filas = colaboradorRepository.actualizarHabilidad(idColaborador, idHabilidad, formulario.getNivel().name(), anios);
+        if (filas == 0 && colaboradorRepository.contarHabilidad(idColaborador, idHabilidad) == 0) {
+            return volverAHabilidades(redirect, "mensajeError", "La habilidad ya no está en tu perfil.");
+        }
+        return volverAHabilidades(redirect, "mensajeExito", "Habilidad actualizada correctamente.");
     }
 
-    /**
-     * Retira una habilidad del perfil del colaborador actual.
-     *
-     * @param idHabilidad identificador de la habilidad que se retirará
-     * @param model modelo utilizado para mostrar el resultado
-     * @return nombre de la vista de habilidades
-     */
     @PostMapping("/habilidades/{idHabilidad}/eliminar")
-    public String eliminarHabilidad(@PathVariable Integer idHabilidad, Model model) {
-        Colaborador c = colaboradorSesion();
-        if (c != null) colaboradorRepository.eliminarHabilidad(c.getIdColaborador(), idHabilidad);
-        cargarHabilidades(model, null);
-        model.addAttribute("mensajeExito", "Habilidad retirada del perfil.");
-        return "colaborador/habilidades";
+    public String eliminarHabilidad(@PathVariable Integer idHabilidad, RedirectAttributes redirect) {
+        Colaborador colaborador = colaboradorSesion();
+        if (colaborador == null) {
+            return volverAHabilidades(redirect, "mensajeError", "No se encontró tu perfil de colaborador.");
+        }
+
+        int retiradas = colaboradorRepository.eliminarHabilidad(colaborador.getIdColaborador(), idHabilidad);
+        if (retiradas == 0) {
+            return volverAHabilidades(redirect, "mensajeError", "La habilidad ya no está en tu perfil.");
+        }
+        return volverAHabilidades(redirect, "mensajeExito", "Habilidad retirada del perfil.");
     }
 
-    /**
-     * Lista las asignaciones del colaborador como representación de sus proyectos.
-     *
-     * @param model modelo utilizado para enviar las asignaciones a la vista
-     * @return nombre de la vista de proyectos
-     */
+    private String volverAHabilidades(RedirectAttributes redirect, String atributo, String mensaje) {
+        redirect.addFlashAttribute(atributo, mensaje);
+        return "redirect:/colaborador/habilidades";
+    }
+
+    /** Agrupa las participaciones del colaborador por proyecto y pagina las tarjetas. */
     @GetMapping("/proyectos")
-    public String proyectos(@RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
+    public String proyectos(@RequestParam(defaultValue = "1") int page,
+                            @RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
+        LocalDate hoy = LocalDate.now(ZONA_HORARIA);
+        List<ProyectoColaborador> proyectos = proyectosDelColaborador(hoy);
+        int total = proyectos.size();
+        int totalPaginas = Math.max(1, (int) Math.ceil(total / (double) PROYECTOS_POR_PAGINA));
+        int paginaActual = Math.max(1, Math.min(page, totalPaginas));
+        int desde = (paginaActual - 1) * PROYECTOS_POR_PAGINA;
+        int hasta = Math.min(desde + PROYECTOS_POR_PAGINA, total);
+
+        Map<Boolean, List<ProyectoColaborador>> pagina = proyectos.subList(desde, hasta).stream()
+                .collect(Collectors.partitioningBy(ProyectoColaborador::vigente));
+        Map<String, List<ProyectoColaborador>> grupos = new LinkedHashMap<>();
+        grupos.put("Vigentes", pagina.get(true));
+        grupos.put("Próximos", pagina.get(false));
+
         model.addAttribute("titulo", "Mis proyectos");
-        model.addAttribute("asignaciones", participaciones().stream()
-                .filter(a -> !bloqueados.contains("historial") || !esHistorica(a)).toList());
-        return "colaborador/proyectos";
+        model.addAttribute("gruposProyectos", grupos);
+        model.addAttribute("totalProyectos", total);
+        model.addAttribute("paginaActual", paginaActual);
+        model.addAttribute("totalPaginas", totalPaginas);
+        model.addAttribute("primerProyecto", desde + 1);
+        model.addAttribute("ultimoProyecto", hasta);
+        model.addAttribute("puedeVerHistorial", !bloqueados.contains("historial"));
+        return "colaborador/mis-proyectos";
+    }
+
+    private List<ProyectoColaborador> proyectosDelColaborador(LocalDate hoy) {
+        Map<Integer, List<Asignacion>> asignacionesPorProyecto = participaciones().stream()
+                .filter(a -> a.getEstado() == Asignacion.EstadoAsignacion.ACTIVA
+                        || a.getEstado() == Asignacion.EstadoAsignacion.PLANIFICADA)
+                .filter(a -> !a.esHistorica(hoy))
+                .collect(Collectors.groupingBy(a -> a.getProyecto().getIdProyecto()));
+
+        return asignacionesPorProyecto.values().stream()
+                .map(asignaciones -> prepararProyectoColaborador(asignaciones, hoy))
+                .sorted(Comparator.comparing(ProyectoColaborador::vigente).reversed()
+                        .thenComparing(ProyectoColaborador::primerInicio)
+                        .thenComparing(p -> p.proyecto().getIdProyecto()))
+                .toList();
+    }
+
+    private ProyectoColaborador prepararProyectoColaborador(List<Asignacion> asignaciones, LocalDate hoy) {
+        List<ParticipacionProyecto> participaciones = asignaciones.stream()
+                .map(a -> {
+                    boolean vigente = a.estaVigente(hoy);
+                    boolean pendiente = a.getFechaInicio().isBefore(hoy)
+                            && a.getEstado() == Asignacion.EstadoAsignacion.PLANIFICADA;
+                    return new ParticipacionProyecto(a, vigente, pendiente);
+                })
+                .sorted(Comparator.comparing(ParticipacionProyecto::vigente).reversed()
+                        .thenComparing(p -> p.asignacion().getFechaInicio())
+                        .thenComparing(p -> p.asignacion().getIdAsignacion()))
+                .toList();
+        return new ProyectoColaborador(asignaciones.get(0).getProyecto(), participaciones);
+    }
+
+    public record ProyectoColaborador(Proyecto proyecto, List<ParticipacionProyecto> participaciones) {
+        public boolean vigente() {
+            return participaciones.get(0).vigente();
+        }
+
+        public LocalDate primerInicio() {
+            return participaciones.get(0).asignacion().getFechaInicio();
+        }
+    }
+
+    public record ParticipacionProyecto(Asignacion asignacion, boolean vigente, boolean pendiente) {
+        public String etiqueta() {
+            if (vigente) return "Asignación vigente";
+            return pendiente ? "Pendiente de iniciar" : "Asignación próxima";
+        }
     }
 
     @GetMapping("/historial")
-    public String historial(Model model) {
+    public String historial(@RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
+        LocalDate hoy = LocalDate.now(ZONA_HORARIA);
+        List<FilaAsignacionDTO> filas = participaciones().stream()
+                .filter(a -> a.esHistorica(hoy))
+                .map(a -> FilaAsignacionDTO.desde(a, hoy))
+                .sorted(Comparator.comparing(FilaAsignacionDTO::fechaOrden, Comparator.reverseOrder())
+                        .thenComparing(fila -> fila.asignacion().getIdAsignacion(), Comparator.reverseOrder()))
+                .toList();
         model.addAttribute("titulo", "Historial de proyectos");
-        model.addAttribute("esHistorial", true);
-        model.addAttribute("asignaciones", participaciones().stream().filter(this::esHistorica).toList());
-        return "colaborador/proyectos";
+        model.addAttribute("filas", filas);
+        model.addAttribute("puedeVerProyectos", !bloqueados.contains("proyectos"));
+        return "colaborador/historial";
+    }
+
+    @GetMapping("/asignaciones")
+    public String asignaciones(@RequestParam(value = "q", defaultValue = "") String q,
+                               @RequestParam(value = "estado", defaultValue = "TODOS") String estado,
+                               @RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
+        String busqueda = q.strip();
+        String filtro = estado.strip().toUpperCase(Locale.ROOT);
+        if ("ACTIVA".equals(filtro)) filtro = "VIGENTE";
+        boolean puedeVerHistorial = !bloqueados.contains("historial");
+        List<EstadoParticipacion> estados = List.of(EstadoParticipacion.values()).stream()
+                .filter(e -> puedeVerHistorial || !e.historica())
+                .toList();
+        EstadoParticipacion seleccionado = null;
+        if (!"TODOS".equals(filtro)) {
+            String codigo = filtro;
+            seleccionado = estados.stream().filter(e -> e.name().equals(codigo)).findFirst().orElse(null);
+            if (seleccionado == null) model.addAttribute("errorEstado", "Selecciona un estado de la lista.");
+        }
+        if (busqueda.length() > 150) model.addAttribute("errorBusqueda", "La búsqueda admite hasta 150 caracteres.");
+
+        List<FilaAsignacionDTO> filas = List.of();
+        if (!model.containsAttribute("errorEstado") && !model.containsAttribute("errorBusqueda")) {
+            String texto = busqueda.toLowerCase(Locale.ROOT);
+            EstadoParticipacion estadoElegido = seleccionado;
+            LocalDate hoy = LocalDate.now(ZONA_HORARIA);
+            filas = participaciones().stream()
+                    .filter(a -> puedeVerHistorial || !a.esHistorica(hoy))
+                    .filter(a -> a.getProyecto().getNombre().toLowerCase(Locale.ROOT).contains(texto)
+                            || (a.getRolProyecto() != null && a.getRolProyecto().toLowerCase(Locale.ROOT).contains(texto)))
+                    .map(a -> FilaAsignacionDTO.desde(a, hoy))
+                    .filter(fila -> estadoElegido == null || fila.estado() == estadoElegido)
+                    .toList();
+        }
+        model.addAttribute("titulo", "Mis asignaciones");
+        model.addAttribute("filas", filas);
+        model.addAttribute("q", busqueda);
+        model.addAttribute("estados", estados);
+        model.addAttribute("estadoSeleccionado", seleccionado);
+        return "colaborador/asignaciones";
     }
 
     private List<Asignacion> participaciones() {
@@ -984,297 +1090,6 @@ public class ColaboradorController {
                 .findByColaboradorIdColaboradorOrderByFechaInicioDesc(colaborador.getIdColaborador());
     }
 
-    private boolean esHistorica(Asignacion asignacion) {
-        Proyecto.EstadoProyecto estado = asignacion.getProyecto().getEstado();
-        return estado == Proyecto.EstadoProyecto.COMPLETED || estado == Proyecto.EstadoProyecto.CANCELLED
-                || asignacion.getEstado() == Asignacion.EstadoAsignacion.FINALIZADA
-                || asignacion.getEstado() == Asignacion.EstadoAsignacion.CANCELADA;
-    }
 
-    /**
-     * Filtra y muestra las asignaciones del colaborador por texto y estado.
-     *
-     * @param q texto de búsqueda aplicado al proyecto o rol
-     * @param estado estado de asignación que se utilizará como filtro
-     * @param model modelo utilizado para enviar los resultados a la vista
-     * @return nombre de la vista de asignaciones
-     */
-    @GetMapping("/asignaciones")
-    public String asignaciones(@RequestParam(value = "q", required = false) String q,
-                               @RequestParam(value = "estado", required = false, defaultValue = "TODOS") String estado,
-                               @RequestAttribute("permisosBloqueados") Set<String> bloqueados, Model model) {
-        List<Asignacion> lista = participaciones().stream()
-                .filter(a -> !bloqueados.contains("historial") || !esHistorica(a))
-                .filter(a -> {
-            boolean texto = q == null || q.isBlank()
-                    || a.getProyecto().getNombre().toLowerCase().contains(q.toLowerCase())
-                    || (a.getRolProyecto() != null && a.getRolProyecto().toLowerCase().contains(q.toLowerCase()));
-            boolean coincideEstado = estado == null || estado.isBlank() || "TODOS".equals(estado)
-                    || a.getEstado().name().equalsIgnoreCase(estado);
-            return texto && coincideEstado;
-        }).toList();
-        model.addAttribute("titulo", "Mis asignaciones");
-        model.addAttribute("asignaciones", lista);
-        model.addAttribute("q", q);
-        model.addAttribute("estadoSeleccionado", estado);
-        return "colaborador/asignaciones";
-    }
 
-    /**
-     * Filtra, pagina y muestra los foros de conocimiento disponibles.
-     *
-     * @param q texto de búsqueda aplicado al título o contenido
-     * @param categoria categoría de foro que se utilizará como filtro
-     * @param estado estado de foro que se utilizará como filtro
-     * @param page número de página solicitado
-     * @param model modelo utilizado para enviar los resultados y estadísticas
-     * @return nombre de la vista de foros
-     */
-    @GetMapping("/foros")
-    public String foros(@RequestParam(value = "q", required = false) String q,
-                        @RequestParam(value = "categoria", required = false) String categoria,
-                        @RequestParam(value = "estado", required = false) String estado,
-                        @RequestParam(value = "page", defaultValue = "1") int page,
-                        Model model) {
-        List<Foro> filtrados = foroRepository.findAllByOrderByFechaCreacionDesc().stream().filter(f -> {
-            boolean texto = q == null || q.isBlank()
-                    || f.getTitulo().toLowerCase().contains(q.toLowerCase())
-                    || f.getContenido().toLowerCase().contains(q.toLowerCase());
-            boolean cat = categoria == null || categoria.isBlank() || "TODAS".equals(categoria)
-                    || categoria.equalsIgnoreCase(f.getCategoria());
-            boolean est = estado == null || estado.isBlank() || "TODOS".equals(estado)
-                    || estado.equalsIgnoreCase(f.getEstado().name());
-            return texto && cat && est;
-        }).toList();
-
-        int porPagina = 5;
-        int totalPaginas = Math.max(1, (int) Math.ceil(filtrados.size() / (double) porPagina));
-        int paginaActual = Math.max(1, Math.min(page, totalPaginas));
-        int desde = (paginaActual - 1) * porPagina;
-        int hasta = Math.min(desde + porPagina, filtrados.size());
-        List<Foro> lista = filtrados.isEmpty() ? List.of() : filtrados.subList(desde, hasta);
-        List<Foro> todos = foroRepository.findAllByOrderByFechaCreacionDesc();
-
-        model.addAttribute("titulo", "Foro de conocimiento");
-        model.addAttribute("foros", lista);
-        model.addAttribute("q", q);
-        model.addAttribute("categoriaSeleccionada", categoria);
-        model.addAttribute("estadoSeleccionado", estado);
-        model.addAttribute("categoriasForo", ForoController.CATEGORIAS_FORO);
-        model.addAttribute("totalForos", todos.size());
-        model.addAttribute("abiertos", todos.stream().filter(f -> f.getEstado() == Foro.EstadoForo.ABIERTO).count());
-        model.addAttribute("resueltos", todos.stream().filter(f -> f.getEstado() == Foro.EstadoForo.RESUELTO).count());
-        model.addAttribute("conteoRespuestas", lista.stream().collect(Collectors.toMap(
-                Foro::getIdForo, f -> respuestaForoRepository.countByForoIdForo(f.getIdForo()))));
-        model.addAttribute("paginaActual", paginaActual);
-        model.addAttribute("totalPaginas", totalPaginas);
-        return "colaborador/foros";
-    }
-
-    /**
-     * Lista las notificaciones del usuario asociado al colaborador actual.
-     *
-     * @param page número de página solicitado
-     * @param model modelo utilizado para enviar la información a la vista
-     * @return nombre de la vista de notificaciones
-     */
-    @GetMapping("/notificaciones")
-    public String notificaciones(@RequestParam(value = "page", defaultValue = "1") int page, Model model) {
-        Colaborador c = colaboradorSesion();
-        List<Notificacion> lista = c == null ? List.of()
-                : notificacionRepository.findByUsuarioIdUsuarioOrderByFechaCreacionDesc(c.getUsuario().getIdUsuario());
-        cargarNotificaciones(model, lista, page);
-        return "colaborador/notificaciones";
-    }
-
-    /**
-     * Calcula la página de notificaciones y los totales de mensajes leídos y no leídos.
-     *
-     * @param model modelo que recibirá los atributos
-     * @param lista notificaciones disponibles
-     * @param page número de página solicitado
-     */
-    private void cargarNotificaciones(Model model, List<Notificacion> lista, int page) {
-        int porPagina = 5;
-        int totalPaginas = Math.max(1, (int) Math.ceil(lista.size() / (double) porPagina));
-        int paginaActual = Math.max(1, Math.min(page, totalPaginas));
-        int desde = (paginaActual - 1) * porPagina;
-        int hasta = Math.min(desde + porPagina, lista.size());
-        List<Notificacion> pagina = lista.isEmpty() ? List.of() : lista.subList(desde, hasta);
-        long noLeidas = lista.stream().filter(n -> !Boolean.TRUE.equals(n.getLeida())).count();
-
-        model.addAttribute("titulo", "Centro de notificaciones");
-        model.addAttribute("notificaciones", pagina);
-        model.addAttribute("totalNotificaciones", lista.size());
-        model.addAttribute("noLeidas", noLeidas);
-        model.addAttribute("leidas", lista.size() - noLeidas);
-        model.addAttribute("paginaActual", paginaActual);
-        model.addAttribute("totalPaginas", totalPaginas);
-    }
-
-    /**
-     * Marca una notificación como leída y recarga el listado de notificaciones.
-     *
-     * @param id identificador de la notificación
-     * @param page número de página que se mostrará después de actualizar
-     * @param model modelo utilizado para enviar el resultado
-     * @return nombre de la vista de notificaciones
-     */
-    @PostMapping("/notificaciones/{id}/leer")
-    public String marcarLeida(@PathVariable Integer id,
-                              @RequestParam(value = "page", defaultValue = "1") int page,
-                              Model model) {
-        Notificacion n = notificacionRepository.findById(id).orElseThrow();
-        n.setLeida(true);
-        notificacionRepository.save(n);
-        Colaborador c = colaboradorSesion();
-        List<Notificacion> lista = c == null ? List.of()
-                : notificacionRepository.findByUsuarioIdUsuarioOrderByFechaCreacionDesc(c.getUsuario().getIdUsuario());
-        cargarNotificaciones(model, lista, page);
-        return "colaborador/notificaciones";
-    }
-
-    /**
-     * Marca como leídas todas las notificaciones del colaborador actual.
-     *
-     * @param model modelo utilizado para recargar el listado
-     * @return nombre de la vista de notificaciones
-     */
-    @PostMapping("/notificaciones/leer-todas")
-    public String marcarTodasLeidas(Model model) {
-        Colaborador c = colaboradorSesion();
-        List<Notificacion> lista = c == null ? List.of()
-                : notificacionRepository.findByUsuarioIdUsuarioOrderByFechaCreacionDesc(c.getUsuario().getIdUsuario());
-        lista.forEach(n -> n.setLeida(true));
-        notificacionRepository.saveAll(lista);
-        cargarNotificaciones(model, lista, 1);
-        return "colaborador/notificaciones";
-    }
-
-    /**
-     * Obtiene los proyectos únicos con asignaciones vigentes del colaborador para el chat.
-     *
-     * @param colaborador colaborador cuya lista de asignaciones se consultará
-     * @return asignaciones correspondientes a proyectos permitidos para el chat
-     */
-    private List<Asignacion> asignacionesChat(Colaborador colaborador) {
-        if (colaborador == null) return List.of();
-        return asignacionRepository
-                .findByColaboradorIdColaboradorOrderByFechaInicioDesc(colaborador.getIdColaborador())
-                .stream()
-                .filter(a -> a.getProyecto() != null
-                        && a.getEstado() != Asignacion.EstadoAsignacion.CANCELADA)
-                .collect(Collectors.collectingAndThen(
-                        Collectors.toMap(
-                                a -> a.getProyecto().getIdProyecto(),
-                                a -> a,
-                                (primera, repetida) -> primera,
-                                java.util.LinkedHashMap::new
-                        ),
-                        mapa -> new ArrayList<>(mapa.values())
-                ));
-    }
-
-    /**
-     * Selecciona el proyecto permitido para el chat según el identificador indicado.
-     *
-     * @param asignaciones asignaciones cuyos proyectos están disponibles
-     * @param idProyecto identificador del proyecto solicitado
-     * @return proyecto permitido o {@code null} si no corresponde a las asignaciones
-     */
-    private Proyecto proyectoChatPermitido(List<Asignacion> asignaciones, Integer idProyecto) {
-        if (asignaciones.isEmpty()) return null;
-        if (idProyecto == null) return asignaciones.get(0).getProyecto();
-        return asignaciones.stream()
-                .map(Asignacion::getProyecto)
-                .filter(p -> p != null && p.getIdProyecto().equals(idProyecto))
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * Carga en el modelo los proyectos disponibles y los mensajes del proyecto seleccionado.
-     *
-     * @param model modelo que recibirá los datos del chat
-     * @param colaborador colaborador actual
-     * @param idProyecto identificador del proyecto que se mostrará
-     */
-    private void cargarChat(Model model, Colaborador colaborador, Integer idProyecto) {
-        List<Asignacion> asignaciones = asignacionesChat(colaborador);
-        Proyecto proyectoSeleccionado = proyectoChatPermitido(asignaciones, idProyecto);
-
-        model.addAttribute("titulo", "Chat de proyectos");
-        model.addAttribute("colaborador", colaborador);
-        model.addAttribute("asignaciones", asignaciones);
-        model.addAttribute("proyectoSeleccionado", proyectoSeleccionado);
-        model.addAttribute("mensajes", proyectoSeleccionado == null ? List.of()
-                : mensajeChatRepository.findByProyectoIdProyectoOrderByFechaEnvioAsc(
-                        proyectoSeleccionado.getIdProyecto()));
-    }
-
-    /**
-     * Muestra la conversación del proyecto seleccionado en el chat del colaborador.
-     *
-     * @param idProyecto identificador del proyecto solicitado
-     * @param model modelo utilizado para enviar los datos a la vista
-     * @return nombre de la vista de chat
-     */
-    @GetMapping("/chat")
-    public String chat(@RequestParam(value = "idProyecto", required = false) Integer idProyecto,
-                       Model model) {
-        cargarChat(model, colaboradorSesion(), idProyecto);
-        return "colaborador/chat";
-    }
-
-    /**
-     * Valida y envía un mensaje al proyecto permitido del colaborador.
-     *
-     * @param idProyecto identificador del proyecto destinatario
-     * @param contenido texto del mensaje
-     * @param model modelo utilizado para mostrar el resultado
-     * @return nombre de la vista de chat
-     */
-    @PostMapping("/chat/enviar")
-    public String enviarMensaje(@RequestParam("idProyecto") Integer idProyecto,
-                                @RequestParam("contenido") String contenido,
-                                Model model) {
-        Colaborador colaborador = colaboradorSesion();
-        List<Asignacion> asignaciones = asignacionesChat(colaborador);
-        Proyecto proyecto = proyectoChatPermitido(asignaciones, idProyecto);
-        String mensajeTexto = contenido == null ? "" : contenido.trim();
-
-        if (colaborador == null) {
-            cargarChat(model, null, idProyecto);
-            model.addAttribute("mensajeError", "No se encontró un perfil de colaborador asociado a la sesión.");
-            return "colaborador/chat";
-        }
-
-        if (proyecto == null) {
-            cargarChat(model, colaborador, null);
-            model.addAttribute("mensajeError", "No puedes enviar mensajes a un proyecto en el que no participas.");
-            return "colaborador/chat";
-        }
-
-        if (mensajeTexto.isBlank()) {
-            cargarChat(model, colaborador, idProyecto);
-            model.addAttribute("mensajeError", "Escribe un mensaje antes de enviarlo.");
-            return "colaborador/chat";
-        }
-
-        if (mensajeTexto.length() > 500) {
-            cargarChat(model, colaborador, idProyecto);
-            model.addAttribute("mensajeError", "El mensaje puede tener como máximo 500 caracteres.");
-            return "colaborador/chat";
-        }
-
-        MensajeChat mensaje = new MensajeChat();
-        mensaje.setProyecto(proyecto);
-        mensaje.setUsuario(colaborador.getUsuario());
-        mensaje.setContenido(mensajeTexto);
-        mensajeChatRepository.saveAndFlush(mensaje);
-
-        cargarChat(model, colaborador, idProyecto);
-        model.addAttribute("mensajeExito", "Mensaje enviado correctamente.");
-        return "colaborador/chat";
-    }
 }

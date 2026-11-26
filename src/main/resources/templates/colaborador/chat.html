@@ -5,87 +5,68 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Chat | SkillBridge AI</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/colaborador-consultas.css}">
 </head>
 <body>
 <div class="app-shell">
     <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
-            <div class="alert-error" th:if="${mensajeError != null}" th:text="${mensajeError}"></div>
-            <div class="alert-success" th:if="${mensajeExito != null}" th:text="${mensajeExito}"></div>
+        <div class="content vista-colaborador">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <p class="alert-success" role="status" th:if="${mensajeExito}" th:text="${mensajeExito}"></p>
+            <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
+            <section class="page-intro vista-portada">
+                <div><h2>Chat de proyectos</h2><p>Conversa con el equipo de cada proyecto.</p></div>
+            </section>
+            <section class="card panel-consulta chat-colaborador" aria-label="Chat de proyectos">
+                <nav class="chat-conversaciones" aria-label="Conversaciones">
+                    <h3>Conversaciones</h3>
+                    <p class="muted" th:if="${proyectosChat.isEmpty()}">Aún no tienes conversaciones de proyectos.</p>
+                    <a class="chat-proyecto-link" th:each="acceso : ${proyectosChat}" th:with="p=${acceso.proyecto}"
+                       th:href="@{/colaborador/chat(idProyecto=${p.idProyecto})}" th:text="${p.nombre}"
+                       th:attr="aria-current=${conversacion != null and p.idProyecto == conversacion.proyecto.idProyecto ? 'page' : null}"></a>
+                </nav>
 
-            <section class="card chat-shell chat-shell-v4">
-                <aside class="chat-list">
-                    <div class="chat-list-head">
-                        <div>
-                            <p class="eyebrow">Conversaciones</p>
-                            <h3>Mis proyectos</h3>
-                        </div>
-                        <span class="badge badge-purple" th:text="${#lists.size(asignaciones)} + ' proyectos'">1 proyecto</span>
-                    </div>
-
-                    <a class="chat-project"
-                       th:each="a : ${asignaciones}"
-                       th:classappend="${proyectoSeleccionado != null and a.proyecto.idProyecto.equals(proyectoSeleccionado.idProyecto)} ? ' active' : ''"
-                       th:href="@{/colaborador/chat(idProyecto=${a.proyecto.idProyecto})}">
-                        <span class="chat-project-mark" th:text="${#strings.substring(a.proyecto.nombre,0,1)}">P</span>
-                        <span class="chat-project-copy">
-                            <strong th:text="${a.proyecto.nombre}">Plataforma Web</strong>
-                            <small th:text="${a.rolProyecto != null ? a.rolProyecto : 'Miembro del proyecto'}">Rol</small>
-                        </span>
-                    </a>
-
-                    <div class="empty chat-empty" th:if="${#lists.isEmpty(asignaciones)}">
-                        No tienes proyectos disponibles para conversar.
-                    </div>
-                </aside>
-
-                <div class="chat-main" th:if="${proyectoSeleccionado != null}">
-                    <header class="chat-head chat-head-v4">
-                        <div>
-                            <p class="eyebrow">Equipo del proyecto</p>
-                            <strong th:text="${proyectoSeleccionado.nombre}">Plataforma Web</strong>
-                            <small class="muted"
-                                   th:text="${proyectoSeleccionado.estado.name() == 'ACTIVE' ? 'Activo' : (proyectoSeleccionado.estado.name() == 'PLANNING' ? 'En planificación' : (proyectoSeleccionado.estado.name() == 'ON_HOLD' ? 'En pausa' : (proyectoSeleccionado.estado.name() == 'COMPLETED' ? 'Completado' : 'Cancelado')))}">
-                                Activo
-                            </small>
-                        </div>
-                        <span class="badge badge-success" th:if="${proyectoSeleccionado.estado.name() == 'ACTIVE'}">Proyecto activo</span>
+                <p class="empty" th:if="${conversacion == null}">Selecciona un proyecto para abrir su conversación.</p>
+                <div class="conversacion-chat" th:if="${conversacion != null}" th:with="proyecto=${conversacion.proyecto}">
+                    <header class="conversacion-cabecera">
+                        <h3 th:text="${proyecto.nombre}"></h3>
+                        <span class="badge" th:classappend="${conversacion.puedeParticipar ? 'badge-success' : 'badge-purple'}"
+                              th:text="${conversacion.puedeParticipar ? (proyecto.estado.name() == 'ACTIVE' ? 'En curso' : 'Chat disponible') : 'Solo lectura'}"></span>
                     </header>
-
-                    <div class="chat-messages">
-                        <div class="message"
-                             th:each="m : ${mensajes}"
-                             th:classappend="${m.usuario.idUsuario == colaborador.usuario.idUsuario} ? ' mine' : ''">
-                            <strong th:text="${m.usuario.nombreCompleto}">Usuario</strong>
-                            <div class="message-copy" th:text="${m.contenido}">Mensaje</div>
-                            <small class="chat-date"
-                                   th:text="${m.fechaEnvio != null ? #temporals.format(m.fechaEnvio,'dd-MM-yyyy HH:mm') : 'Ahora'}">
-                                16-09-2026 11:05
-                            </small>
-                        </div>
-
-                        <div class="empty chat-empty" th:if="${#lists.isEmpty(mensajes)}">
-                            <strong>Aún no hay mensajes.</strong>
-                            <span>Inicia la conversación con el equipo del proyecto.</span>
-                        </div>
+                    <div class="chat-mensajes" role="region" aria-label="Historial de mensajes" tabindex="0">
+                        <p class="empty" th:if="${diasChat.isEmpty()}">Todavía no hay mensajes en este proyecto.</p>
+                        <th:block th:each="dia : ${diasChat}">
+                            <p class="dia-chat" th:text="${dia.fecha != null ? #temporals.format(dia.fecha, 'dd-MM-yyyy') : 'Fecha sin registrar'}"></p>
+                            <article class="mensaje-chat" th:each="m : ${dia.mensajes}"
+                                     th:with="propio=${m.usuario.idUsuario == idUsuarioChat}"
+                                     th:classappend="${propio ? 'propio' : ''}">
+                                <div class="mensaje-meta">
+                                    <strong th:text="${propio ? 'Tú' : m.usuario.nombreCompleto}"></strong>
+                                    <time th:if="${m.fechaEnvio != null}" th:attr="datetime=${m.fechaEnvio}"
+                                          th:text="${#temporals.format(m.fechaEnvio, 'HH:mm')}"></time>
+                                </div>
+                                <p th:text="${m.contenido}"></p>
+                            </article>
+                        </th:block>
                     </div>
-
-                    <form class="chat-form chat-form-v4" th:action="@{/colaborador/chat/enviar}" method="post">
-                        <input type="hidden" name="idProyecto" th:value="${proyectoSeleccionado.idProyecto}">
-                        <div class="chat-input-wrap">
-                            <input type="text" name="contenido" maxlength="500"
-                                   placeholder="Escribe un mensaje al equipo..." autocomplete="off" required>
-                            <small>Máximo 500 caracteres</small>
+                    <p class="conversacion-solo-lectura muted" th:unless="${conversacion.puedeParticipar}">
+                        Puedes escribir cuando tengas una asignación vigente en este proyecto.
+                    </p>
+                    <form class="compositor-consulta" th:if="${conversacion.puedeParticipar}"
+                          th:action="@{/colaborador/chat/enviar}" method="post" novalidate>
+                        <input type="hidden" name="idProyecto" th:value="${proyecto.idProyecto}">
+                        <label for="mensaje-proyecto" th:text="|Mensaje para ${proyecto.nombre}|"></label>
+                        <textarea id="mensaje-proyecto" name="contenido" rows="2" placeholder="Escribe un mensaje al equipo"
+                                  th:text="${borrador}"
+                                  th:attr="aria-invalid=${errorMensaje != null},aria-describedby=${errorMensaje != null ? 'limite-chat error-mensaje' : 'limite-chat'}"></textarea>
+                        <p class="field-error" role="alert" id="error-mensaje" th:if="${errorMensaje}" th:text="${errorMensaje}"></p>
+                        <div class="compositor-pie">
+                            <small id="limite-chat">Hasta 500 caracteres.</small>
+                            <button class="btn btn-primary" type="submit">Enviar</button>
                         </div>
-                        <button class="btn btn-primary" type="submit">Enviar</button>
                     </form>
-                </div>
-
-                <div class="empty chat-empty chat-no-project" th:if="${proyectoSeleccionado == null}">
-                    <strong>Sin conversación disponible</strong>
-                    <span>Necesitas estar asignado a un proyecto para utilizar el chat.</span>
                 </div>
             </section>
         </div>

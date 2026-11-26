@@ -18,6 +18,21 @@ public class CargaColaboradorDTO {
         }
     }
 
+    public enum EstadoCarga {
+        CON_MARGEN("Con margen"), AL_LIMITE("Al límite"), SOBRECARGA("Con sobrecarga"),
+        SIN_CAPACIDAD("Sin capacidad base");
+
+        private final String etiqueta;
+
+        EstadoCarga(String etiqueta) {
+            this.etiqueta = etiqueta;
+        }
+
+        public String getEtiqueta() {
+            return etiqueta;
+        }
+    }
+
     private Integer idColaborador;
     private String colaborador;
     private String cargo;
@@ -96,6 +111,12 @@ public class CargaColaboradorDTO {
      * @return disponibilidad restante del colaborador
      */
     public Integer getDisponibilidad() { return disponibilidad; }
+
+    public EstadoCarga getEstadoCarga() {
+        if (carga > disponibilidadBase) return EstadoCarga.SOBRECARGA;
+        if (carga < disponibilidadBase) return EstadoCarga.CON_MARGEN;
+        return disponibilidadBase > 0 ? EstadoCarga.AL_LIMITE : EstadoCarga.SIN_CAPACIDAD;
+    }
 
     public Clasificacion getClasificacion() {
         if (disponibilidad >= 50) return Clasificacion.DISPONIBLE;

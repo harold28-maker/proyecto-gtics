@@ -1,75 +1,106 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Foro | SkillBridge AI</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
+    <link rel="stylesheet" th:href="@{/css/colaborador-consultas.css}">
 </head>
 <body>
 <div class="app-shell">
     <aside th:replace="~{fragments/layout :: sidebar('COL')}"></aside>
     <main class="main">
         <header th:replace="~{fragments/layout :: topbar(${titulo})}"></header>
-        <div class="content">
-            <section class="forum-hero">
-                <div>
-                    <span class="hero-chip glass">FORO DE CONOCIMIENTO</span>
-                    <h2>Pregunta, comparte y deja conocimiento reutilizable.</h2>
-                    <p>Los temas están vinculados a proyectos y categorías para que las soluciones útiles permanezcan disponibles para el equipo.</p>
-                    <div style="margin-top:17px"><a class="btn btn-light" th:href="@{/foros/nuevo(vista='COL')}">＋ Nueva publicación</a></div>
-                </div>
-                <div class="forum-hero-stats">
-                    <div class="forum-hero-stat"><strong th:text="${totalForos}">0</strong><span>Temas</span></div>
-                    <div class="forum-hero-stat"><strong th:text="${abiertos}">0</strong><span>Abiertos</span></div>
-                    <div class="forum-hero-stat"><strong th:text="${resueltos}">0</strong><span>Resueltos</span></div>
-                </div>
+        <div class="content vista-colaborador">
+            <div th:replace="~{fragments/layout :: avisoPermisos}"></div>
+            <p class="alert-success" role="status" th:if="${mensajeExito}" th:text="${mensajeExito}"></p>
+            <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
+            <section class="page-intro vista-portada">
+                <div><h2>Foro de proyectos</h2><p>Busca discusiones y soluciones por proyecto.</p></div>
+                <a class="btn btn-primary" th:href="@{/foros/nuevo}">Nueva publicación</a>
             </section>
-
-            <div class="forum-layout">
-                <section>
-                    <form class="forum-toolbar forum-toolbar-v4" method="get" th:action="@{/colaborador/foros}">
-                        <input class="search" type="text" name="q" th:value="${q}" placeholder="Buscar por título o contenido">
-                        <select name="categoria" aria-label="Filtrar por categoría">
-                            <option value="TODAS">Todas las categorías</option>
-                            <option th:each="cat : ${categoriasForo}" th:value="${cat}" th:text="${cat}" th:selected="${cat == categoriaSeleccionada}"></option>
-                        </select>
-                        <select name="estado" aria-label="Filtrar por estado">
-                            <option value="TODOS">Todos los estados</option>
-                            <option value="ABIERTO" th:selected="${estadoSeleccionado == 'ABIERTO'}">Abiertos</option>
-                            <option value="RESUELTO" th:selected="${estadoSeleccionado == 'RESUELTO'}">Resueltos</option>
-                            <option value="CERRADO" th:selected="${estadoSeleccionado == 'CERRADO'}">Cerrados</option>
-                        </select>
-                        <div class="forum-toolbar-actions">
-                            <button class="btn btn-primary" type="submit">Aplicar</button>
-                            <a class="btn btn-light" th:href="@{/colaborador/foros}">Limpiar</a>
-                        </div>
-                    </form>
-
-                    <div class="forum-feed">
-                        <article class="forum-card" th:each="f : ${foros}" th:classappend="${f.estado.name() == 'RESUELTO'} ? ' resuelto' : (${f.estado.name() == 'CERRADO'} ? ' cerrado' : '')">
-                            <div class="forum-vote" th:text="${#strings.substring(f.categoria ?: 'G',0,1)}">B</div>
-                            <div class="forum-card-main">
-                                <div class="question-kicker"><span class="badge badge-purple" th:text="${f.categoria ?: 'General'}"></span><span class="badge badge-blue" th:if="${f.proyecto != null}" th:text="${f.proyecto.nombre}"></span></div>
-                                <h3><a th:href="@{/foros/{id}(id=${f.idForo},vista='COL')}" th:text="${f.titulo}"></a></h3>
-                                <p class="forum-excerpt" th:text="${f.contenido}"></p>
-                                <div class="forum-meta"><span class="mini-avatar" th:text="${f.autor.iniciales}">MG</span><strong th:text="${f.autor.nombreCompleto}"></strong><span>·</span><span th:text="${f.fechaCreacion != null ? #temporals.format(f.fechaCreacion,'dd-MM-yyyy HH:mm') : 'Reciente'}"></span></div>
-                            </div>
-                            <div class="forum-card-side"><span class="badge" th:classappend="${f.estado.name() == 'RESUELTO'} ? ' badge-success' : (${f.estado.name() == 'CERRADO'} ? ' badge-warning' : ' badge-purple')" th:text="${f.estado.name() == 'RESUELTO' ? 'Resuelto' : (f.estado.name() == 'CERRADO' ? 'Cerrado' : 'Abierto')}"></span><span class="reply-count">◌ <span th:text="${conteoRespuestas[f.idForo]}">0</span> respuestas</span></div>
-                        </article>
-                        <div class="empty" th:if="${#lists.isEmpty(foros)}">No encontramos publicaciones con esos filtros. Prueba otra categoría o crea un nuevo tema.</div>
+            <section class="card panel-consulta" aria-label="Publicaciones del foro">
+                <form class="filtros-consulta" method="get" th:action="@{/colaborador/foros}" novalidate>
+                    <div class="form-group filtro-texto">
+                        <label for="buscar-foro">Buscar en el foro</label>
+                        <input id="buscar-foro" name="q" type="search" th:value="${q}" placeholder="Título, contenido o etiqueta">
                     </div>
-                    <nav class="pagination forum-pager" th:if="${totalPaginas > 1}">
-                        <a class="page-link" th:classappend="${paginaActual == 1} ? ' disabled'" th:href="@{/colaborador/foros(q=${q},categoria=${categoriaSeleccionada},estado=${estadoSeleccionado},page=${paginaActual - 1})}">‹</a>
-                        <a class="page-link" th:each="p : ${#numbers.sequence(1,totalPaginas)}" th:classappend="${p == paginaActual} ? ' active'" th:href="@{/colaborador/foros(q=${q},categoria=${categoriaSeleccionada},estado=${estadoSeleccionado},page=${p})}" th:text="${p}">1</a>
-                        <a class="page-link" th:classappend="${paginaActual == totalPaginas} ? ' disabled'" th:href="@{/colaborador/foros(q=${q},categoria=${categoriaSeleccionada},estado=${estadoSeleccionado},page=${paginaActual + 1})}">›</a>
+                    <div class="form-group">
+                        <label for="proyecto-foro">Proyecto</label>
+                        <select id="proyecto-foro" name="idProyecto">
+                            <option value="">Todos los proyectos</option>
+                            <option value="0" th:selected="${proyectoSeleccionado == 0}">Temas generales</option>
+                            <option th:each="p : ${proyectos}" th:value="${p.idProyecto}" th:text="${p.nombre}"
+                                    th:selected="${p.idProyecto == proyectoSeleccionado}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="categoria-foro">Categoría</label>
+                        <select id="categoria-foro" name="categoria">
+                            <option value="TODAS">Todas las categorías</option>
+                            <option th:each="cat : ${categoriasForo}" th:value="${cat}" th:text="${cat}"
+                                    th:selected="${cat.equalsIgnoreCase(categoriaSeleccionada)}"></option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="estado-foro">Estado</label>
+                        <select id="estado-foro" name="estado">
+                            <option value="TODOS">Todos los estados</option>
+                            <option value="ABIERTO" th:selected="${estadoSeleccionado == 'ABIERTO'}">Abierto</option>
+                            <option value="RESUELTO" th:selected="${estadoSeleccionado == 'RESUELTO'}">Resuelto</option>
+                            <option value="CERRADO" th:selected="${estadoSeleccionado == 'CERRADO'}">Cerrado</option>
+                        </select>
+                    </div>
+                    <div class="barra-acciones">
+                        <button class="btn btn-primary" type="submit">Aplicar</button>
+                        <a class="btn btn-light" th:href="@{/colaborador/foros}">Limpiar</a>
+                    </div>
+                </form>
+                <p class="field-error" role="alert" th:each="error : ${erroresFiltros.values()}" th:text="${error}"></p>
+                <p class="empty" th:if="${foros.isEmpty() and erroresFiltros.isEmpty()}">No hay publicaciones que coincidan con los filtros.</p>
+                <div class="temas-foro" th:unless="${foros.isEmpty()}">
+                    <article class="tema-foro" th:each="f : ${foros}"
+                             th:with="estadoTema=${f.estado.name()}, numero=${conteoRespuestas[f.idForo]}">
+                        <div>
+                            <h3><a th:href="@{/foros/{id}(id=${f.idForo})}" th:text="${f.titulo}"></a></h3>
+                            <p class="tema-meta">
+                                <span th:text="${f.proyecto != null ? f.proyecto.nombre : 'Tema general'}"></span>
+                                <span aria-hidden="true"> · </span><span th:text="${f.categoria ?: 'General'}"></span>
+                            </p>
+                            <div class="barra-acciones" th:unless="${f.etiquetas.isEmpty()}">
+                                <span class="badge badge-purple" th:each="etiqueta : ${f.etiquetas}" th:text="${etiqueta.nombre}"></span>
+                            </div>
+                            <p class="tema-detalle">
+                                <span th:text="${f.autor.nombreCompleto}"></span>
+                                <time th:if="${f.fechaCreacion != null}" th:text="| · ${#temporals.format(f.fechaCreacion, 'dd-MM-yyyy HH:mm')}|"></time>
+                            </p>
+                        </div>
+                        <div class="tema-estado">
+                            <span class="badge" th:classappend="${estadoTema == 'RESUELTO' ? 'badge-success' : (estadoTema == 'CERRADO' ? 'badge-warning' : 'badge-purple')}"
+                                  th:text="${estadoTema == 'RESUELTO' ? 'Resuelto' : (estadoTema == 'CERRADO' ? 'Cerrado' : 'Abierto')}"></span>
+                            <small th:text="${numero == 1 ? '1 respuesta' : numero + ' respuestas'}"></small>
+                        </div>
+                    </article>
+                </div>
+                <footer class="pie-lista" th:if="${totalPaginas > 1}">
+                    <p class="muted" th:text="|Mostrando ${desde}–${hasta} de ${resultados} publicaciones|"></p>
+                    <nav class="paginacion-colaborador" th:if="${totalPaginas > 1}" aria-label="Paginación de publicaciones"
+                         th:with="primera=${paginaActual > 3 ? paginaActual - 2 : 1},
+                                  ultima=${paginaActual + 2 < totalPaginas ? paginaActual + 2 : totalPaginas}">
+                        <span class="btn btn-light btn-sm" th:if="${paginaActual == 1}" aria-disabled="true">Anterior</span>
+                        <a class="btn btn-light btn-sm" th:if="${paginaActual > 1}"
+                           th:href="@{/colaborador/foros(page=${paginaActual - 1},q=${q},idProyecto=${proyectoSeleccionado},categoria=${categoriaSeleccionada},estado=${estadoSeleccionado})}">Anterior</a>
+                        <a class="btn btn-sm" th:each="numero : ${#numbers.sequence(primera, ultima)}"
+                           th:classappend="${numero == paginaActual ? 'btn-primary' : 'btn-light'}"
+                           th:attr="aria-current=${numero == paginaActual ? 'page' : null}"
+                           th:href="@{/colaborador/foros(page=${numero},q=${q},idProyecto=${proyectoSeleccionado},categoria=${categoriaSeleccionada},estado=${estadoSeleccionado})}" th:text="${numero}"></a>
+                        <a class="btn btn-light btn-sm" th:if="${paginaActual < totalPaginas}"
+                           th:href="@{/colaborador/foros(page=${paginaActual + 1},q=${q},idProyecto=${proyectoSeleccionado},categoria=${categoriaSeleccionada},estado=${estadoSeleccionado})}">Siguiente</a>
+                        <span class="btn btn-light btn-sm" th:if="${paginaActual == totalPaginas}" aria-disabled="true">Siguiente</span>
                     </nav>
-                </section>
-
-                <aside class="forum-side-card">
-                    <section class="card"><p class="eyebrow">Explorar</p><h3 class="mt-0">Categorías</h3><div class="category-list"><a class="category-pill" th:each="cat : ${categoriasForo}" th:href="@{/colaborador/foros(categoria=${cat})}"><span th:text="${cat}"></span><span>→</span></a></div></section>
-                    <div class="knowledge-tip"><strong>Un buen tema deja contexto</strong><p>Explica el problema, qué intentaste, el proyecto relacionado y marca la solución cuando el equipo la encuentre.</p></div>
-                </aside>
-            </div>
+                </footer>
+            </section>
         </div>
     </main>
 </div>
