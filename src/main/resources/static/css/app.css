@@ -502,9 +502,6 @@ input:focus, select:focus, textarea:focus { border-color: var(--purple); }
 /* Forum feed */
 .forum-feed { display:grid; gap:6px; }
 .forum-card { border-radius:2px; }
-.forum-compose-grid .form-group input,
-.forum-compose-grid .form-group select,
-.forum-compose-grid .form-group textarea { border-radius:2px; }
 .forum-pager { margin-top:12px; }
 
 @media (max-width:980px) {
@@ -1279,7 +1276,8 @@ tbody tr:hover { background: var(--color-accent-soft); }
 .progress.orange > span { background: var(--color-warning); }
 .progress.red > span { background: var(--color-danger); }
 
-.input, input[type="text"], input[type="search"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea {
+.input, input[type="text"], input[type="search"], input[type="email"], input[type="password"], input[type="number"], input[type="date"], select, textarea,
+.forum-compose-grid :is(select, textarea) {
     min-height: 2.75rem;
     padding: var(--space-2xs) var(--space-xs);
     border: var(--rule-thin) solid var(--color-rule-2);
@@ -1294,7 +1292,12 @@ tbody tr:hover { background: var(--color-accent-soft); }
 
 textarea { min-height: 7rem; resize: vertical; }
 input:hover, select:hover, textarea:hover { border-color: var(--color-accent); }
-input:focus, select:focus, textarea:focus { border-color: var(--color-focus); outline: 2px solid var(--color-focus); outline-offset: 1px; }
+input:focus, select:focus, textarea:focus,
+.forum-compose-grid :is(input[type="text"], select, textarea):focus {
+    border-color: var(--color-focus);
+    outline: 2px solid var(--color-focus);
+    outline-offset: 1px;
+}
 input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-allowed; background: var(--color-paper-3); }
 .form-group label { color: var(--color-ink-2); font-size: var(--text-xs); letter-spacing: 0; text-transform: none; }
 .field-error { color: var(--color-danger); }
