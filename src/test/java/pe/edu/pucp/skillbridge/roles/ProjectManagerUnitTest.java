@@ -8,7 +8,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.ObjectError;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
+import pe.edu.pucp.skillbridge.controller.AsignacionesGestionController;
+import pe.edu.pucp.skillbridge.dto.AsignacionFormulario;
+import pe.edu.pucp.skillbridge.service.GestionAsignacionesService;
+import java.util.Set;
 import pe.edu.pucp.skillbridge.controller.ProjectManagerController;
 import pe.edu.pucp.skillbridge.entity.Asignacion;
 import pe.edu.pucp.skillbridge.entity.Colaborador;
@@ -19,7 +24,7 @@ import pe.edu.pucp.skillbridge.repository.*;
 import pe.edu.pucp.skillbridge.service.CapacidadColaboradorService;
 
 import java.util.List;
-import java.util.NoSuchElementException;
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -27,23 +32,22 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ProjectManagerUnitTest {
-    @Mock UsuarioRepository usuarios;
     @Mock ProyectoRepository proyectos;
     @Mock AsignacionRepository asignaciones;
     @Mock ColaboradorRepository colaboradores;
-    @Mock RecomendacionIARepository recomendaciones;
-    @Mock ForoRepository foros;
     @Mock HabilidadRepository habilidades;
-    @Mock RespuestaForoRepository respuestas;
     @Mock CapacidadColaboradorService capacidad;
     @Mock BindingResult validacion;
+    @Mock GestionAsignacionesService gestion;
+    private AsignacionesGestionController gestionController;
 
     private ProjectManagerController controlador;
 
     @BeforeEach
     void preparar() {
-        controlador = new ProjectManagerController(usuarios, proyectos, asignaciones, colaboradores,
-                recomendaciones, foros, habilidades, respuestas, capacidad);
+        gestionController = new AsignacionesGestionController(gestion, colaboradores, capacidad);
+        controlador = new ProjectManagerController(proyectos, asignaciones, colaboradores,
+                habilidades, capacidad, mock(AuditoriaRepository.class));
     }
 
     @Test
@@ -58,21 +62,21 @@ class ProjectManagerUnitTest {
 
     @Test
     void listaSolamenteLosProyectosDelGestorYFiltraPorNombre() {
-        configurarGestor();
+        Usuario gestor = configurarGestor();
         Proyecto web = proyecto("Plataforma Web", Proyecto.EstadoProyecto.ACTIVE);
         Proyecto movil = proyecto("Aplicación Móvil", Proyecto.EstadoProyecto.PLANNING);
         when(proyectos.findByProjectManagerIdUsuarioOrderByFechaCreacionDesc(10))
                 .thenReturn(List.of(web, movil));
         Model modelo = new ExtendedModelMap();
-        assertEquals("pm/proyectos", controlador.proyectos("WEB", modelo));
+        assertEquals("pm/proyectos", controlador.proyectos("WEB", "", "", gestor, modelo));
         assertEquals(List.of(web), modelo.asMap().get("proyectos"));
         assertEquals(1L, modelo.asMap().get("activos"));
-        assertEquals(0L, modelo.asMap().get("planning"));
+        assertEquals(1L, modelo.asMap().get("planificacion"));
     }
 
     @Test
     void dashboardCuentaEstadosYAsignacionesDelGestor() {
-        configurarGestor();
+        Usuario gestor = configurarGestor();
         Proyecto activo = proyecto("Web", Proyecto.EstadoProyecto.ACTIVE);
         Proyecto plan = proyecto("ERP", Proyecto.EstadoProyecto.PLANNING);
         when(proyectos.findByProjectManagerIdUsuarioOrderByFechaCreacionDesc(10))
@@ -81,129 +85,107 @@ class ProjectManagerUnitTest {
         persona.setIdColaborador(30);
         Asignacion a1 = new Asignacion(); a1.setColaborador(persona);
         Asignacion a2 = new Asignacion(); a2.setColaborador(persona);
+        for (Asignacion asignacion : List.of(a1, a2)) {
+            asignacion.setProyecto(activo);
+            asignacion.setEstado(Asignacion.EstadoAsignacion.ACTIVA);
+            asignacion.setFechaInicio(LocalDate.now().minusDays(1));
+        }
         when(asignaciones.findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(10))
                 .thenReturn(List.of(a1, a2));
         Model modelo = new ExtendedModelMap();
-        assertEquals("pm/inicio", controlador.inicio(modelo));
-        assertEquals(1L, modelo.asMap().get("proyectosActivos"));
-        assertEquals(1L, modelo.asMap().get("proyectosPlanning"));
-        assertEquals(2, modelo.asMap().get("asignaciones"));
-        assertEquals(1L, modelo.asMap().get("colaboradores"));
+        assertEquals("pm/inicio", controlador.inicio(gestor, Set.of(), modelo));
+        assertEquals(1, modelo.asMap().get("activos"));
+        assertEquals(1L, modelo.asMap().get("planificacion"));
+        assertEquals(2, modelo.asMap().get("vigentes"));
     }
 
     @Test
     void formularioDeProyectoInvalidoNoSeGuarda() {
-        configurarGestor();
+        Usuario gestor = configurarGestor();
         Proyecto nuevo = proyecto("Prueba", Proyecto.EstadoProyecto.PLANNING);
         when(validacion.hasErrors()).thenReturn(true);
-        when(validacion.getAllErrors()).thenReturn(List.of(new ObjectError("proyecto", "Nombre obligatorio")));
         Model modelo = new ExtendedModelMap();
-        assertEquals("pm/proyecto-form", controlador.guardarProyecto(nuevo, validacion, modelo));
-        assertEquals("Nombre obligatorio", modelo.asMap().get("mensajeError"));
-        assertEquals(10, nuevo.getProjectManager().getIdUsuario().intValue());
+        assertEquals("pm/proyecto-form", controlador.guardarProyecto(nuevo, validacion, gestor, modelo, new RedirectAttributesModelMap()));
         verify(proyectos, never()).save(any());
     }
 
     @Test
     void proyectoValidoSeGuardaVinculadoAlProjectManager() {
-        configurarGestor();
+        Usuario gestor = configurarGestor();
         Proyecto nuevo = proyecto("Nuevo portal", Proyecto.EstadoProyecto.ACTIVE);
-        when(proyectos.findByProjectManagerIdUsuarioOrderByFechaCreacionDesc(10))
-                .thenReturn(List.of(nuevo));
-        Model modelo = new ExtendedModelMap();
-        assertEquals("pm/proyectos", controlador.guardarProyecto(nuevo, validacion, modelo));
-        assertEquals(10, nuevo.getProjectManager().getIdUsuario().intValue());
-        verify(proyectos).save(nuevo);
-        assertEquals("Proyecto guardado correctamente.", modelo.asMap().get("mensajeExito"));
+        var redirect = new RedirectAttributesModelMap();
+        assertEquals("redirect:/pm/proyectos", controlador.guardarProyecto(
+                nuevo, validacion, gestor, new ExtendedModelMap(), redirect));
+        verify(proyectos).save(argThat(p -> p.getProjectManager() == gestor && "Nuevo portal".equals(p.getNombre())));
+        assertEquals("Proyecto guardado correctamente.", redirect.getFlashAttributes().get("mensajeExito"));
     }
 
     @Test
     void editarProyectoInexistenteProduceError() {
         when(proyectos.findById(404)).thenReturn(Optional.empty());
-        assertThrows(NoSuchElementException.class,
-                () -> controlador.editarProyecto(404, new ExtendedModelMap()));
+        assertThrows(ResponseStatusException.class,
+                () -> controlador.editarProyecto(404, configurarGestor(), new ExtendedModelMap()));
     }
 
     @Test
     void cancelarProyectoRealizaBajaLogicaSinEliminarRegistros() {
-        configurarGestor();
+        Usuario gestor = configurarGestor();
         Proyecto p = proyecto("Migración", Proyecto.EstadoProyecto.ACTIVE);
-        when(proyectos.findById(7)).thenReturn(Optional.of(p));
-        when(proyectos.findByProjectManagerIdUsuarioOrderByFechaCreacionDesc(10))
-                .thenReturn(List.of(p));
-        assertEquals("pm/proyectos", controlador.cancelarProyecto(7, new ExtendedModelMap()));
+        when(proyectos.buscarPropioParaActualizar(7, 10)).thenReturn(Optional.of(p));
+        assertEquals("redirect:/pm/proyectos",
+                controlador.cancelarProyecto(7, gestor, new RedirectAttributesModelMap()));
         assertEquals(Proyecto.EstadoProyecto.CANCELLED, p.getEstado());
-        verify(proyectos).save(p);
         verify(proyectos, never()).delete(any());
     }
 
     @Test
-    void cambiarEstadoDeAsignacionSeGuardaCorrectamente() {
-        configurarGestor();
-        Asignacion a = new Asignacion();
-        a.setEstado(Asignacion.EstadoAsignacion.PLANIFICADA);
-        when(asignaciones.findById(5)).thenReturn(Optional.of(a));
-        when(asignaciones.findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(10))
-                .thenReturn(List.of(a));
-        assertEquals("pm/asignaciones", controlador.cambiarEstadoAsignacion(5, "ACTIVA", new ExtendedModelMap()));
-        assertEquals(Asignacion.EstadoAsignacion.ACTIVA, a.getEstado());
-        verify(asignaciones).save(a);
+    void cambioDeEstadoValidoSeDelegaAlServicio() {
+        Usuario gestor = configurarGestor();
+        var redirect = new RedirectAttributesModelMap();
+        assertEquals("redirect:/pm/asignaciones",
+                gestionController.cambiarEstado(5, "ACTIVA", gestor, redirect));
+        verify(gestion).cambiarEstado(5, Asignacion.EstadoAsignacion.ACTIVA, gestor);
     }
 
     @Test
-    void estadoDeAsignacionInexistenteNoDebeGuardar() {
-        Asignacion a = new Asignacion();
-        when(asignaciones.findById(5)).thenReturn(Optional.of(a));
-        assertThrows(IllegalArgumentException.class,
-                () -> controlador.cambiarEstadoAsignacion(5, "DESCONOCIDO", new ExtendedModelMap()));
-        verify(asignaciones, never()).save(any());
+    void estadoDesconocidoSeRechazaSinInvocarAlServicio() {
+        Usuario gestor = configurarGestor();
+        var redirect = new RedirectAttributesModelMap();
+        assertEquals("redirect:/pm/asignaciones",
+                gestionController.cambiarEstado(5, "DESCONOCIDO", gestor, redirect));
+        assertEquals("Selecciona un estado de asignación válido.", redirect.getFlashAttributes().get("mensajeError"));
+        verifyNoInteractions(gestion);
     }
 
 
     @Test
-    void asignacionValidaSeGuardaEnUnProyectoDelGestor() {
-        configurarGestor();
-        Proyecto proyecto = proyecto("Portal interno", Proyecto.EstadoProyecto.ACTIVE);
-        proyecto.setIdProyecto(8);
-        Colaborador colaborador = new Colaborador();
-        colaborador.setIdColaborador(6);
-        when(proyectos.findById(8)).thenReturn(Optional.of(proyecto));
-        when(colaboradores.findById(6)).thenReturn(Optional.of(colaborador));
-        when(asignaciones.findByProyectoProjectManagerIdUsuarioOrderByFechaInicioDesc(10))
-                .thenReturn(List.of());
-        Asignacion asignacion = new Asignacion();
-        asignacion.setEstado(Asignacion.EstadoAsignacion.PLANIFICADA);
-        Model modelo = new ExtendedModelMap();
-        assertEquals("pm/asignaciones", controlador.guardarAsignacion(
-                asignacion, validacion, 8, 6, modelo));
-        assertSame(proyecto, asignacion.getProyecto());
-        assertSame(colaborador, asignacion.getColaborador());
-        verify(asignaciones).save(asignacion);
+    void formularioValidoSeDelegaAlServicioConElGestor() {
+        Usuario gestor = configurarGestor();
+        AsignacionFormulario formulario = new AsignacionFormulario();
+        formulario.setIdProyecto(8);
+        formulario.setIdColaborador(6);
+        var redirect = new RedirectAttributesModelMap();
+        assertEquals("redirect:/pm/asignaciones", gestionController.guardar(
+                formulario, validacion, gestor, new ExtendedModelMap(), redirect));
+        verify(gestion).guardar(formulario, gestor);
     }
 
     @Test
-    void asignacionConErroresNoDebePersistirse() {
-        configurarGestor();
-        Proyecto proyecto = proyecto("Portal interno", Proyecto.EstadoProyecto.ACTIVE);
-        when(proyectos.findById(8)).thenReturn(Optional.of(proyecto));
-        when(colaboradores.findById(6)).thenReturn(Optional.of(new Colaborador()));
+    void formularioInvalidoNoSeEnviaAlServicio() {
+        Usuario gestor = configurarGestor();
         when(validacion.hasErrors()).thenReturn(true);
-        when(validacion.getAllErrors()).thenReturn(List.of(new ObjectError("asignacion", "Fecha inválida")));
-        when(proyectos.findByProjectManagerIdUsuarioOrderByFechaCreacionDesc(10)).thenReturn(List.of(proyecto));
-        Model modelo = new ExtendedModelMap();
-        assertEquals("pm/asignacion-form", controlador.guardarAsignacion(
-                new Asignacion(), validacion, 8, 6, modelo));
-        assertEquals("Fecha inválida", modelo.asMap().get("mensajeError"));
-        verify(asignaciones, never()).save(any());
+        assertEquals("pm/asignacion-form", gestionController.guardar(
+                new AsignacionFormulario(), validacion, gestor, new ExtendedModelMap(),
+                new RedirectAttributesModelMap()));
+        verify(gestion, never()).guardar(any(), any());
     }
 
-    private void configurarGestor() {
+    private Usuario configurarGestor() {
         Usuario gestor = new Usuario();
         gestor.setIdUsuario(10);
         Rol rol = new Rol(); rol.setNombre("PROJECT_MANAGER");
         gestor.setRol(rol);
-        when(usuarios.findFirstByRolNombreOrderByIdUsuarioAsc("PROJECT_MANAGER"))
-                .thenReturn(Optional.of(gestor));
+        return gestor;
     }
 
     private Proyecto proyecto(String nombre, Proyecto.EstadoProyecto estado) {

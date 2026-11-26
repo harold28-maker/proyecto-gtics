@@ -14,6 +14,14 @@ import org.springframework.ui.Model;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import pe.edu.pucp.skillbridge.controller.ColaboradorController;
+import pe.edu.pucp.skillbridge.controller.ComunicacionColaboradorController;
+import pe.edu.pucp.skillbridge.dto.HabilidadColaboradorDTO.Nivel;
+import pe.edu.pucp.skillbridge.dto.HabilidadPerfilForm;
+import pe.edu.pucp.skillbridge.dto.FilaAsignacionDTO;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
+import org.springframework.transaction.support.TransactionCallback;
+import java.time.LocalDate;
 import pe.edu.pucp.skillbridge.entity.*;
 import pe.edu.pucp.skillbridge.repository.*;
 import pe.edu.pucp.skillbridge.service.CapacidadColaboradorService;
@@ -35,10 +43,8 @@ class ColaboradorUnitTest {
     @Mock HabilidadRepository habilidades;
     @Mock CertificacionRepository certificaciones;
     @Mock AsignacionRepository asignaciones;
-    @Mock ForoRepository foros;
     @Mock NotificacionRepository notificaciones;
     @Mock MensajeChatRepository mensajes;
-    @Mock RespuestaForoRepository respuestas;
     @Mock CapacidadColaboradorService capacidad;
     @Mock FotoPerfilService fotos;
     @Mock TransactionTemplate transacciones;
@@ -49,7 +55,7 @@ class ColaboradorUnitTest {
     @BeforeEach
     void preparar() {
         controlador = new ColaboradorController(usuarios, colaboradores, habilidades, certificaciones,
-                asignaciones, foros, notificaciones, mensajes, respuestas, capacidad, fotos,
+                asignaciones, capacidad, fotos,
                 transacciones, entidades);
     }
 
@@ -100,53 +106,68 @@ class ColaboradorUnitTest {
     @Test
     void noRegistraHabilidadConExperienciaNegativa() {
         configurarColaborador(12);
-        Model model = new ExtendedModelMap();
-        assertEquals("colaborador/habilidades", controlador.guardarHabilidad(
-                3, "BASICO", new BigDecimal("-1"), model));
-        assertTrue(((String) model.asMap().get("mensajeError")).contains("entre 0 y 50"));
+        HabilidadPerfilForm formulario = habilidad(Nivel.BASICO, "-1");
+        var errores = new BeanPropertyBindingResult(formulario, "habilidadForm");
+        var redirect = new RedirectAttributesModelMap();
+        String vista = controlador.guardarHabilidad(formulario, errores, new ExtendedModelMap(), redirect);
+        assertEquals("colaborador/habilidades", vista);
+        assertTrue(errores.hasFieldErrors("aniosExperiencia"));
         verify(colaboradores, never()).guardarHabilidad(any(), any(), any(), any());
     }
 
     @Test
     void noRegistraHabilidadConNivelDesconocido() {
         configurarColaborador(12);
-        Model model = new ExtendedModelMap();
-        controlador.guardarHabilidad(3, "MAESTRO", new BigDecimal("2"), model);
-        assertEquals("Selecciona un nivel válido.", model.asMap().get("mensajeError"));
+        HabilidadPerfilForm formulario = habilidad(null, "2");
+        var errores = new BeanPropertyBindingResult(formulario, "habilidadForm");
+        var redirect = new RedirectAttributesModelMap();
+        errores.rejectValue("nivel", "typeMismatch");
+        String vista = controlador.guardarHabilidad(formulario, errores, new ExtendedModelMap(), redirect);
+        assertEquals("colaborador/habilidades", vista);
+        assertEquals("typeMismatch", errores.getFieldError("nivel").getCode());
         verify(colaboradores, never()).guardarHabilidad(any(), any(), any(), any());
     }
 
     @Test
     void guardaHabilidadDisponibleQueAunNoTieneElColaborador() {
         configurarColaborador(12);
-        Habilidad h = nuevaHabilidad(true);
-        when(habilidades.buscarParaActualizar(3)).thenReturn(Optional.of(h));
-        Model model = new ExtendedModelMap();
-        assertEquals("colaborador/habilidades", controlador.guardarHabilidad(
-                3, "AVANZADO", new BigDecimal("4.5"), model));
+        ejecutarTransaccion();
+        when(habilidades.buscarParaActualizar(3)).thenReturn(Optional.of(nuevaHabilidad(true)));
+        HabilidadPerfilForm formulario = habilidad(Nivel.AVANZADO, "4.5");
+        var errores = new BeanPropertyBindingResult(formulario, "habilidadForm");
+        var redirect = new RedirectAttributesModelMap();
+        String vista = controlador.guardarHabilidad(formulario, errores, new ExtendedModelMap(), redirect);
+        assertEquals("redirect:/colaborador/habilidades", vista);
         verify(colaboradores).guardarHabilidad(12, 3, "AVANZADO", new BigDecimal("4.5"));
-        assertEquals("Habilidad agregada correctamente.", model.asMap().get("mensajeExito"));
+        assertEquals("Habilidad agregada correctamente.", redirect.getFlashAttributes().get("mensajeExito"));
     }
 
     @Test
     void noAgregaHabilidadInactiva() {
         configurarColaborador(12);
+        ejecutarTransaccion();
         when(habilidades.buscarParaActualizar(3)).thenReturn(Optional.of(nuevaHabilidad(false)));
-        Model model = new ExtendedModelMap();
-        controlador.guardarHabilidad(3, "AVANZADO", new BigDecimal("2"), model);
-        assertTrue(((String) model.asMap().get("mensajeError")).contains("ya no está disponible"));
+        HabilidadPerfilForm formulario = habilidad(Nivel.AVANZADO, "2");
+        var errores = new BeanPropertyBindingResult(formulario, "habilidadForm");
+        var redirect = new RedirectAttributesModelMap();
+        String vista = controlador.guardarHabilidad(formulario, errores, new ExtendedModelMap(), redirect);
+        assertEquals("colaborador/habilidades", vista);
+        assertEquals("validation.habilidadPerfil.id.noDisponible", errores.getFieldError("idHabilidad").getCode());
         verify(colaboradores, never()).guardarHabilidad(any(), any(), any(), any());
     }
 
     @Test
     void noDuplicaUnaHabilidadYaRegistrada() {
         configurarColaborador(12);
+        ejecutarTransaccion();
         when(habilidades.buscarParaActualizar(3)).thenReturn(Optional.of(nuevaHabilidad(true)));
-        when(colaboradores.obtenerHabilidades(12)).thenReturn(List.<Object[]>of(
-                new Object[]{3, "Java", "Backend", "AVANZADO", new BigDecimal("3")}));
-        Model model = new ExtendedModelMap();
-        controlador.guardarHabilidad(3, "EXPERTO", new BigDecimal("5"), model);
-        assertTrue(((String) model.asMap().get("mensajeError")).contains("ya forma parte de tu perfil"));
+        when(colaboradores.contarHabilidad(12, 3)).thenReturn(1L);
+        HabilidadPerfilForm formulario = habilidad(Nivel.EXPERTO, "5");
+        var errores = new BeanPropertyBindingResult(formulario, "habilidadForm");
+        var redirect = new RedirectAttributesModelMap();
+        String vista = controlador.guardarHabilidad(formulario, errores, new ExtendedModelMap(), redirect);
+        assertEquals("colaborador/habilidades", vista);
+        assertEquals("validation.habilidadPerfil.id.duplicada", errores.getFieldError("idHabilidad").getCode());
         verify(colaboradores, never()).guardarHabilidad(any(), any(), any(), any());
     }
 
@@ -158,8 +179,9 @@ class ColaboradorUnitTest {
         when(asignaciones.findByColaboradorIdColaboradorOrderByFechaInicioDesc(12))
                 .thenReturn(List.of(vigente, historica));
         Model model = new ExtendedModelMap();
-        assertEquals("colaborador/proyectos", controlador.proyectos(Set.of("historial"), model));
-        assertEquals(List.of(vigente), model.asMap().get("asignaciones"));
+        assertEquals("colaborador/mis-proyectos", controlador.proyectos(1, Set.of("historial"), model));
+        assertEquals(1, model.getAttribute("totalProyectos"));
+        assertEquals(false, model.getAttribute("puedeVerHistorial"));
     }
 
     @Test
@@ -170,23 +192,33 @@ class ColaboradorUnitTest {
         when(asignaciones.findByColaboradorIdColaboradorOrderByFechaInicioDesc(12))
                 .thenReturn(List.of(vigente, historica));
         Model model = new ExtendedModelMap();
-        assertEquals("colaborador/proyectos", controlador.historial(model));
-        assertEquals(List.of(historica), model.asMap().get("asignaciones"));
+        assertEquals("colaborador/historial", controlador.historial(Set.of(), model));
+        var filas = (List<?>) model.getAttribute("filas");
+        assertEquals(1, filas.size());
+        assertSame(historica, ((FilaAsignacionDTO) filas.get(0)).asignacion());
     }
 
     @Test
     void marcarTodasLasNotificacionesActualizaSoloLasDelUsuarioAutenticado() {
-        configurarColaborador(12);
-        Notificacion primera = new Notificacion(); primera.setLeida(false);
-        Notificacion segunda = new Notificacion(); segunda.setLeida(false);
-        when(notificaciones.findByUsuarioIdUsuarioOrderByFechaCreacionDesc(22))
-                .thenReturn(List.of(primera, segunda));
-        Model model = new ExtendedModelMap();
-        assertEquals("colaborador/notificaciones", controlador.marcarTodasLeidas(model));
-        assertTrue(primera.getLeida());
-        assertTrue(segunda.getLeida());
-        assertEquals(0L, model.asMap().get("noLeidas"));
-        verify(notificaciones).saveAll(List.of(primera, segunda));
+        Usuario usuario = new Usuario();
+        usuario.setIdUsuario(22);
+        var comunicacion = new ComunicacionColaboradorController(null, mensajes, notificaciones);
+        var redirect = new RedirectAttributesModelMap();
+        assertEquals("redirect:/colaborador/notificaciones", comunicacion.marcarTodas("TODAS", usuario, redirect));
+        verify(notificaciones).marcarTodasLeidas(22);
+    }
+
+    private HabilidadPerfilForm habilidad(Nivel nivel, String anios) {
+        HabilidadPerfilForm formulario = new HabilidadPerfilForm();
+        formulario.setIdHabilidad(3);
+        formulario.setNivel(nivel);
+        formulario.setAniosExperiencia(anios);
+        return formulario;
+    }
+
+    private void ejecutarTransaccion() {
+        when(transacciones.execute(any())).thenAnswer(invocacion ->
+                invocacion.<TransactionCallback<?>>getArgument(0).doInTransaction(null));
     }
 
     private Colaborador configurarColaborador(int id) {
@@ -215,9 +247,12 @@ class ColaboradorUnitTest {
     private Asignacion asignacion(Proyecto.EstadoProyecto estadoProyecto, Asignacion.EstadoAsignacion estado) {
         Proyecto proyecto = new Proyecto();
         proyecto.setEstado(estadoProyecto);
+        proyecto.setIdProyecto(estadoProyecto.ordinal() + 1);
         Asignacion a = new Asignacion();
         a.setProyecto(proyecto);
         a.setEstado(estado);
+        a.setIdAsignacion(estado.ordinal() + 1);
+        a.setFechaInicio(LocalDate.now().minusDays(2));
         return a;
     }
 }
