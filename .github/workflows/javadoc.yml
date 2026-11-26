@@ -3,59 +3,6 @@ name: Generar y desplegar Javadoc
 on:
   push:
     branches:
-      - main # Ejecuta la acción con cada push en la rama main
-
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - name: 1. Obtener el código fuente
-        uses: actions/checkout@v4
-
-      - name: 2. Configurar el JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: maven
-
-      - name: 3. Generar el Javadoc con Maven
-        run: mvn javadoc:javadoc -Ddoclint=none
-
-      - name: 4. Configurar GitHub Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: 5. Preparar el artefacto de documentación
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'target/reports/apidocs' 
-
-      - name: 6. Desplegar en GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-name: Generar y desplegar Javadoc
-
-on:
-  push:
-    branches:
       - main
 
 # Permisos necesarios para publicar en GitHub Pages
