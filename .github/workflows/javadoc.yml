@@ -45,7 +45,7 @@ jobs:
       - name: 5. Preparar el artefacto de documentación
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'target/site/apidocs' # Carpeta generada por Maven
+          path: 'target/reports/apidocs' # Carpeta generada por Maven
 
       - name: 6. Desplegar en GitHub Pages
         id: deployment
