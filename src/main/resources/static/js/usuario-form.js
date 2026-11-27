@@ -10,6 +10,83 @@ document.querySelectorAll("[data-mostrar-clave]").forEach((boton) => {
 const campoFoto = document.getElementById("fotoPerfil");
 if (campoFoto) prepararRecorte(campoFoto);
 
+const consultaDni = document.getElementById("usuarioDniConsulta");
+if (consultaDni) prepararConsultaDni(consultaDni);
+
+function prepararConsultaDni(panel) {
+    const dni = document.getElementById("usuarioDni");
+    const boton = document.getElementById("usuarioDniBoton");
+    const autorizado = document.getElementById("usuarioDniAutorizado");
+    const estado = document.getElementById("usuarioDniEstado");
+    const nombres = document.getElementById("nombres");
+    const apellidos = document.getElementById("apellidos");
+
+    function informar(mensaje, error = false) {
+        estado.textContent = mensaje;
+        estado.classList.toggle("field-error", error);
+    }
+
+    panel.disabled = false;
+    dni.addEventListener("input", () => {
+        autorizado.checked = false;
+        informar("");
+    });
+    dni.addEventListener("keydown", (evento) => {
+        if (evento.key !== "Enter" || evento.isComposing) return;
+        evento.preventDefault();
+        boton.click();
+    });
+
+    boton.addEventListener("click", async () => {
+        if (!/^[0-9]{8}$/.test(dni.value)) {
+            informar("Ingresa exactamente 8 dígitos.", true);
+            dni.focus();
+            return;
+        }
+        if (!autorizado.checked) {
+            informar("Confirma que tienes autorización para consultar este DNI.", true);
+            autorizado.focus();
+            return;
+        }
+
+        dni.readOnly = true;
+        boton.disabled = true;
+        autorizado.disabled = true;
+        informar("Consultando DNI…");
+        const errorConsulta = "No se pudo completar la consulta. Puedes ingresar los datos manualmente.";
+        try {
+            const respuesta = await fetch(panel.dataset.url, {
+                method: "POST",
+                headers: { Accept: "application/json", [panel.dataset.csrfHeader]: panel.dataset.csrfToken },
+                body: new URLSearchParams({ dni: dni.value, consentimiento: "true" }),
+                cache: "no-store"
+            });
+            if (respuesta.redirected || respuesta.status === 403) {
+                informar("La consulta requiere una sesión activa de administrador con permiso de Usuarios.", true);
+                return;
+            }
+            const resultado = await respuesta.json();
+            if (!respuesta.ok || !resultado.nombres || !resultado.apellidos) {
+                informar(resultado.error || errorConsulta, true);
+                return;
+            }
+            nombres.value = resultado.nombres;
+            apellidos.value = resultado.apellidos;
+            if (nombres.value.length > 20 || apellidos.value.length > 20) {
+                informar("Datos encontrados. Revisa el límite de 20 caracteres por campo antes de guardar.");
+            } else {
+                informar("Nombres y apellidos completados.");
+            }
+        } catch {
+            informar(errorConsulta, true);
+        } finally {
+            dni.readOnly = false;
+            boton.disabled = false;
+            autorizado.disabled = false;
+        }
+    });
+}
+
 function prepararRecorte(campo) {
     const ventana = document.getElementById("recorteFoto");
     const lienzo = ventana.querySelector("canvas");

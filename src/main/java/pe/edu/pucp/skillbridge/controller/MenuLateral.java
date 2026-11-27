@@ -21,9 +21,7 @@ public class MenuLateral {
                     enlace("/admin/categorias", "Categorías", "categorias"),
                     enlace("/admin/auditoria", "Auditoría", "auditoria"),
                     enlace("/admin/monitoreo", "Monitoreo", "monitoreo"),
-                    enlace("/admin/reportes", "Reportes", "reportes"),
-                    enlace("/mensajes", "Chat por proyecto", null),
-                    enlace("/admin/consulta-dni", "Consulta DNI", null)
+                    enlace("/admin/reportes", "Reportes", "reportes")
             ),
             "PM", List.of(
                     enlace("/pm/inicio", "Inicio", null, "/pm/dashboard"),
@@ -34,8 +32,7 @@ public class MenuLateral {
                     enlace("/pm/recomendaciones", "Recomendaciones", "recomendaciones"),
                     enlace("/pm/foros", "Foro", "foros", "/foros"),
                     enlace("/pm/reportes", "Reportes", "reportes"),
-                    enlace("/pm/historial", "Historial", "historial"),
-                    enlace("/mensajes", "Chat por proyecto", null)
+                    enlace("/pm/historial", "Historial", "historial")
             ),
             "RM", List.of(
                     enlace("/resource/inicio", "Inicio", null, "/resource/dashboard"),
@@ -45,9 +42,7 @@ public class MenuLateral {
                     enlace("/resource/carga", "Carga de trabajo", "capacidad"),
                     enlace("/resource/talent", "Asignación de talento", "talento"),
                     enlace("/resource/reportes", "Reportes", "reportes"),
-                    enlace("/resource/historial", "Proyectos anteriores", "historial"),
-                    enlace("/mensajes", "Chat por proyecto", null),
-                    enlace("/resource/consulta-dni", "Consulta DNI", null)
+                    enlace("/resource/historial", "Proyectos anteriores", "historial")
             ),
             "COL", List.of(
                     enlace("/colaborador/inicio", "Inicio", null),
@@ -59,7 +54,6 @@ public class MenuLateral {
                     enlace("/colaborador/asignaciones", "Mis asignaciones", "asignaciones"),
                     enlace("/colaborador/foros", "Foro", "foros", "/foros"),
                     enlace("/colaborador/chat", "Chat", "chat"),
-                    enlace("/mensajes", "Chat por proyecto", "chat"),
                     enlace("/colaborador/asistente", "Asistente de IA", "asistente"),
                     enlace("/colaborador/notificaciones", "Notificaciones", "notificaciones")
             )

@@ -16,6 +16,9 @@ public class GuiaLocalChatGateway implements AiChatGateway {
     public String generar(String contexto, String pregunta) {
         String texto = pregunta.toLowerCase(Locale.ROOT);
         String inicio = "Estás usando la guía local (sin Gemini). ";
+        if (texto.contains("mensaje") || texto.contains("chat")) {
+            return inicio + "En el menú de Colaborador, abre Chat para comunicarte con tu equipo.";
+        }
         if (texto.contains("proyecto") || texto.contains("asignaci")) {
             return inicio + "Revisa los módulos Proyectos y Asignaciones en el menú de tu rol. "
                    + "Para consultar y resumir automáticamente tus datos, configura Gemini en el servidor.";
@@ -27,15 +30,11 @@ public class GuiaLocalChatGateway implements AiChatGateway {
         if (texto.contains("reporte") || texto.contains("dashboard") || texto.contains("gráfic")) {
             return inicio + "Abre Reportes desde tu rol para consultar indicadores y exportar los datos disponibles.";
         }
-        if (texto.contains("mensaje") || texto.contains("chat")) {
-            return inicio + "Abre Chat por proyecto en el menú para comunicarte con tu equipo. "
-                   + "El Asistente IA es distinto al chat entre personas.";
-        }
         if (texto.contains("dni") || texto.contains("reniec") || texto.contains("identidad")) {
-            return inicio + "Los roles Administrador y Resource Manager tienen la pantalla Consulta DNI. "
+            return inicio + "En Administrador, abre Usuarios y selecciona Nuevo usuario para consultar el DNI. "
                    + "La consulta usa API Perú y requiere un token configurado en el servidor.";
         }
         return inicio + "Puedo orientarte sobre Proyectos, Asignaciones, Habilidades, Reportes, "
-               + "Chat por proyecto y Consulta DNI. Para respuestas personalizadas habilita Gemini.";
+               + "Chat de Colaborador y registro de usuarios. Para respuestas personalizadas habilita Gemini.";
     }
 }

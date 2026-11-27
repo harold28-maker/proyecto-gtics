@@ -34,7 +34,7 @@ public class PermisosWebConfig implements WebMvcConfigurer, HandlerInterceptor {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(this)
-                .addPathPatterns("/admin/**", "/pm/**", "/resource/**", "/colaborador/**", "/foros/**", "/mensajes/**", "/api/chatbot/**");
+                .addPathPatterns("/admin/**", "/pm/**", "/resource/**", "/colaborador/**", "/foros/**", "/api/chatbot/**");
     }
 
     @Override

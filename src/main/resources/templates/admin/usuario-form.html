@@ -61,11 +61,32 @@
                     </section>
 
                     <section class="usuario-simple-section usuario-bloque" aria-labelledby="datosTitulo">
-                        <div class="usuario-simple-title">
-                            <h3 id="datosTitulo" th:text="${editar ? 'Datos personales' : 'Información personal'}">
-                                Información personal
-                            </h3>
-                            <p th:unless="${editar}">Datos personales y de contacto del usuario.</p>
+                        <div class="usuario-datos-encabezado">
+                            <div class="usuario-simple-title">
+                                <h3 id="datosTitulo" th:text="${editar ? 'Datos personales' : 'Información personal'}">
+                                    Información personal
+                                </h3>
+                                <p th:unless="${editar}">Datos personales y de contacto del usuario.</p>
+                            </div>
+                            <fieldset class="usuario-dni" id="usuarioDniConsulta" th:unless="${editar}" disabled
+                                      aria-label="Autocompletar con DNI"
+                                      th:attr="data-url=@{/admin/usuarios/consulta-dni},data-csrf-header=${_csrf.headerName},data-csrf-token=${_csrf.token}">
+                                <div class="form-group">
+                                    <label for="usuarioDni">DNI (8 dígitos)</label>
+                                    <div class="usuario-dni-controles">
+                                        <input id="usuarioDni" type="text" inputmode="numeric" maxlength="8"
+                                               autocomplete="off" placeholder="Ingresa el DNI"
+                                               aria-describedby="usuarioDniEstado">
+                                        <button id="usuarioDniBoton" class="btn btn-light" type="button">Consultar DNI</button>
+                                    </div>
+                                </div>
+                                <label class="usuario-dni-autorizacion">
+                                    <input id="usuarioDniAutorizado" type="checkbox">
+                                    Confirmo que tengo autorización para consultar este DNI.
+                                </label>
+                                <p id="usuarioDniEstado" class="form-note usuario-dni-estado" role="status"></p>
+                                <noscript><p class="form-note">Activa JavaScript para consultar el DNI.</p></noscript>
+                            </fieldset>
                         </div>
                         <div class="form-grid">
                             <div class="form-group">

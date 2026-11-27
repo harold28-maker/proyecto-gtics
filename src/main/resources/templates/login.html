@@ -50,9 +50,13 @@
 
                 <div class="login-field-simple">
                     <label for="password">Contraseña</label>
-                    <input id="password" name="password" type="password"
-                           aria-required="true" autocomplete="off"
-                           th:attr="aria-invalid=${errorContrasena != null}, aria-describedby=${errorContrasena != null ? 'error-contrasena' : null}">
+                    <div class="login-password-simple">
+                        <input id="password" name="password" type="password"
+                               aria-required="true" autocomplete="off"
+                               th:attr="aria-invalid=${errorContrasena != null}, aria-describedby=${errorContrasena != null ? 'error-contrasena' : null}">
+                        <button id="loginMostrarClave" type="button" aria-controls="password"
+                                aria-label="Mostrar contraseña" hidden>Mostrar</button>
+                    </div>
                     <p id="error-contrasena" class="field-error" role="alert"
                        th:if="${errorContrasena}" th:text="${errorContrasena}"></p>
                     <a class="login-link-simple" th:href="@{/recuperar-contrasena}">¿Olvidaste tu contraseña?</a>
@@ -70,11 +74,25 @@
     document.getElementById('cerrar-sesion-login').requestSubmit();
 </script>
 <script th:unless="${sesionActiva}">
+    const clave = document.getElementById('password');
+    const mostrarClave = document.getElementById('loginMostrarClave');
+
+    function cambiarVisibilidadClave(visible) {
+        clave.type = visible ? 'text' : 'password';
+        mostrarClave.textContent = visible ? 'Ocultar' : 'Mostrar';
+        mostrarClave.setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    }
+
+    mostrarClave.hidden = false;
+    mostrarClave.addEventListener('click', function () {
+        cambiarVisibilidadClave(clave.type === 'password');
+    });
+
     // Seguridad: nunca conservar la contraseña al regresar a esta página.
     // El correo se restaura desde el servidor solamente si la contraseña falló.
     window.addEventListener('pageshow', function () {
-        const clave = document.getElementById('password');
-        if (clave) clave.value = '';
+        cambiarVisibilidadClave(false);
+        clave.value = '';
     });
 </script>
 </body>

@@ -17,9 +17,9 @@
             <p class="alert-success" role="status" th:if="${mensajeExito}" th:text="${mensajeExito}"></p>
             <p class="alert-error" role="alert" th:if="${mensajeError}" th:text="${mensajeError}"></p>
             <section class="page-intro vista-portada">
-                <div><h2>Chat de proyectos</h2><p>Conversa con el equipo de cada proyecto.</p></div>
+                <div><h2>Chat</h2><p>Conversa con tu equipo.</p></div>
             </section>
-            <section class="card panel-consulta chat-colaborador" aria-label="Chat de proyectos">
+            <section class="card panel-consulta chat-colaborador" aria-label="Conversaciones">
                 <nav class="chat-conversaciones" aria-label="Conversaciones">
                     <h3>Conversaciones</h3>
                     <p class="muted" th:if="${proyectosChat.isEmpty()}">Aún no tienes conversaciones de proyectos.</p>
